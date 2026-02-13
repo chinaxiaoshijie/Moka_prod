@@ -28,3 +28,8 @@ yarn-error.log*
 # Worktrees
 .worktrees/
 worktrees/
+
+# Environment
+.env
+.env.local
+.env.*.local

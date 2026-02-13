@@ -1,0 +1,176 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Seed script
+// Run with: bun run prisma:seed
+
+// 系统用户（HR、面试官）
+model User {
+  id        String   @id @default(uuid())
+  username  String   @unique
+  password  String   // bcrypt 加密
+  name      String
+  email     String?  // 用于接收通知
+  role      Role     @default(INTERVIEWER)
+  avatarUrl String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // 作为面试官的面试
+  interviewsAsInterviewer Interview[] @relation("InterviewerInterviews")
+  // 作为创建者的面试
+  createdInterviews    Interview[]  @relation("CreatorInterviews")
+
+  // 反馈
+  feedbacks InterviewFeedback[]
+
+  @@map("users")
+}
+
+// 职位
+model Position {
+  id               String          @id @default(uuid())
+  title            String
+  description      String?
+  requirements     String?
+  salaryMin        Int?
+  salaryMax        Int?
+  headcount        Int             @default(1)
+  hiredCount       Int             @default(0)
+  inProgressCount  Int             @default(0)
+  status           PositionStatus  @default(OPEN)
+  location         String?
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  candidates Candidate[]
+  interviews Interview[]
+
+  @@map("positions")
+}
+
+// 候选人（外部人员，不登录）
+model Candidate {
+  id         String             @id @default(uuid())
+  name       String
+  phone      String
+  email      String?
+  positionId String?
+  status     CandidateStatus    @default(PENDING)
+  source     CandidateSource?
+  resumeUrl  String?
+  createdAt  DateTime           @default(now())
+  updatedAt  DateTime           @updatedAt
+
+  position   Position?  @relation(fields: [positionId], references: [id])
+  interviews Interview[]
+
+  @@unique([name, phone]) // 去重约束
+  @@map("candidates")
+}
+
+// 面试
+model Interview {
+  id            String         @id @default(uuid())
+  candidateId   String
+  positionId    String
+  interviewerId String
+  type          InterviewType
+  format        InterviewFormat
+  startTime     DateTime
+  endTime       DateTime
+  location      String?
+  meetingUrl    String?
+  meetingNumber String?
+  status        InterviewStatus @default(SCHEDULED)
+  createdAt     DateTime        @default(now())
+  createdById   String?
+
+  candidate   Candidate @relation(fields: [candidateId], references: [id])
+  position    Position  @relation(fields: [positionId], references: [id])
+  interviewer User      @relation("InterviewerInterviews", fields: [interviewerId], references: [id])
+  createdBy   User?     @relation("CreatorInterviews", fields: [createdById], references: [id])
+  feedbacks   InterviewFeedback[]
+
+  @@map("interviews")
+}
+
+// 面试反馈
+model InterviewFeedback {
+  id            String   @id @default(uuid())
+  interviewId   String
+  interviewerId String
+  result        FeedbackResult
+  strengths     String?
+  weaknesses    String?
+  overallRating Int?     // 1-5 星
+  notes         String?
+  createdAt     DateTime @default(now())
+
+  interview Interview @relation(fields: [interviewId], references: [id])
+  interviewer User      @relation(fields: [interviewerId], references: [id])
+
+  @@map("interview_feedbacks")
+}
+
+// Enums
+
+enum Role {
+  HR
+  INTERVIEWER
+}
+
+enum PositionStatus {
+  OPEN
+  PAUSED
+  CLOSED
+}
+
+enum CandidateStatus {
+  PENDING
+  SCREENING
+  INTERVIEW_1
+  INTERVIEW_2
+  INTERVIEW_3
+  HIRED
+  REJECTED
+}
+
+enum CandidateSource {
+  BOSS
+  REFERRAL
+  HEADHUNTER
+  WEBSITE
+}
+
+enum InterviewType {
+  INTERVIEW_1 // 初试
+  INTERVIEW_2 // 复试
+  INTERVIEW_3 // 终试
+}
+
+enum InterviewFormat {
+  ONLINE  // 线上（腾讯会议）
+  OFFLINE // 线下
+}
+
+enum InterviewStatus {
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+}
+
+enum FeedbackResult {
+  PASS
+  FAIL
+  PENDING
+}
