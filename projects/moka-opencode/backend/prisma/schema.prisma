@@ -29,9 +29,30 @@ model User {
   interviewsAsInterviewer Interview[] @relation("InterviewerInterviews")
   // 作为创建者的面试
   createdInterviews    Interview[]  @relation("CreatorInterviews")
+  // 面试流程相关
+  createdProcesses     InterviewProcess[] @relation("ProcessCreator")
+  interviewRounds      InterviewRound[]
 
   // 反馈
   feedbacks InterviewFeedback[]
+
+  // 通知
+  notifications Notification[]
+  
+  // 上传的简历文件
+  uploadedResumes ResumeFile[]
+  
+  // 被@的记录
+  mentionedIn CandidateMention[] @relation("MentionedInterviewer")
+  
+  // 发起的@记录
+  mentionsCreated CandidateMention[] @relation("MentionCreator")
+  
+  // 状态变更记录
+  statusChanges CandidateStatusHistory[]
+  
+  // 创建的反馈Token
+  feedbackTokens FeedbackToken[]
 
   @@map("users")
 }
@@ -54,6 +75,7 @@ model Position {
 
   candidates Candidate[]
   interviews Interview[]
+  interviewProcesses InterviewProcess[]
 
   @@map("positions")
 }
@@ -73,9 +95,57 @@ model Candidate {
 
   position   Position?  @relation(fields: [positionId], references: [id])
   interviews Interview[]
+  interviewProcesses InterviewProcess[]
+  
+  // 简历文件关联
+  resumeFiles ResumeFile[]
+  
+  // @面试官记录
+  mentions   CandidateMention[]
+  
+  // 状态变更历史
+  statusHistory CandidateStatusHistory[]
 
   @@unique([name, phone]) // 去重约束
   @@map("candidates")
+}
+
+// 面试流程（新增）
+model InterviewProcess {
+  id              String         @id @default(uuid())
+  candidateId     String
+  positionId      String
+  currentRound    Int            @default(1)  // 当前进行到哪一轮
+  totalRounds     Int            @default(3)  // 总轮数（默认3轮）
+  status          ProcessStatus  @default(IN_PROGRESS)
+  hasHRRound      Boolean        @default(true)  // 是否有HR初面（默认有）
+  createdById     String
+  createdAt       DateTime       @default(now())
+  completedAt     DateTime?
+  
+  candidate       Candidate @relation(fields: [candidateId], references: [id])
+  position        Position  @relation(fields: [positionId], references: [id])
+  createdBy       User      @relation("ProcessCreator", fields: [createdById], references: [id])
+  rounds          InterviewRound[]  // 轮次配置
+  interviews      Interview[]       // 实际的面试记录
+
+  @@map("interview_processes")
+}
+
+// 面试轮次配置（新增）
+model InterviewRound {
+  id              String   @id @default(uuid())
+  processId       String
+  roundNumber     Int      // 第几轮（1,2,3）
+  interviewerId   String   // 该轮的面试官
+  isHRRound       Boolean  @default(false)  // 是否是HR面试
+  roundType       String   // HR_SCREENING, TECHNICAL, FINAL
+  
+  process         InterviewProcess @relation(fields: [processId], references: [id])
+  interviewer     User @relation(fields: [interviewerId], references: [id])
+
+  @@unique([processId, roundNumber])
+  @@map("interview_rounds")
 }
 
 // 面试
@@ -94,12 +164,21 @@ model Interview {
   status        InterviewStatus @default(SCHEDULED)
   createdAt     DateTime        @default(now())
   createdById   String?
+  
+  // 流程相关字段（新增）
+  processId     String?
+  roundNumber   Int?
+  isHRRound     Boolean  @default(false)
 
   candidate   Candidate @relation(fields: [candidateId], references: [id])
   position    Position  @relation(fields: [positionId], references: [id])
   interviewer User      @relation("InterviewerInterviews", fields: [interviewerId], references: [id])
   createdBy   User?     @relation("CreatorInterviews", fields: [createdById], references: [id])
+  process     InterviewProcess? @relation(fields: [processId], references: [id])
   feedbacks   InterviewFeedback[]
+  
+  // 反馈Token（免登录提交）
+  feedbackToken FeedbackToken?
 
   @@map("interviews")
 }
@@ -169,8 +248,124 @@ enum InterviewStatus {
   CANCELLED
 }
 
+// 新增：面试流程状态
+enum ProcessStatus {
+  IN_PROGRESS    // 进行中
+  WAITING_HR     // 等待HR确认（某轮已完成）
+  COMPLETED      // 已完成
+  CANCELLED      // 已取消
+}
+
 enum FeedbackResult {
   PASS
   FAIL
   PENDING
+}
+
+// 通知
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String
+  type      NotificationType
+  title     String
+  content   String
+  read      Boolean          @default(false)
+  link      String?
+  createdAt DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, read])
+  @@map("notifications")
+}
+
+enum NotificationType {
+  INTERVIEW_REMINDER    // 面试提醒
+  FEEDBACK_REQUEST      // 反馈请求
+  PROCESS_UPDATE        // 流程更新
+  SYSTEM                // 系统通知
+}
+
+// 简历文件（支持多版本简历）
+model ResumeFile {
+  id           String   @id @default(uuid())
+  candidateId  String
+  fileName     String   // 原始文件名
+  fileType     String   // MIME类型 (application/pdf, application/msword等)
+  fileSize     Int      // 文件大小(字节)
+  filePath     String   // 服务器存储路径
+  fileUrl      String   // 访问URL
+  uploadedBy   String?  // 上传者ID
+  isActive     Boolean  @default(true)  // 是否是当前使用的简历
+  uploadedAt   DateTime @default(now())
+  
+  candidate    Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  uploadedByUser User?   @relation(fields: [uploadedBy], references: [id])
+  
+  @@index([candidateId])
+  @@map("resume_files")
+}
+
+// @面试官记录
+model CandidateMention {
+  id            String   @id @default(uuid())
+  candidateId   String
+  interviewerId String   // 被@的面试官
+  mentionedById String   // @操作者
+  message       String?  // 附带的留言
+  status        MentionStatus @default(PENDING)  // 查看状态
+  viewedAt      DateTime? // 查看时间
+  createdAt     DateTime @default(now())
+  
+  candidate     Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  interviewer   User      @relation("MentionedInterviewer", fields: [interviewerId], references: [id])
+  mentionedBy   User      @relation("MentionCreator", fields: [mentionedById], references: [id])
+  
+  @@index([candidateId])
+  @@index([interviewerId, status])
+  @@map("candidate_mentions")
+}
+
+enum MentionStatus {
+  PENDING    // 待查看
+  VIEWED     // 已查看
+  RESPONDED  // 已回复
+}
+
+// 面试反馈Token（免登录提交反馈）
+model FeedbackToken {
+  id            String    @id @default(uuid())
+  interviewId   String    @unique  // 一个面试只有一个有效token
+  interviewerId String             // 指定面试官
+  token         String    @unique   // 随机token字符串
+  expiresAt     DateTime           // 过期时间
+  usedAt        DateTime?          // 使用时间
+  isUsed        Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  
+  interview     Interview @relation(fields: [interviewId], references: [id], onDelete: Cascade)
+  interviewer   User      @relation(fields: [interviewerId], references: [id])
+  
+  @@index([token])
+  @@index([interviewId])
+  @@map("feedback_tokens")
+}
+
+// 候选人状态变更历史
+model CandidateStatusHistory {
+  id          String          @id @default(uuid())
+  candidateId String
+  oldStatus   CandidateStatus?
+  newStatus   CandidateStatus
+  reason      String?         // 变更原因
+  changedBy   String?         // 操作人ID
+  relatedInterviewId String?  // 关联的面试ID（如果是面试导致的变更）
+  createdAt   DateTime        @default(now())
+  
+  candidate   Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  changedByUser User?   @relation(fields: [changedBy], references: [id])
+  
+  @@index([candidateId])
+  @@index([createdAt])
+  @@map("candidate_status_history")
 }

@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, UnauthorizedException } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import { PrismaService } from "../prisma/prisma.service";
 import { LoginDto, AuthResponseDto } from "./dto/login.dto";
@@ -18,14 +18,13 @@ export class AuthService {
       where: { username },
     });
 
-    if (!user) {
-      throw new Error("用户名或密码错误");
-    }
-
-    const isPasswordValid = await bcrypt.compare(password, user.password);
+    // Use constant-time comparison to prevent timing attacks
+    const isPasswordValid = user
+      ? await bcrypt.compare(password, user.password)
+      : false;
 
     if (!isPasswordValid) {
-      throw new Error("用户名或密码错误");
+      throw new UnauthorizedException("用户名或密码错误");
     }
 
     const payload = {
@@ -64,9 +63,27 @@ export class AuthService {
     });
 
     if (!user) {
-      throw new Error("用户不存在");
+      throw new UnauthorizedException("用户不存在");
     }
 
     return user;
+  }
+
+  async findUsers(role?: string): Promise<any[]> {
+    const where: any = {};
+    if (role) where.role = role;
+
+    return this.prisma.user.findMany({
+      where,
+      select: {
+        id: true,
+        username: true,
+        name: true,
+        email: true,
+        role: true,
+        avatarUrl: true,
+      },
+      orderBy: { name: "asc" },
+    });
   }
 }

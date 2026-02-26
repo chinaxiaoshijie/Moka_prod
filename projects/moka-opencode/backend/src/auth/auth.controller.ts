@@ -5,6 +5,7 @@ import {
   Get,
   UseGuards,
   Request,
+  Query,
 } from "@nestjs/common";
 import {
   ApiTags,
@@ -45,5 +46,13 @@ export class AuthController {
   @ApiResponse({ status: 200 })
   async logout() {
     return { message: "Successfully logged out" };
+  }
+
+  @Get("users")
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "获取用户列表" })
+  async getUsers(@Query("role") role?: string) {
+    return this.authService.findUsers(role);
   }
 }

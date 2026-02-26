@@ -4,26 +4,26 @@ import { ApiProperty } from "@nestjs/swagger";
 export class LoginDto {
   @ApiProperty()
   @IsString()
-  username: string;
+  username!: string;
 
   @ApiProperty()
   @IsString()
   @MinLength(6)
-  password: string;
+  password!: string;
 }
 
 export class AuthResponseDto {
   @ApiProperty()
-  access_token: string;
+  access_token!: string;
 
   @ApiProperty()
-  token_type: string;
+  token_type!: string;
 
   @ApiProperty()
-  expires_in: number;
+  expires_in!: number;
 
   @ApiProperty()
-  user: {
+  user!: {
     id: string;
     username: string;
     name: string;
