@@ -1,0 +1,41 @@
+# 依赖文件夹（在容器中重新安装）
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# 构建输出（在容器中生成）
+dist/
+build/
+
+# 环境变量文件
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+
+# IDE 文件
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS 文件
+.DS_Store
+Thumbs.db
+
+# Git 文件
+.git/
+.gitignore
+
+# Docker 文件
+Dockerfile
+.dockerignore
+
+# 测试文件（生产构建不需要）
+coverage/
+
+# 其他临时文件
+.cache
