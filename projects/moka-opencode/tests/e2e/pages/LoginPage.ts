@@ -16,9 +16,7 @@ export class LoginPage {
     this.submitButton = page.locator(
       'button[type="submit"], button:has-text("登录"), button:has-text("登录")',
     );
-    this.errorMessage = page.locator(
-      '[class*="error"], [class*="alert"], [role="alert"]',
-    );
+    this.errorMessage = page.locator(".text-red-600");
   }
 
   async goto() {

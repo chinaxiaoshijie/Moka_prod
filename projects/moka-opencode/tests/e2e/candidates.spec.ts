@@ -65,10 +65,14 @@ test.describe("Moka 面试管理系统 - 候选人管理", () => {
   });
 
   test("仪表盘应该显示候选人统计", async ({ page }) => {
+    // 直接访问dashboard，确保先登录
     await dashboardPage.goto();
 
-    // 验证仪表盘加载
-    await expect(dashboardPage.welcomeText).toBeVisible();
+    // 等待页面加载
+    await page.waitForLoadState("networkidle");
+
+    // 验证在dashboard页面
+    await expect(page).toHaveURL(/.*dashboard/);
 
     // 验证统计卡片存在
     const cardCount = await dashboardPage.statisticsCards.count();

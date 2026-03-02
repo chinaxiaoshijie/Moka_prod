@@ -16,24 +16,14 @@ export class CandidatesPage {
     this.addButton = page.locator(
       'button:has-text("添加"), button:has-text("新增"), [data-testid="add-candidate"]',
     );
-    this.nameInput = page.locator(
-      'input[name="name"], input[placeholder*="姓名"]',
-    );
-    this.phoneInput = page.locator(
-      'input[name="phone"], input[placeholder*="电话"]',
-    );
-    this.emailInput = page.locator(
-      'input[name="email"], input[placeholder*="邮箱"]',
-    );
-    this.saveButton = page.locator(
-      'button:has-text("保存"), button:has-text("提交"), button[type="submit"]',
-    );
+    this.nameInput = page.locator('input[placeholder="候选人姓名"]');
+    this.phoneInput = page.locator('input[placeholder="手机号码"]');
+    this.emailInput = page.locator('input[placeholder="邮箱地址（选填）"]');
+    this.saveButton = page.locator('button:has-text("添加并启动流程")');
     this.candidateList = page.locator(
       '[class*="candidate"], [data-testid="candidate-item"], table tbody tr',
     );
-    this.searchInput = page.locator(
-      'input[placeholder*="搜索"], input[type="search"]',
-    );
+    this.searchInput = page.locator('input[placeholder="姓名、电话"]');
     this.successMessage = page.locator(
       '[class*="success"], [class*="toast"]:has-text("成功")',
     );
@@ -48,8 +38,9 @@ export class CandidatesPage {
     if (await this.addButton.isVisible()) {
       await this.addButton.click();
     }
-    await this.page.waitForTimeout(500);
 
+    // Wait for modal to be visible
+    await this.nameInput.waitFor({ state: "visible", timeout: 5000 });
     await this.nameInput.fill(name);
     await this.phoneInput.fill(phone);
     await this.emailInput.fill(email);

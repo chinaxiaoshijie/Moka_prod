@@ -12,6 +12,7 @@ import { InterviewProcessModule } from "./interview-processes/interview-process.
 import { EmailModule } from "./email/email.module";
 import { NotificationModule } from "./notifications/notification.module";
 import { AnalyticsModule } from "./analytics/analytics.module";
+import { UsersModule } from "./users/users.module";
 
 @Module({
   imports: [
@@ -33,6 +34,7 @@ import { AnalyticsModule } from "./analytics/analytics.module";
     EmailModule,
     NotificationModule,
     AnalyticsModule,
+    UsersModule,
   ],
 })
 export class AppModule {}

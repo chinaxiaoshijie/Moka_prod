@@ -11,7 +11,7 @@ export class DashboardPage {
 
   constructor(page: Page) {
     this.page = page;
-    this.welcomeText = page.locator('h1:has-text("欢迎"), h2:has-text("欢迎")').first();
+    this.welcomeText = page.locator('h1:has-text("欢迎回来"), h2:has-text("欢迎回来")').first();
     this.statisticsCards = page.locator('[class*="card"], [class*="statistic"]');
     this.candidateCount = page.locator('[class*="card"]:has-text("候选人")');
     this.interviewCount = page.locator('[class*="card"]:has-text("面试")');
