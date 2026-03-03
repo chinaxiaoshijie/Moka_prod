@@ -43,6 +43,8 @@ export default function InterviewDetailPage() {
   const interviewId = params.id as string;
 
   const [interview, setInterview] = useState<Interview | null>(null);
+  const [processInfo, setProcessInfo] = useState<any>(null);
+  const [loadingProcess, setLoadingProcess] = useState(false);
   const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -54,6 +56,13 @@ export default function InterviewDetailPage() {
       fetchFeedbacks();
     }
   }, [interviewId]);
+
+  // Fetch process info when interview is loaded
+  useEffect(() => {
+    if (interview?.processId) {
+      fetchProcessInfo();
+    }
+  }, [interview?.processId]);
 
   // Refresh data when page becomes visible (e.g., after returning from feedback page)
   useEffect(() => {
@@ -112,6 +121,27 @@ export default function InterviewDetailPage() {
       }
     } catch (err) {
       console.error("获取反馈失败", err);
+    }
+  };
+
+  // Fetch process info for timeline
+  const fetchProcessInfo = async () => {
+    if (!interview?.processId) return;
+    setLoadingProcess(true);
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch(
+        `http://localhost:3001/interview-processes/${interview.processId}`,
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
+      if (response.ok) {
+        const data = await response.json();
+        setProcessInfo(data);
+      }
+    } catch (err) {
+      console.error("获取流程信息失败", err);
+    } finally {
+      setLoadingProcess(false);
     }
   };
 
@@ -354,6 +384,109 @@ export default function InterviewDetailPage() {
               </div>
             </div>
           </div>
+
+
+          {/* 面试流程状态卡片 */}
+          {processInfo && (
+            <div className="mb-6 bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-lg font-bold text-slate-900">面试流程状态</h2>
+                <button
+                  onClick={() => router.push(`/interview-processes/${interview.processId}`)}
+                  className="text-sm text-amber-600 hover:text-amber-700 font-medium"
+                >
+                  查看详情 →
+                </button>
+              </div>
+              
+              {/* 进度条 */}
+              <div className="mb-4">
+                <div className="flex items-center justify-between text-sm mb-2">
+                  <span className="text-slate-500">
+                    当前第 {processInfo.currentRound} 轮 / 共 {processInfo.totalRounds} 轮
+                  </span>
+                  <span className={`px-2 py-0.5 rounded text-xs font-medium ${processInfo.status === 'IN_PROGRESS' ? 'bg-amber-100 text-amber-700' : processInfo.status === 'COMPLETED' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-700'}`}>
+                    {processInfo.status === 'IN_PROGRESS' ? '进行中' : processInfo.status === 'COMPLETED' ? '已完成' : '未开始'}
+                  </span>
+                </div>
+                <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                  <div 
+                    className="h-full bg-gradient-to-r from-amber-400 to-amber-500 rounded-full transition-all duration-500"
+                    style={{ width: `${(processInfo.currentRound / processInfo.totalRounds) * 100}%` }}
+                  />
+                </div>
+              </div>
+
+              {/* 轮次时间线 */}
+              <div className="flex items-center gap-2 overflow-x-auto pb-2">
+                {processInfo.rounds?.map((round: any) => {
+                  const interviewForRound = processInfo.interviews?.find(
+                    (i: any) => i.roundNumber === round.roundNumber
+                  );
+                  const isCompleted = interviewForRound?.status === 'COMPLETED';
+                  const isCurrent = round.roundNumber === processInfo.currentRound;
+                  const isScheduled = interviewForRound && interviewForRound.status === 'SCHEDULED';
+                  
+                  return (
+                    <div
+                      key={round.roundNumber}
+                      className={`flex-shrink-0 px-4 py-3 rounded-xl border-2 transition-all ${
+                        isCompleted 
+                          ? 'bg-emerald-50 border-emerald-200' 
+                          : isCurrent 
+                            ? 'bg-amber-50 border-amber-400' 
+                            : isScheduled
+                              ? 'bg-blue-50 border-blue-200'
+                              : 'bg-slate-50 border-slate-200'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2 mb-1">
+                        {isCompleted ? (
+                          <span className="text-emerald-600">✓</span>
+                        ) : isCurrent ? (
+                          <span className="text-amber-600 animate-pulse">●</span>
+                        ) : (
+                          <span className="text-slate-400">○</span>
+                        )}
+                        <span className={`font-medium text-sm ${
+                          isCompleted ? 'text-emerald-700' :
+                          isCurrent ? 'text-amber-700' : 'text-slate-600'
+                        }`}>
+                          {round.isHRRound ? 'HR面' : `第${round.roundNumber}轮`}
+                        </span>
+                      </div>
+                      <div className="text-xs text-slate-500">
+                        {round.interviewerName}
+                      </div>
+                      {interviewForRound && (
+                        <div className={`text-xs mt-1 ${
+                          isCompleted ? 'text-emerald-600' :
+                          isScheduled ? 'text-blue-600' : 'text-slate-400'
+                        }`}>
+                          {isCompleted ? '已完成' : 
+                           isScheduled ? new Date(interviewForRound.startTime).toLocaleDateString('zh-CN') : 
+                           '待安排'}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {loadingProcess && (
+            <div className="mb-6 bg-white rounded-2xl shadow-sm border border-slate-100 p-6">
+              <div className="animate-pulse">
+                <div className="h-6 bg-slate-200 rounded w-32 mb-4"></div>
+                <div className="flex gap-3">
+                  <div className="h-16 bg-slate-200 rounded w-24"></div>
+                  <div className="h-16 bg-slate-200 rounded w-24"></div>
+                  <div className="h-16 bg-slate-200 rounded w-24"></div>
+                </div>
+              </div>
+            </div>
+          )}
 
           {error && (
             <div className="mb-6 rounded-xl bg-red-50 border border-red-200 p-4 text-red-600 flex items-center gap-2">
