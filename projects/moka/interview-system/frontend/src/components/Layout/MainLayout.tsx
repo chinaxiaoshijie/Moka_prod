@@ -123,7 +123,9 @@ const MainLayout: React.FC = () => {
           justifyContent: 'space-between',
           alignItems: 'center'
         }}>
-          <div />
+          <div style={{ fontSize: 16, fontWeight: 500, color: '#333' }}>
+            欢迎回来，{state.user?.username || '用户'}
+          </div>
           <Dropdown
             menu={{
               items: userMenuItems,
