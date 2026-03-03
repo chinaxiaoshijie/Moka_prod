@@ -51,6 +51,14 @@ class Interview {
     this.created_by = data.created_by;
     this.created_at = data.created_at;
     this.updated_at = data.updated_at;
+
+    // JOIN fields (from candidates, positions, users tables)
+    this.candidate_name = data.candidate_name;
+    this.candidate_email = data.candidate_email;
+    this.candidate_phone = data.candidate_phone;
+    this.candidate_status = data.candidate_status;
+    this.position_title = data.position_title;
+    this.created_by_name = data.created_by_name;
   }
 
   // 创建面试
@@ -110,6 +118,18 @@ class Interview {
       const updates = [];
       const values = [];
 
+      // 如果更新面试时间，先检查冲突（在修改this之前）
+      if (data.scheduled_time && data.scheduled_time !== this.scheduled_time) {
+        const tempInterview = new Interview({
+          ...this,
+          ...data
+        });
+        const conflicts = await tempInterview.checkConflicts(this.id);
+        if (conflicts.length > 0) {
+          throw new Error('面试时间冲突，请选择其他时间');
+        }
+      }
+
       Object.keys(data).forEach(key => {
         if (allowedFields.includes(key) && data[key] !== undefined) {
           updates.push(`${key} = ?`);
@@ -120,18 +140,6 @@ class Interview {
 
       if (updates.length === 0) {
         throw new Error('没有需要更新的字段');
-      }
-
-      // 如果更新面试时间，检查冲突
-      if (data.scheduled_time && data.scheduled_time !== this.scheduled_time) {
-        const tempInterview = new Interview({
-          ...this,
-          ...data
-        });
-        const conflicts = await tempInterview.checkConflicts(this.id);
-        if (conflicts.length > 0) {
-          throw new Error('面试时间冲突，请选择其他时间');
-        }
       }
 
       updates.push('updated_at = CURRENT_TIMESTAMP');

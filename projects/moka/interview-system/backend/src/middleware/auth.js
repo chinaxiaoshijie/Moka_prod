@@ -1,5 +1,6 @@
 const { jwtUtils, responseUtils } = require('../utils/helpers');
 const { query } = require('../config/database');
+const { checkAndIncrementAttempts, clearAttempts } = require('../config/redis');
 
 // 认证中间件
 const authenticate = async (req, res, next) => {
@@ -169,54 +170,50 @@ const checkDepartment = async (req, res, next) => {
   }
 };
 
-// 登录尝试限制中间件
+// 登录尝试限制中间件（使用Redis存储）
 const loginAttemptLimiter = {
-  attempts: new Map(), // 存储登录尝试记录
-
   // 检查登录尝试
-  checkAttempts: (req, res, next) => {
+  checkAttempts: async (req, res, next) => {
     const identifier = req.body.email || req.body.username;
-    const clientIP = req.ip;
+    const clientIP = req.ip || req.connection.remoteAddress;
     const key = `${identifier}:${clientIP}`;
 
-    const attempts = loginAttemptLimiter.attempts.get(key) || { count: 0, lastAttempt: null };
+    try {
+      const result = await checkAndIncrementAttempts(key);
 
-    // 如果超过5次失败，且距离上次尝试不到1小时
-    if (attempts.count >= 5) {
-      const timeSinceLastAttempt = Date.now() - attempts.lastAttempt;
-      const oneHour = 60 * 60 * 1000;
-
-      if (timeSinceLastAttempt < oneHour) {
-        return responseUtils.error(res, '登录尝试过于频繁，请1小时后再试', 429);
-      } else {
-        // 重置计数
-        loginAttemptLimiter.attempts.delete(key);
+      if (!result.allowed) {
+        // 计算剩余等待时间
+        const remainingTime = Math.ceil((result.lastAttempt + 60 * 60 * 1000 - Date.now()) / 1000 / 60);
+        return responseUtils.error(
+          res,
+          `登录尝试过于频繁，请${remainingTime}分钟后再试`,
+          429
+        );
       }
-    }
 
-    req.loginKey = key;
-    next();
+      req.loginKey = key;
+      next();
+    } catch (error) {
+      console.error('登录限制检查错误:', error);
+      // 出错时允许继续（降级处理）
+      req.loginKey = key;
+      next();
+    }
   },
 
-  // 记录失败尝试
-  recordFailedAttempt: (key) => {
-    const attempts = loginAttemptLimiter.attempts.get(key) || { count: 0, lastAttempt: null };
-    attempts.count += 1;
-    attempts.lastAttempt = Date.now();
-    loginAttemptLimiter.attempts.set(key, attempts);
-
-    // 清理旧记录（超过24小时的记录）
-    const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
-    for (const [k, v] of loginAttemptLimiter.attempts.entries()) {
-      if (v.lastAttempt < oneDayAgo) {
-        loginAttemptLimiter.attempts.delete(k);
-      }
-    }
+  // 记录失败尝试（现在在Redis中自动处理）
+  recordFailedAttempt: async (key) => {
+    // Redis已自动增加计数，这里不需要额外操作
+    // 保留此接口以保持兼容性
   },
 
   // 清除成功登录的记录
-  clearAttempts: (key) => {
-    loginAttemptLimiter.attempts.delete(key);
+  clearAttempts: async (key) => {
+    try {
+      await clearAttempts(key);
+    } catch (error) {
+      console.error('清除登录记录失败:', error);
+    }
   }
 };
 

@@ -2,11 +2,31 @@ require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
-const morgan = require('morgan');
 const rateLimit = require('express-rate-limit');
 const path = require('path');
 
 const { testConnection } = require('./config/database');
+const { logger, createRequestLogger, requestIdMiddleware, logError } = require('./utils/logger');
+const { csrfProtection, generateCsrfToken, getCsrfToken } = require('./middleware/csrf');
+
+// 验证必需的环境变量
+const requiredEnvVars = ['JWT_SECRET'];
+const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
+
+if (missingEnvVars.length > 0) {
+  logger.error('缺少必需的环境变量: ' + missingEnvVars.join(', '));
+  logger.error('请在 .env 文件中配置这些变量');
+  process.exit(1);
+}
+
+// JWT_SECRET 安全检查
+if (process.env.JWT_SECRET && process.env.JWT_SECRET.length < 32) {
+  logger.warn('警告: JWT_SECRET 长度不足32个字符，建议使用更长的密钥');
+}
+
+if (process.env.JWT_SECRET && process.env.JWT_SECRET.includes('change-me')) {
+  logger.warn('警告: JWT_SECRET 使用默认值，生产环境请更换为随机密钥');
+}
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -40,15 +60,23 @@ const limiter = rateLimit({
   },
   standardHeaders: true,
   legacyHeaders: false,
+  handler: (req, res) => {
+    logger.warn({
+      ip: req.ip,
+      url: req.originalUrl
+    }, 'Rate limit exceeded');
+    res.status(429).json({
+      error: '请求过于频繁，请稍后再试'
+    });
+  }
 });
 app.use('/api', limiter);
 
-// 日志中间件
-if (process.env.NODE_ENV === 'development') {
-  app.use(morgan('dev'));
-} else {
-  app.use(morgan('combined'));
-}
+// 请求 ID 中间件（必须在其他中间件之前）
+app.use(requestIdMiddleware);
+
+// 请求日志中间件
+app.use(createRequestLogger());
 
 // 解析请求体
 app.use(express.json({ limit: '10mb' }));
@@ -67,16 +95,21 @@ app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 app.get('/health', async (req, res) => {
   try {
     const dbStatus = await testConnection();
+    const { testConnection: testRedis } = require('./config/redis');
+    const redisStatus = await testRedis();
+
     res.json({
       status: 'ok',
       timestamp: new Date().toISOString(),
       services: {
         database: dbStatus ? 'ok' : 'error',
+        redis: redisStatus ? 'ok' : 'error',
         server: 'ok'
       },
       version: process.env.npm_package_version || '1.0.0'
     });
   } catch (error) {
+    logger.error({ error: error.message }, 'Health check failed');
     res.status(500).json({
       status: 'error',
       message: 'Service unavailable',
@@ -84,6 +117,9 @@ app.get('/health', async (req, res) => {
     });
   }
 });
+
+// CSRF token endpoint (for non-JWT authenticated requests)
+app.get('/api/csrf-token', generateCsrfToken, getCsrfToken);
 
 // API路由
 app.use('/api/auth', require('./routes/auth'));
@@ -129,7 +165,16 @@ app.use((req, res) => {
 
 // 全局错误处理中间件
 app.use((error, req, res, next) => {
-  console.error('服务器错误:', error);
+  logger.error({
+    error: error.message,
+    stack: error.stack,
+    request: {
+      id: req.id,
+      method: req.method,
+      url: req.originalUrl,
+      ip: req.ip
+    }
+  }, 'Unhandled error');
 
   // Joi验证错误
   if (error.isJoi) {
@@ -141,6 +186,14 @@ app.use((error, req, res, next) => {
   }
 
   // JWT错误
+  if (error.name === 'TokenExpiredError') {
+    return res.status(401).json({
+      error: '认证失败',
+      message: '访问令牌已过期',
+      timestamp: new Date().toISOString()
+    });
+  }
+
   if (error.name === 'JsonWebTokenError') {
     return res.status(401).json({
       error: '认证失败',
@@ -172,8 +225,16 @@ async function startServer() {
     // 测试数据库连接
     const dbConnected = await testConnection();
     if (!dbConnected) {
-      console.error('❌ 数据库连接失败，服务器启动中止');
+      logger.error('数据库连接失败，服务器启动中止');
       process.exit(1);
+    }
+
+    // 初始化Redis连接（非阻塞，失败不影响启动）
+    const { connectRedis } = require('./config/redis');
+    try {
+      await connectRedis();
+    } catch (redisError) {
+      logger.warn('Redis连接失败，缓存功能将不可用');
     }
 
     // 初始化邮件服务
@@ -186,7 +247,7 @@ async function startServer() {
 
     // 启动HTTP服务器
     app.listen(PORT, () => {
-      console.log(`
+      logger.info(`
 🚀 面试管理系统后端服务启动成功
 📍 服务地址: http://localhost:${PORT}
 🌍 运行环境: ${process.env.NODE_ENV || 'development'}
@@ -196,19 +257,19 @@ async function startServer() {
     });
 
   } catch (error) {
-    console.error('❌ 服务器启动失败:', error);
+    logger.error({ error: error.message, stack: error.stack }, '服务器启动失败');
     process.exit(1);
   }
 }
 
 // 优雅关闭处理
 process.on('SIGTERM', () => {
-  console.log('收到SIGTERM信号，正在优雅关闭服务器...');
+  logger.info('收到SIGTERM信号，正在优雅关闭服务器...');
   process.exit(0);
 });
 
 process.on('SIGINT', () => {
-  console.log('收到SIGINT信号，正在优雅关闭服务器...');
+  logger.info('收到SIGINT信号，正在优雅关闭服务器...');
   process.exit(0);
 });
 

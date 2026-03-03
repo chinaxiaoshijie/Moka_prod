@@ -3,6 +3,7 @@ const Interview = require('../models/Interview');
 const { responseUtils, paginationUtils } = require('../utils/helpers');
 const { authenticate, authorize } = require('../middleware/auth');
 const { validate, interviewSchemas } = require('../middleware/validation');
+const ConflictDetectionService = require('../services/ConflictDetectionService');
 
 const router = express.Router();
 
@@ -160,10 +161,33 @@ router.post('/', validate(interviewSchemas.create), async (req, res) => {
       created_by: req.user.id
     };
 
+    // Check for conflicts before creating
+    const conflictCheck = await ConflictDetectionService.checkConflicts({
+      scheduled_time: interviewData.scheduled_time,
+      duration: interviewData.duration || 60,
+      interviewer_id: interviewData.interviewer_id,
+      candidate_id: interviewData.candidate_id
+    });
+
+    // Include conflict warnings in response if conflicts exist
+    const conflictWarnings = conflictCheck.hasConflicts ? conflictCheck : null;
+
     const interview = new Interview(interviewData);
     await interview.create();
 
-    return responseUtils.success(res, interview.toJSON(), '创建面试成功', 201);
+    const responseData = interview.toJSON();
+
+    // Add conflict warnings if present
+    if (conflictWarnings) {
+      responseData.conflict_warnings = conflictWarnings;
+    }
+
+    return responseUtils.success(
+      res,
+      responseData,
+      conflictCheck.hasConflicts ? '创建面试成功，但发现时间冲突' : '创建面试成功',
+      201
+    );
 
   } catch (error) {
     console.error('创建面试错误:', error);
@@ -196,9 +220,34 @@ router.put('/:id', validate(interviewSchemas.update), async (req, res) => {
       return responseUtils.error(res, '权限不足', 403);
     }
 
+    // Check for conflicts if time, interviewer, or candidate is being updated
+    const updateTime = req.body.scheduled_time || interview.scheduled_time;
+    const updateInterviewer = req.body.interviewer_id || interview.interviewer_id;
+    const updateCandidate = req.body.candidate_id || interview.candidate_id;
+    const updateDuration = req.body.duration || interview.duration;
+
+    const conflictCheck = await ConflictDetectionService.checkConflicts({
+      scheduled_time: updateTime,
+      duration: updateDuration,
+      interviewer_id: updateInterviewer,
+      candidate_id: updateCandidate,
+      id: interviewId // Exclude current interview from conflict check
+    });
+
     await interview.update(req.body);
 
-    return responseUtils.success(res, interview.toJSON(), '更新面试信息成功');
+    const responseData = interview.toJSON();
+
+    // Add conflict warnings if present
+    if (conflictCheck.hasConflicts) {
+      responseData.conflict_warnings = conflictCheck;
+    }
+
+    return responseUtils.success(
+      res,
+      responseData,
+      conflictCheck.hasConflicts ? '更新面试信息成功，但发现时间冲突' : '更新面试信息成功'
+    );
 
   } catch (error) {
     console.error('更新面试信息错误:', error);
@@ -357,6 +406,92 @@ router.post('/batch-create', validate(interviewSchemas.batchCreate), async (req,
   } catch (error) {
     console.error('批量创建面试错误:', error);
     return responseUtils.error(res, '批量创建面试失败', 500);
+  }
+});
+
+/**
+ * @route   POST /api/interviews/check-conflicts
+ * @desc    检查面试时间冲突
+ * @access  Private
+ */
+router.post('/check-conflicts', async (req, res) => {
+  try {
+    const { scheduled_time, duration, interviewer_id, candidate_id } = req.body;
+
+    if (!scheduled_time || !interviewer_id || !candidate_id) {
+      return responseUtils.error(res, '缺少必填字段: scheduled_time, interviewer_id, candidate_id', 400);
+    }
+
+    const conflictResult = await ConflictDetectionService.checkConflicts({
+      scheduled_time,
+      duration: duration || 60,
+      interviewer_id,
+      candidate_id
+    });
+
+    return responseUtils.success(res, conflictResult, '冲突检查完成');
+
+  } catch (error) {
+    console.error('检查面试冲突错误:', error);
+    return responseUtils.error(res, '检查面试冲突失败', 500);
+  }
+});
+
+/**
+ * @route   GET /api/interviews/available-slots
+ * @desc    查找可用的面试时间段
+ * @access  Private
+ */
+router.get('/available-slots', async (req, res) => {
+  try {
+    const {
+      interviewer_id,
+      candidate_id,
+      start_date,
+      end_date,
+      duration = 60
+    } = req.query;
+
+    if (!interviewer_id || !start_date || !end_date) {
+      return responseUtils.error(res, '缺少必填字段: interviewer_id, start_date, end_date', 400);
+    }
+
+    const availableSlots = await ConflictDetectionService.findAvailableSlots({
+      interviewer_id: parseInt(interviewer_id),
+      candidate_id: candidate_id ? parseInt(candidate_id) : undefined,
+      start_date: new Date(start_date),
+      end_date: new Date(end_date),
+      duration: parseInt(duration)
+    });
+
+    return responseUtils.success(res, availableSlots, '查找可用时间段成功');
+
+  } catch (error) {
+    console.error('查找可用时间段错误:', error);
+    return responseUtils.error(res, '查找可用时间段失败', 500);
+  }
+});
+
+/**
+ * @route   GET /api/interviews/daily-conflicts
+ * @desc    获取指定日期的冲突统计
+ * @access  Private (Admin, HR)
+ */
+router.get('/daily-conflicts', authorize(['admin', 'hr']), async (req, res) => {
+  try {
+    const { date } = req.query;
+
+    if (!date) {
+      return responseUtils.error(res, '缺少必填字段: date', 400);
+    }
+
+    const conflictStats = await ConflictDetectionService.getDailyConflicts(new Date(date));
+
+    return responseUtils.success(res, conflictStats, '获取每日冲突统计成功');
+
+  } catch (error) {
+    console.error('获取每日冲突统计错误:', error);
+    return responseUtils.error(res, '获取每日冲突统计失败', 500);
   }
 });
 

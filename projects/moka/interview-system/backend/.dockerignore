@@ -1,53 +1,62 @@
-# 依赖文件夹
-node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
+# 依赖目录
+node_modules
+npm-debug.log
+yarn-error.log
 
-# 运行时文件
-*.log
-logs/
-uploads/
-temp/
+# 测试文件
+coverage
+*.test.js
+*.spec.js
+test/
+tests/
+__tests__/
 
-# 环境变量文件
+# 开发配置
 .env
 .env.local
 .env.development
 .env.test
-.env.production
 
-# IDE 文件
+# 日志文件
+logs/
+*.log
+
+# 临时文件
+*.tmp
+*.temp
+.cache/
+
+# IDE 配置
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
 
-# OS 文件
+# 操作系统文件
 .DS_Store
 Thumbs.db
 
-# Git 文件
+# Git
 .git/
 .gitignore
+.gitattributes
 
-# Docker 文件
+# 文档
+README.md
+*.md
+docs/
+
+# Docker 相关
 Dockerfile
 .dockerignore
 docker-compose*.yml
 
-# 测试文件
-coverage/
-.jest/
-tests/
-**/*.test.js
-**/*.spec.js
+# 上传文件
+uploads/
 
-# 文档
-README.md
-docs/
-
-# 其他
-.npm
-.cache
+# 构建输出
+dist/
+build/
+.next/
+out/

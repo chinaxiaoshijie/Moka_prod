@@ -1,41 +1,53 @@
-# 依赖文件夹（在容器中重新安装）
-node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
+# 依赖目录
+node_modules
+npm-debug.log
+yarn-error.log
 
-# 构建输出（在容器中生成）
-dist/
-build/
+# 测试文件
+coverage
+*.test.js
+*.spec.js
+test/
+tests/
+__tests__/
+.e2e/
 
-# 环境变量文件
+# 开发配置
 .env
 .env.local
 .env.development
 .env.test
-.env.production
 
-# IDE 文件
+# 构建输出
+.next/
+out/
+dist/
+build/
+
+# IDE 配置
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
 
-# OS 文件
+# 操作系统文件
 .DS_Store
 Thumbs.db
 
-# Git 文件
+# Git
 .git/
 .gitignore
 
-# Docker 文件
+# 文档
+README.md
+*.md
+docs/
+
+# Docker 相关
 Dockerfile
 .dockerignore
+docker-compose*.yml
 
-# 测试文件（生产构建不需要）
-coverage/
-
-# 其他临时文件
-.cache
+# TypeScript
+*.tsbuildinfo

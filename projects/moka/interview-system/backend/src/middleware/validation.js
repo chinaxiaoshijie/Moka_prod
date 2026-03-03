@@ -122,6 +122,36 @@ const userSchemas = {
         'string.pattern.base': '新密码必须包含至少一个字母和一个数字',
         'any.required': '新密码是必填项'
       })
+  }),
+
+  // 请求密码重置验证
+  forgotPassword: Joi.object({
+    email: Joi.string()
+      .email()
+      .required()
+      .messages({
+        'string.email': '请输入有效的邮箱地址',
+        'any.required': '邮箱是必填项'
+      })
+  }),
+
+  // 重置密码验证
+  resetPassword: Joi.object({
+    token: Joi.string()
+      .required()
+      .messages({
+        'any.required': '重置令牌是必填项'
+      }),
+
+    newPassword: Joi.string()
+      .min(8)
+      .pattern(/^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d@$!%*#?&]{8,}$/)
+      .required()
+      .messages({
+        'string.min': '新密码至少8个字符',
+        'string.pattern.base': '新密码必须包含至少一个字母和一个数字',
+        'any.required': '新密码是必填项'
+      })
   })
 };
 

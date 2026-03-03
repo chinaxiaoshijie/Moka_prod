@@ -65,8 +65,10 @@ router.post('/register', validate(userSchemas.register), async (req, res) => {
  * @access  Public
  */
 router.post('/login',
-  loginAttemptLimiter.checkAttempts,
   validate(userSchemas.login),
+  async (req, res, next) => {
+    await loginAttemptLimiter.checkAttempts(req, res, next);
+  },
   async (req, res) => {
     try {
       const { email, password } = req.body;
@@ -75,13 +77,13 @@ router.post('/login',
       const user = await User.findByEmail(email);
 
       if (!user) {
-        loginAttemptLimiter.recordFailedAttempt(req.loginKey);
+        await loginAttemptLimiter.recordFailedAttempt(req.loginKey);
         return responseUtils.error(res, '邮箱或密码错误', 401);
       }
 
       // 检查用户状态
       if (user.status !== 'active') {
-        loginAttemptLimiter.recordFailedAttempt(req.loginKey);
+        await loginAttemptLimiter.recordFailedAttempt(req.loginKey);
         return responseUtils.error(res, '账户已被禁用', 401);
       }
 
@@ -89,12 +91,12 @@ router.post('/login',
       const isValidPassword = await user.verifyPassword(password);
 
       if (!isValidPassword) {
-        loginAttemptLimiter.recordFailedAttempt(req.loginKey);
+        await loginAttemptLimiter.recordFailedAttempt(req.loginKey);
         return responseUtils.error(res, '邮箱或密码错误', 401);
       }
 
       // 清除失败尝试记录
-      loginAttemptLimiter.clearAttempts(req.loginKey);
+      await loginAttemptLimiter.clearAttempts(req.loginKey);
 
       // 更新最后登录时间
       await user.updateLastLogin();
@@ -310,6 +312,110 @@ router.get('/verify', authenticate, async (req, res) => {
   } catch (error) {
     console.error('令牌验证错误:', error);
     return responseUtils.error(res, '令牌验证失败', 500);
+  }
+});
+
+/**
+ * @route   POST /api/auth/forgot-password
+ * @desc    请求密码重置
+ * @access  Public
+ */
+router.post('/forgot-password',
+  validate(userSchemas.forgotPassword),
+  async (req, res) => {
+    try {
+      const { email } = req.body;
+
+      // 查找用户（即使用户不存在也返回成功，防止邮箱枚举攻击）
+      const user = await User.findByEmail(email);
+
+      if (user && user.status === 'active') {
+        // 生成重置令牌
+        const resetToken = await user.generateResetToken();
+
+        // 发送重置邮件
+        const emailService = require('../services/EmailService');
+        const resetUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/reset-password?token=${resetToken}`;
+
+        try {
+          await emailService.sendPasswordResetEmail(user.email, {
+            username: user.username,
+            resetUrl,
+            expiresIn: '15分钟'
+          });
+        } catch (emailError) {
+          console.error('发送重置邮件失败:', emailError);
+          // 继续执行，不向用户暴露邮件发送失败
+        }
+      }
+
+      // 总是返回成功消息（防止邮箱枚举攻击）
+      return responseUtils.success(res, null, '如果该邮箱存在，重置链接已发送');
+
+    } catch (error) {
+      console.error('请求密码重置错误:', error);
+      return responseUtils.error(res, '请求密码重置失败', 500);
+    }
+  }
+);
+
+/**
+ * @route   POST /api/auth/reset-password
+ * @desc    使用令牌重置密码
+ * @access  Public
+ */
+router.post('/reset-password',
+  validate(userSchemas.resetPassword),
+  async (req, res) => {
+    try {
+      const { token, newPassword } = req.body;
+
+      // 验证令牌并重置密码
+      const user = await User.resetPassword(token, newPassword);
+
+      if (!user) {
+        return responseUtils.error(res, '无效或过期的重置令牌', 400);
+      }
+
+      return responseUtils.success(res, null, '密码重置成功，请使用新密码登录');
+
+    } catch (error) {
+      console.error('重置密码错误:', error);
+      if (error.message === '无效或过期的重置令牌') {
+        return responseUtils.error(res, error.message, 400);
+      }
+      return responseUtils.error(res, '重置密码失败', 500);
+    }
+  }
+);
+
+/**
+ * @route   POST /api/auth/verify-reset-token
+ * @desc    验证重置令牌是否有效
+ * @access  Public
+ */
+router.post('/verify-reset-token', async (req, res) => {
+  try {
+    const { token } = req.body;
+
+    if (!token) {
+      return responseUtils.error(res, '缺少重置令牌', 400);
+    }
+
+    const user = await User.verifyResetToken(token);
+
+    if (!user) {
+      return responseUtils.error(res, '无效或过期的重置令牌', 400);
+    }
+
+    return responseUtils.success(res, {
+      valid: true,
+      email: user.email
+    }, '令牌验证成功');
+
+  } catch (error) {
+    console.error('验证重置令牌错误:', error);
+    return responseUtils.error(res, '验证重置令牌失败', 500);
   }
 });
 

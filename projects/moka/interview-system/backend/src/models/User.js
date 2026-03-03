@@ -1,5 +1,6 @@
 const { query, transaction } = require('../config/database');
 const { passwordUtils, dateUtils } = require('../utils/helpers');
+const crypto = require('crypto');
 
 class User {
   constructor(data = {}) {
@@ -21,7 +22,7 @@ class User {
   async create() {
     try {
       // 检查用户名和邮箱是否已存在
-      const existingUser = await this.findByEmailOrUsername(this.email, this.username);
+      const existingUser = await User.findByEmailOrUsername(this.email, this.username);
       if (existingUser) {
         throw new Error('用户名或邮箱已存在');
       }
@@ -181,6 +182,94 @@ class User {
 
     } catch (error) {
       console.error('更新密码错误:', error);
+      throw error;
+    }
+  }
+
+  // 生成密码重置令牌
+  async generateResetToken() {
+    try {
+      // 生成随机令牌
+      const resetToken = crypto.randomBytes(32).toString('hex');
+      const resetTokenExpires = new Date(Date.now() + 15 * 60 * 1000); // 15分钟后过期
+
+      const sql = `
+        UPDATE users
+        SET reset_token = ?, reset_token_expires = ?, updated_at = NOW()
+        WHERE id = ?
+      `;
+      await query(sql, [resetToken, resetTokenExpires, this.id]);
+
+      this.reset_token = resetToken;
+      this.reset_token_expires = resetTokenExpires;
+      return resetToken;
+
+    } catch (error) {
+      console.error('生成重置令牌错误:', error);
+      throw error;
+    }
+  }
+
+  // 验证密码重置令牌
+  static async verifyResetToken(token) {
+    try {
+      const sql = `
+        SELECT id, username, email, reset_token_expires
+        FROM users
+        WHERE reset_token = ? AND reset_token_expires > NOW() AND status = 'active'
+      `;
+
+      const results = await query(sql, [token]);
+      return results.length > 0 ? new User(results[0]) : null;
+
+    } catch (error) {
+      console.error('验证重置令牌错误:', error);
+      throw error;
+    }
+  }
+
+  // 使用令牌重置密码
+  static async resetPassword(token, newPassword) {
+    try {
+      const user = await User.verifyResetToken(token);
+
+      if (!user) {
+        throw new Error('无效或过期的重置令牌');
+      }
+
+      const hashedPassword = await passwordUtils.hashPassword(newPassword);
+
+      const sql = `
+        UPDATE users
+        SET password = ?, reset_token = NULL, reset_token_expires = NULL, updated_at = NOW()
+        WHERE id = ?
+      `;
+      await query(sql, [hashedPassword, user.id]);
+
+      return user;
+
+    } catch (error) {
+      console.error('重置密码错误:', error);
+      throw error;
+    }
+  }
+
+  // 清除重置令牌
+  async clearResetToken() {
+    try {
+      const sql = `
+        UPDATE users
+        SET reset_token = NULL, reset_token_expires = NULL, updated_at = NOW()
+        WHERE id = ?
+      `;
+      await query(sql, [this.id]);
+
+      this.reset_token = null;
+      this.reset_token_expires = null;
+      return this;
+
+    } catch (error) {
+      console.error('清除重置令牌错误:', error);
       throw error;
     }
   }

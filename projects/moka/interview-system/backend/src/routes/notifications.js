@@ -1,18 +1,229 @@
 const express = require('express');
-const { responseUtils } = require('../utils/helpers');
+const { responseUtils, paginationUtils } = require('../utils/helpers');
 const { authenticate, authorize } = require('../middleware/auth');
+const Notification = require('../models/Notification');
 const emailService = require('../services/EmailService');
 const router = express.Router();
 
 // 所有路由需要认证
 router.use(authenticate);
 
+// ============================================================================
+// 应用内通知路由
+// ============================================================================
+
 /**
- * @route   POST /api/notifications/test
+ * @route   GET /api/notifications
+ * @desc    获取当前用户的通知列表
+ * @access  Private
+ */
+router.get('/', async (req, res) => {
+  try {
+    const { page, pageSize, unreadOnly, type } = req.query;
+
+    const result = await Notification.findByUserId(req.user.id, {
+      page: parseInt(page) || 1,
+      pageSize: parseInt(pageSize) || 20,
+      unreadOnly: unreadOnly === 'true',
+      type
+    });
+
+    return responseUtils.paginated(
+      res,
+      result.notifications.map(n => n.toJSON()),
+      result.pagination,
+      '获取通知列表成功'
+    );
+
+  } catch (error) {
+    console.error('获取通知列表错误:', error);
+    return responseUtils.error(res, '获取通知列表失败', 500);
+  }
+});
+
+/**
+ * @route   GET /api/notifications/unread-count
+ * @desc    获取未读通知数量
+ * @access  Private
+ */
+router.get('/unread-count', async (req, res) => {
+  try {
+    const count = await Notification.getUnreadCount(req.user.id);
+
+    return responseUtils.success(res, { count }, '获取未读通知数量成功');
+
+  } catch (error) {
+    console.error('获取未读通知数量错误:', error);
+    return responseUtils.error(res, '获取未读通知数量失败', 500);
+  }
+});
+
+/**
+ * @route   GET /api/notifications/:id
+ * @desc    获取单个通知详情
+ * @access  Private
+ */
+router.get('/:id', async (req, res) => {
+  try {
+    const notificationId = parseInt(req.params.id);
+    const notification = await Notification.findById(notificationId);
+
+    if (!notification) {
+      return responseUtils.error(res, '通知不存在', 404);
+    }
+
+    // 检查权限：只能查看自己的通知
+    if (notification.user_id !== req.user.id && req.user.role !== 'admin') {
+      return responseUtils.error(res, '权限不足', 403);
+    }
+
+    return responseUtils.success(res, notification.toJSON(), '获取通知详情成功');
+
+  } catch (error) {
+    console.error('获取通知详情错误:', error);
+    return responseUtils.error(res, '获取通知详情失败', 500);
+  }
+});
+
+/**
+ * @route   PUT /api/notifications/:id/read
+ * @desc    标记通知为已读
+ * @access  Private
+ */
+router.put('/:id/read', async (req, res) => {
+  try {
+    const notificationId = parseInt(req.params.id);
+    const notification = await Notification.findById(notificationId);
+
+    if (!notification) {
+      return responseUtils.error(res, '通知不存在', 404);
+    }
+
+    // 检查权限：只能操作自己的通知
+    if (notification.user_id !== req.user.id && req.user.role !== 'admin') {
+      return responseUtils.error(res, '权限不足', 403);
+    }
+
+    await notification.markAsRead();
+
+    return responseUtils.success(res, notification.toJSON(), '标记通知为已读成功');
+
+  } catch (error) {
+    console.error('标记通知为已读错误:', error);
+    return responseUtils.error(res, '标记通知为已读失败', 500);
+  }
+});
+
+/**
+ * @route   PUT /api/notifications/read-all
+ * @desc    标记所有通知为已读
+ * @access  Private
+ */
+router.put('/read-all', async (req, res) => {
+  try {
+    const count = await Notification.markAllAsRead(req.user.id);
+
+    return responseUtils.success(res, { count }, `已标记 ${count} 条通知为已读`);
+
+  } catch (error) {
+    console.error('标记所有通知为已读错误:', error);
+    return responseUtils.error(res, '标记所有通知为已读失败', 500);
+  }
+});
+
+/**
+ * @route   PUT /api/notifications/read-multiple
+ * @desc    批量标记通知为已读
+ * @access  Private
+ */
+router.put('/read-multiple', async (req, res) => {
+  try {
+    const { notificationIds } = req.body;
+
+    if (!Array.isArray(notificationIds)) {
+      return responseUtils.error(res, 'notificationIds 必须是数组', 400);
+    }
+
+    const count = await Notification.markMultipleAsRead(req.user.id, notificationIds);
+
+    return responseUtils.success(res, { count }, `已标记 ${count} 条通知为已读`);
+
+  } catch (error) {
+    console.error('批量标记通知为已读错误:', error);
+    return responseUtils.error(res, '批量标记通知为已读失败', 500);
+  }
+});
+
+/**
+ * @route   DELETE /api/notifications/:id
+ * @desc    删除通知
+ * @access  Private
+ */
+router.delete('/:id', async (req, res) => {
+  try {
+    const notificationId = parseInt(req.params.id);
+    const notification = await Notification.findById(notificationId);
+
+    if (!notification) {
+      return responseUtils.error(res, '通知不存在', 404);
+    }
+
+    // 检查权限：只能删除自己的通知
+    if (notification.user_id !== req.user.id && req.user.role !== 'admin') {
+      return responseUtils.error(res, '权限不足', 403);
+    }
+
+    await notification.delete();
+
+    return responseUtils.success(res, null, '删除通知成功');
+
+  } catch (error) {
+    console.error('删除通知错误:', error);
+    return responseUtils.error(res, '删除通知失败', 500);
+  }
+});
+
+/**
+ * @route   POST /api/notifications
+ * @desc    创建新通知（Admin/HR only）
+ * @access  Private (Admin, HR)
+ */
+router.post('/', authorize(['admin', 'hr']), async (req, res) => {
+  try {
+    const { user_id, type, title, content, link, related_id, related_type } = req.body;
+
+    if (!user_id || !type || !title) {
+      return responseUtils.error(res, '缺少必填字段: user_id, type, title', 400);
+    }
+
+    const notification = await Notification.createNotification({
+      user_id,
+      type,
+      title,
+      content,
+      link,
+      related_id,
+      related_type
+    });
+
+    return responseUtils.success(res, notification.toJSON(), '创建通知成功', 201);
+
+  } catch (error) {
+    console.error('创建通知错误:', error);
+    return responseUtils.error(res, '创建通知失败', 500);
+  }
+});
+
+// ============================================================================
+// 邮件通知路由（保留原有功能）
+// ============================================================================
+
+/**
+ * @route   POST /api/notifications/email/test
  * @desc    发送测试邮件
  * @access  Private (Admin only)
  */
-router.post('/test', authorize(['admin', 'hr']), async (req, res) => {
+router.post('/email/test', authorize(['admin', 'hr']), async (req, res) => {
   try {
     const { to } = req.body;
 
@@ -45,11 +256,11 @@ router.post('/test', authorize(['admin', 'hr']), async (req, res) => {
 });
 
 /**
- * @route   POST /api/notifications/interview-invitation
+ * @route   POST /api/notifications/email/interview-invitation
  * @desc    发送面试邀请邮件
  * @access  Private (Admin, HR)
  */
-router.post('/interview-invitation', authorize(['admin', 'hr']), async (req, res) => {
+router.post('/email/interview-invitation', authorize(['admin', 'hr']), async (req, res) => {
   try {
     const {
       to,
@@ -111,11 +322,11 @@ router.post('/interview-invitation', authorize(['admin', 'hr']), async (req, res
 });
 
 /**
- * @route   POST /api/notifications/interview-reminder
+ * @route   POST /api/notifications/email/interview-reminder
  * @desc    发送面试提醒邮件
  * @access  Private (Admin, HR, Interviewer)
  */
-router.post('/interview-reminder', authorize(['admin', 'hr', 'interviewer']), async (req, res) => {
+router.post('/email/interview-reminder', authorize(['admin', 'hr', 'interviewer']), async (req, res) => {
   try {
     const {
       to,
@@ -163,11 +374,11 @@ router.post('/interview-reminder', authorize(['admin', 'hr', 'interviewer']), as
 });
 
 /**
- * @route   POST /api/notifications/feedback-request
+ * @route   POST /api/notifications/email/feedback-request
  * @desc    发送反馈催交邮件
  * @access  Private (Admin, HR)
  */
-router.post('/feedback-request', authorize(['admin', 'hr']), async (req, res) => {
+router.post('/email/feedback-request', authorize(['admin', 'hr']), async (req, res) => {
   try {
     const {
       to,
@@ -215,11 +426,11 @@ router.post('/feedback-request', authorize(['admin', 'hr']), async (req, res) =>
 });
 
 /**
- * @route   POST /api/notifications/offer
+ * @route   POST /api/notifications/email/offer
  * @desc    发送录用通知邮件
  * @access  Private (Admin, HR)
  */
-router.post('/offer', authorize(['admin', 'hr']), async (req, res) => {
+router.post('/email/offer', authorize(['admin', 'hr']), async (req, res) => {
   try {
     const {
       to,
@@ -270,11 +481,11 @@ router.post('/offer', authorize(['admin', 'hr']), async (req, res) => {
 });
 
 /**
- * @route   POST /api/notifications/bulk
+ * @route   POST /api/notifications/email/bulk
  * @desc    批量发送邮件
  * @access  Private (Admin, HR)
  */
-router.post('/bulk', authorize(['admin', 'hr']), async (req, res) => {
+router.post('/email/bulk', authorize(['admin', 'hr']), async (req, res) => {
   try {
     const { templateName, recipients, commonData } = req.body;
 

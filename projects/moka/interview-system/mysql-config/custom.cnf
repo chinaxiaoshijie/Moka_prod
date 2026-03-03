@@ -1,0 +1,35 @@
+[mysqld]
+# 基本设置
+user = mysql
+default-storage-engine = InnoDB
+socket = /var/lib/mysql/mysql.sock
+pid-file = /var/lib/mysql/mysql.pid
+
+# 字符集设置
+character-set-server = utf8mb4
+collation-server = utf8mb4_unicode_ci
+init-connect = 'SET NAMES utf8mb4'
+
+# 时区设置
+default-time-zone = '+08:00'
+
+# 连接设置
+max_connections = 200
+max-connect-errors = 6000
+table-open-cache = 128
+max-allowed-packet = 64M
+
+# InnoDB 设置
+innodb-buffer-pool-size = 128M
+innodb-file-per-table = 1
+innodb-flush-log-at-trx-commit = 2
+
+# SQL模式
+sql-mode = STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE
+
+[mysql]
+default-character-set = utf8mb4
+
+[client]
+default-character-set = utf8mb4
+socket = /var/lib/mysql/mysql.sock

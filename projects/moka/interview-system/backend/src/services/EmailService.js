@@ -245,6 +245,61 @@ class EmailTemplate {
 </html>
       `
     });
+
+    this.templates.set('password_reset', {
+      subject: '密码重置请求 - 面试管理系统',
+      html: `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>密码重置</title>
+  <style>
+    body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); color: white; padding: 30px; text-align: center; border-radius: 10px 10px 0 0; }
+    .content { background: #f8f9fa; padding: 30px; border-radius: 10px; }
+    .alert { background: #fff3cd; border-left: 4px solid #ffc107; padding: 15px; margin: 20px 0; }
+    .footer { text-align: center; color: #666; font-size: 14px; margin-top: 20px; }
+    .btn { display: inline-block; padding: 12px 30px; background: #f5576c; color: white; text-decoration: none; border-radius: 5px; margin: 20px 0; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>🔐 密码重置请求</h1>
+    </div>
+    <div class="content">
+      <p>您好 <strong>{{username}}</strong>，</p>
+      <p>我们收到了您的密码重置请求。如果这是您发起的操作，请点击下面的按钮重置密码：</p>
+
+      <div style="text-align: center;">
+        <a href="{{resetUrl}}" class="btn">重置密码</a>
+      </div>
+
+      <p style="text-align: center; margin: 20px 0;">或者复制以下链接到浏览器：</p>
+      <p style="background: #eee; padding: 10px; word-break: break-all; font-size: 12px;">{{resetUrl}}</p>
+
+      <div class="alert">
+        <p><strong>⚠️ 重要提示：</strong></p>
+        <ul style="margin: 10px 0; padding-left: 20px;">
+          <li>此链接将在 <strong>{{expiresIn}}</strong> 后失效</li>
+          <li>如果您没有发起密码重置请求，请忽略此邮件</li>
+          <li>请勿将此链接分享给任何人</li>
+        </ul>
+      </div>
+
+      <div class="footer">
+        <p>面试管理系统</p>
+        <p>这是一封自动发送的邮件，请勿直接回复</p>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
+      `
+    });
   }
 
   /**
@@ -473,6 +528,21 @@ class EmailService {
         </body>
       </html>
     `;
+
+    return await this.sendEmail(to, subject, html);
+  }
+
+  /**
+   * 发送密码重置邮件
+   */
+  async sendPasswordResetEmail(to, data) {
+    const { username, resetUrl, expiresIn } = data;
+
+    const { subject, html } = this.renderTemplate('password_reset', {
+      username,
+      resetUrl,
+      expiresIn
+    });
 
     return await this.sendEmail(to, subject, html);
   }

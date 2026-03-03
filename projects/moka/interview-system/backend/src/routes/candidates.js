@@ -117,8 +117,6 @@ router.get('/:id', async (req, res) => {
  */
 router.post('/', validate(candidateSchemas.create), async (req, res) => {
   try {
-    console.log('[DEBUG] POST /api/candidates - req.body:', req.body);
-
     const candidateData = {
       ...req.body,
       created_by: req.user.id

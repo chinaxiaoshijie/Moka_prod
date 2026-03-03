@@ -60,15 +60,7 @@ router.get('/statistics', authorize('admin'), async (req, res) => {
  */
 router.get('/profile', async (req, res) => {
   try {
-    console.log('[DEBUG] /api/users/profile - req.user:', req.user);
-    console.log('[DEBUG] /api/users/profile - req.user.id:', req.user.id);
-
     const user = await User.findById(req.user.id);
-
-    console.log('[DEBUG] /api/users/profile - user found:', user ? 'YES' : 'NO');
-    if (user) {
-      console.log('[DEBUG] /api/users/profile - user.toSafeJSON():', user.toSafeJSON());
-    }
 
     if (!user) {
       return responseUtils.error(res, '用户不存在', 404);
