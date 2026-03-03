@@ -55,6 +55,17 @@ export default function InterviewDetailPage() {
     }
   }, [interviewId]);
 
+  // Refresh data when page becomes visible (e.g., after returning from feedback page)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (!document.hidden && interviewId) {
+        fetchFeedbacks();
+      }
+    };
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
+  }, [interviewId]);
+
   const fetchInterview = async () => {
     try {
       const token = localStorage.getItem("token");
@@ -88,7 +99,16 @@ export default function InterviewDetailPage() {
 
       if (response.ok) {
         const data = await response.json();
-        setFeedbacks(data || []);
+        // Handle different response formats
+        let feedbacks = [];
+        if (Array.isArray(data)) {
+          feedbacks = data;
+        } else if (Array.isArray(data?.data)) {
+          feedbacks = data.data;
+        } else if (Array.isArray(data?.feedbacks)) {
+          feedbacks = data.feedbacks;
+        }
+        setFeedbacks(feedbacks);
       }
     } catch (err) {
       console.error("获取反馈失败", err);

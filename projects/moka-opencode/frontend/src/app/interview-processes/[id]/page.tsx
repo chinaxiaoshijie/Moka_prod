@@ -45,6 +45,7 @@ export default function InterviewProcessDetailPage() {
   
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [schedulingRound, setSchedulingRound] = useState<number | null>(null);
+  const [editingInterviewId, setEditingInterviewId] = useState<string | null>(null);
   const [scheduleForm, setScheduleForm] = useState({
     startTime: "",
     endTime: "",
@@ -327,7 +328,7 @@ export default function InterviewProcessDetailPage() {
                           onClick={() => openScheduleModal(round.roundNumber)}
                           className="mt-2 px-4 py-2 bg-amber-100 text-amber-700 rounded-lg text-sm font-medium hover:bg-amber-200"
                         >
-                          安排面试
+                          {interview ? "修改面试" : "安排面试"}
                         </button>
                       ) : (
                         <p className="text-sm text-slate-400">待安排</p>
@@ -343,7 +344,7 @@ export default function InterviewProcessDetailPage() {
             <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
               <div className="bg-white rounded-2xl max-w-lg w-full shadow-2xl">
                 <div className="p-6 border-b border-slate-100">
-                  <h2 className="text-xl font-bold text-slate-900">安排第{schedulingRound}轮面试</h2>
+                  <h2 className="text-xl font-bold text-slate-900">{editingInterviewId ? "修改" : "安排"}第{schedulingRound}轮面试</h2>
                 </div>
                 
                 <div className="p-6 space-y-4">

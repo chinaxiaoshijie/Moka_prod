@@ -9,7 +9,7 @@ WORKDIR /app
 # Copy package files
 COPY package.json bun.lock* ./
 
-# Install dependencies (including prisma)
+# Install dependencies
 RUN bun install --frozen-lockfile --production
 
 # ========================================
@@ -21,8 +21,9 @@ WORKDIR /app
 # Copy dependency files from deps stage
 COPY --from=deps /app/node_modules ./node_modules
 COPY package.json bun.lock* ./
-COPY prisma ./prisma
+COPY tsconfig.json ./
 COPY tsconfig.build.json ./
+COPY prisma ./prisma
 COPY src ./src
 
 # Generate Prisma client
@@ -48,9 +49,6 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY package.json ./
 COPY prisma ./prisma
 
-# Create production .env file template
-COPY --from=builder /app/.env.production.example ./.env 2>/dev/null || true
-
 # Change ownership
 RUN chown -R appuser:nodejs /app
 
@@ -59,10 +57,6 @@ USER appuser
 
 # Expose port
 EXPOSE 3001
-
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-  CMD bunx curl -f http://localhost:3001/health || exit 1
 
 # Start command
 CMD ["bun", "run", "dist/main.js"]
