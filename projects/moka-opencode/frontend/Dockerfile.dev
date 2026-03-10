@@ -1,0 +1,24 @@
+# ========================================
+# Development Dockerfile for Frontend
+# ========================================
+FROM oven/bun:1-alpine
+
+WORKDIR /app
+
+# Install development tools
+RUN apk add --no-cache curl
+
+# Copy package files
+COPY package.json bun.lock* ./
+
+# Install all dependencies (including dev)
+RUN bun install
+
+# Copy source code
+COPY . .
+
+# Expose ports (3000 for app, 9229 for inspector)
+EXPOSE 3000 9229
+
+# Development command with hot reload
+CMD ["bun", "run", "dev"]

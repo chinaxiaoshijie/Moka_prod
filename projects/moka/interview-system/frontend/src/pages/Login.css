@@ -1,0 +1,347 @@
+/* 登录页面样式 */
+
+.login-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+/* 背景装饰元素 */
+.background-shapes {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  z-index: 0;
+}
+
+.shape {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  animation: float 20s infinite ease-in-out;
+}
+
+.shape-1 {
+  width: 300px;
+  height: 300px;
+  top: -100px;
+  left: -100px;
+  animation-delay: 0s;
+}
+
+.shape-2 {
+  width: 200px;
+  height: 200px;
+  bottom: -50px;
+  right: -50px;
+  animation-delay: 2s;
+}
+
+.shape-3 {
+  width: 150px;
+  height: 150px;
+  bottom: 20%;
+  left: 10%;
+  animation-delay: 4s;
+}
+
+@keyframes float {
+  0%, 100% {
+    transform: translate(0, 0);
+  }
+  50% {
+    transform: translate(30px, -30px);
+  }
+}
+
+/* 左侧宣传区 */
+.login-hero {
+  flex: 1;
+  padding: 60px;
+  color: white;
+  z-index: 1;
+  max-width: 600px;
+}
+
+.hero-content {
+  animation: slideInLeft 0.8s ease-out;
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-50px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.hero-icon {
+  font-size: 80px;
+  margin-bottom: 24px;
+  text-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+.hero-title {
+  font-size: 56px !important;
+  font-weight: 700 !important;
+  margin-bottom: 16px !important;
+  color: white !important;
+  text-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+
+.hero-subtitle {
+  font-size: 20px !important;
+  color: rgba(255, 255, 255, 0.9) !important;
+  margin-bottom: 48px;
+}
+
+/* 特性列表 */
+.feature-list {
+  display: grid;
+  gap: 24px;
+  margin-bottom: 48px;
+}
+
+.feature-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 20px;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border-radius: 16px;
+  transition: all 0.3s;
+}
+
+.feature-item:hover {
+  background: rgba(255, 255, 255, 0.15);
+  transform: translateX(8px);
+}
+
+.feature-icon {
+  font-size: 32px;
+  padding: 12px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 12px;
+}
+
+.feature-text strong {
+  display: block;
+  font-size: 16px;
+  margin-bottom: 4px;
+  color: white;
+}
+
+.feature-text p {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.8);
+  margin: 0;
+}
+
+/* 统计数据 */
+.hero-stats {
+  display: flex;
+  gap: 32px;
+  padding: 32px;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  border-radius: 20px;
+}
+
+.stat-item {
+  text-align: center;
+}
+
+.stat-number {
+  font-size: 36px;
+  font-weight: 700;
+  color: #52c41a;
+  margin-bottom: 4px;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.stat-label {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+/* 右侧登录表单区 */
+.login-form-section {
+  flex: 0 0 500px;
+  padding: 60px 40px;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  animation: slideInRight 0.8s ease-out;
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(50px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.login-card {
+  width: 100%;
+  border-radius: 16px !important;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15) !important;
+  border: none !important;
+  overflow: hidden;
+}
+
+.login-header {
+  text-align: center;
+  margin-bottom: 32px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.login-icon {
+  font-size: 48px;
+  color: #1890ff;
+  margin-bottom: 16px;
+}
+
+.login-form .ant-form-item {
+  margin-bottom: 24px;
+}
+
+.login-form .ant-form-item-label > label {
+  font-weight: 500;
+  color: #262626;
+}
+
+.login-button {
+  height: 48px;
+  font-size: 16px;
+  font-weight: 500;
+  background: linear-gradient(135deg, #1890ff 0%, #096dd9 100%);
+  border: none;
+  box-shadow: 0 4px 12px rgba(24, 144, 255, 0.3);
+  transition: all 0.3s;
+}
+
+.login-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(24, 144, 255, 0.4);
+}
+
+.login-footer {
+  text-align: center;
+  margin-top: 16px;
+}
+
+.forgot-link {
+  color: #1890ff;
+  text-decoration: none;
+  transition: color 0.3s;
+}
+
+.forgot-link:hover {
+  color: #40a9ff;
+}
+
+.register-link {
+  color: #1890ff;
+  font-weight: 500;
+  text-decoration: none;
+  transition: color 0.3s;
+}
+
+.register-link:hover {
+  color: #40a9ff;
+}
+
+/* 分隔线 */
+.login-divider {
+  display: flex;
+  align-items: center;
+  margin: 32px 0;
+  gap: 16px;
+}
+
+.divider-line {
+  flex: 1;
+  height: 1px;
+  background: #f0f0f0;
+}
+
+/* 演示账号 */
+.demo-credentials {
+  padding: 20px;
+  background: linear-gradient(135deg, #f6f9ff 0%, #f0f5ff 100%);
+  border-radius: 12px;
+  border: 1px solid #d6e4ff;
+}
+
+.credential-box {
+  display: inline-block;
+  padding: 8px 16px;
+  margin: 4px;
+  background: white;
+  border-radius: 6px;
+  font-family: 'Courier New', monospace;
+}
+
+/* 响应式设计 */
+@media (max-width: 968px) {
+  .login-container {
+    flex-direction: column;
+    padding: 20px;
+  }
+
+  .login-hero {
+    padding: 40px 20px;
+    max-width: 100%;
+  }
+
+  .login-form-section {
+    flex: 1;
+    padding: 40px 20px;
+  }
+
+  .hero-title {
+    font-size: 40px !important;
+  }
+
+  .feature-list {
+    grid-template-columns: 1fr;
+  }
+
+  .hero-stats {
+    flex-direction: column;
+    gap: 16px;
+  }
+}
+
+@media (max-width: 576px) {
+  .hero-title {
+    font-size: 32px !important;
+  }
+
+  .hero-icon {
+    font-size: 60px;
+  }
+
+  .login-form-section {
+    padding: 20px;
+  }
+
+  .hero-content {
+    animation: none;
+  }
+}

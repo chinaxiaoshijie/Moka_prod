@@ -1,0 +1,48 @@
+# QQ邮箱配置模板
+
+## 请提供以下信息：
+
+1. **你的QQ号**: ___________
+   - 例如: 123456789
+
+2. **SMTP授权码**: ___________
+   - 16位字符，例如: abcdefghijklmnop
+
+## 配置说明
+
+获取到授权码后，将使用以下配置：
+
+```bash
+# 邮件服务配置
+EMAIL_ENABLED=true
+EMAIL_HOST=smtp.qq.com
+EMAIL_PORT=587
+EMAIL_SECURE=false
+EMAIL_USER=你的QQ号@qq.com
+EMAIL_PASS=你的16位授权码
+EMAIL_FROM=你的QQ号@qq.com
+
+# 公司信息
+COMPANY_NAME=Malong科技
+COMPANY_PHONE=
+COMPANY_EMAIL=你的QQ号@qq.com
+```
+
+## 测试流程
+
+配置完成后，我们将：
+1. ✅ 更新 .env 文件
+2. ✅ 重启后端服务器
+3. ✅ 发送测试邮件
+4. ✅ 验证邮件功能
+
+## 📝 示例
+
+如果你的QQ号是 123456789，授权码是 abcdefghijklmnop
+
+那么配置将是：
+```bash
+EMAIL_USER=123456789@qq.com
+EMAIL_PASS=abcdefghijklmnop
+EMAIL_FROM=123456789@qq.com
+```

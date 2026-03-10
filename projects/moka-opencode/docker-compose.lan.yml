@@ -1,0 +1,73 @@
+# ========================================
+# Docker Compose - Development Environment
+# ========================================
+
+services:
+  # ========================================
+  # PostgreSQL Database
+  # ========================================
+  postgres:
+    image: postgres:15-alpine
+    container_name: moka-postgres-dev
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: moka
+      POSTGRES_PASSWORD: moka_password
+      POSTGRES_DB: moka_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U moka"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ========================================
+  # Backend API (Development with hot reload)
+  # ========================================
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.dev
+    container_name: moka-backend-dev
+    restart: unless-stopped
+    ports:
+      - "0.0.0.0:3001:3001"
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://moka:moka_password@postgres:5432/moka_db
+      - JWT_SECRET=dev-secret-key
+      - PORT=3001
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./backend/src:/app/src
+      - ./backend/prisma:/app/prisma
+    command: bun run --watch src/main.ts
+
+  # ========================================
+  # Frontend (Development with hot reload)
+  # ========================================
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+    container_name: moka-frontend-dev
+    restart: unless-stopped
+    ports:
+      - "0.0.0.0:3000:3000"
+      - "9229:9229" # Node.js inspector
+    environment:
+      - NODE_ENV=development
+      - NEXT_PUBLIC_API_URL=http://localhost:3001
+    volumes:
+      - ./frontend/src:/app/src
+      - ./frontend/public:/app/public
+    command: bun run dev
+
+volumes:
+  postgres_dev_data:
+    driver: local

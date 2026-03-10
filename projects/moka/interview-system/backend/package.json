@@ -1,0 +1,58 @@
+{
+  "name": "interview-system-backend",
+  "version": "1.0.0",
+  "description": "面试管理系统后端API服务",
+  "main": "src/app.js",
+  "scripts": {
+    "start": "node src/app.js",
+    "dev": "nodemon src/app.js",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "lint": "eslint src/",
+    "lint:fix": "eslint src/ --fix",
+    "format": "prettier --write src/",
+    "db:migrate": "node src/scripts/migrate.js",
+    "db:seed": "node src/scripts/seed.js"
+  },
+  "keywords": [
+    "interview",
+    "management",
+    "hr",
+    "recruitment",
+    "nodejs",
+    "express"
+  ],
+  "author": "Interview System Team",
+  "license": "MIT",
+  "type": "commonjs",
+  "directories": {
+    "test": "tests"
+  },
+  "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "cors": "^2.8.6",
+    "dotenv": "^17.2.4",
+    "exceljs": "^4.4.0",
+    "express": "^5.2.1",
+    "express-rate-limit": "^8.2.1",
+    "helmet": "^8.1.0",
+    "joi": "^18.0.2",
+    "jsonwebtoken": "^9.0.3",
+    "mammoth": "^1.11.0",
+    "morgan": "^1.10.1",
+    "multer": "^2.0.2",
+    "mysql2": "^3.17.0",
+    "node-cron": "^3.0.3",
+    "nodemailer": "^8.0.1",
+    "pdf-parse": "^2.4.5",
+    "uuid": "^13.0.0",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "eslint": "^10.0.0",
+    "jest": "^30.2.0",
+    "nodemon": "^3.1.11",
+    "prettier": "^3.8.1",
+    "supertest": "^7.2.2"
+  }
+}

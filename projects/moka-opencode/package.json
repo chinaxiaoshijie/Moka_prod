@@ -1,0 +1,30 @@
+{
+  "name": "moka-opencode",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "frontend",
+    "backend"
+  ],
+  "scripts": {
+    "dev": "bun run --filter '*' dev",
+    "dev:frontend": "cd frontend && bun run dev",
+    "dev:backend": "cd backend && bun run dev",
+    "build": "bun run --filter '*' build",
+    "test": "bun run --filter '*' test",
+    "lint": "bun run --filter '*' lint",
+    "db:migrate": "cd backend && bun run prisma migrate dev",
+    "db:seed": "cd backend && bun run prisma db seed",
+    "db:studio": "cd backend && bun run prisma studio"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.58.2",
+    "@types/nodemailer": "^7.0.11",
+    "prettier": "^3.0.0",
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "@nestjs/serve-static": "^5.0.4",
+    "nodemailer": "^8.0.1"
+  }
+}
