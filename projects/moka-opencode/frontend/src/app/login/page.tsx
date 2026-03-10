@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { apiFetch } from "@/lib/api";
 import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
@@ -16,7 +17,7 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const response = await fetch("http://localhost:3001/auth/login", {
+      const response = await apiFetch("/auth/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

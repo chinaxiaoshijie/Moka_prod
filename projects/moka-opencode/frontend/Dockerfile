@@ -16,6 +16,9 @@ RUN bun install --frozen-lockfile --production
 # Stage 2: Builder
 FROM oven/bun:1-alpine AS builder
 
+# Install npm for Next.js build
+RUN apk add --no-cache npm
+
 WORKDIR /app
 
 # Copy dependency files from deps stage

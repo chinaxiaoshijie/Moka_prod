@@ -287,7 +287,7 @@ export default function AnalyticsPage() {
                       cx="50%"
                       cy="50%"
                       labelLine={false}
-                      label={({ source, percent }) =>
+                      label={({ name, percent }) =>
                         `${source}: ${(percent * 100).toFixed(0)}%`
                       }
                       outerRadius={80}
