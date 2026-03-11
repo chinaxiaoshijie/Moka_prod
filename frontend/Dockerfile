@@ -41,7 +41,7 @@ COPY next-env.d.ts ./
 COPY src ./src
 
 # Disable Next.js telemetry
-ENV NEXT_TELEMETRY_DISABLED 1
+ENV NEXT_TELEMETRY_DISABLED=1
 
 # Build the application with Next.js
 RUN bun run build
@@ -70,8 +70,8 @@ RUN mkdir -p /app/.next/cache
 # Set environment variables
 ENV NODE_ENV=production
 ENV PORT=13000
-ENV HOSTNAME="0.0.0.0"
-ENV NEXT_TELEMETRY_DISABLED 1
+ENV HOSTNAME=0.0.0.0
+ENV NEXT_TELEMETRY_DISABLED=1
 
 # Expose port
 EXPOSE 13000
