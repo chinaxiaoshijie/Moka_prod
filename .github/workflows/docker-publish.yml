@@ -38,7 +38,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: ./backend
-          file: Dockerfile
+          file: ./backend/Dockerfile
           push: true
           no-cache: true
           tags: ${{ steps.meta-backend.outputs.tags }}
@@ -54,7 +54,7 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: ./frontend
-          file: Dockerfile
+          file: ./frontend/Dockerfile
           push: true
           no-cache: true
           tags: ${{ steps.meta-frontend.outputs.tags }}
