@@ -28,7 +28,7 @@ COPY prisma ./prisma
 COPY src ./src
 
 # Generate Prisma client
-RUN bunx prisma generate
+RUN bunx prisma generate --postinstall
 
 # Build TypeScript
 RUN bun run build
