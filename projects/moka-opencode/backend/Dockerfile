@@ -7,10 +7,11 @@ FROM oven/bun:1-alpine AS deps
 WORKDIR /app
 
 # Copy package files
-COPY package.json bun.lock* ./
+# Copy package files
+COPY backend/package.json ./package.json
 
 # Install dependencies
-RUN bun install --frozen-lockfile --production
+RUN bun install --production
 
 # ========================================
 # Stage 2: Builder
@@ -20,7 +21,7 @@ WORKDIR /app
 
 # Copy dependency files from deps stage
 COPY --from=deps /app/node_modules ./node_modules
-COPY package.json bun.lock* ./
+COPY backend/package.json ./package.json
 COPY tsconfig.json ./
 COPY tsconfig.build.json ./
 COPY prisma ./prisma

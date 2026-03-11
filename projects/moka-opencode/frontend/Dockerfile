@@ -7,23 +7,32 @@ FROM oven/bun:1-alpine AS deps
 WORKDIR /app
 
 # Copy package files
-COPY package.json bun.lock* ./
+# Copy package files
+COPY frontend/package.json ./package.json
 
 # Install dependencies
-RUN bun install --frozen-lockfile --production
+RUN bun install --production
 
 # ========================================
 # Stage 2: Builder
-FROM oven/bun:1-alpine AS builder
-
-# Install npm for Next.js build
-RUN apk add --no-cache npm
+# =======================================
+# Stage 2: Builder
+# =======================================
+FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Copy dependency files from deps stage
-COPY --from=deps /app/node_modules ./node_modules
-COPY package.json bun.lock* ./
+# Install bun for dependency management
+RUN npm install -g bun
+
+# Copy dependency files
+COPY frontend/package.json ./package.json
+
+
+# Install dependencies with bun
+RUN bun install
+
+# Copy source files
 COPY next.config.* ./
 COPY tailwind.config.* ./
 COPY postcss.config.* ./
@@ -34,7 +43,7 @@ COPY src ./src
 # Disable Next.js telemetry
 ENV NEXT_TELEMETRY_DISABLED 1
 
-# Build the application
+# Build the application with Next.js
 RUN bun run build
 
 # ========================================
