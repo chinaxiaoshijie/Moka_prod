@@ -118,3 +118,55 @@ This project is proprietary and confidential.
 ## Support
 
 For issues and support, please contact the development team.
+
+## 🚀 Production Deployment
+
+### One-click Deployment Script
+
+For deployment to your production server (e.g., 10.10.2.131):
+
+```bash
+# Copy the deployment script to your server
+scp deploy-moka.sh malong@10.10.2.131:/tmp/
+
+# Run the deployment script on the server
+ssh malong@10.10.2.131 'bash /tmp/deploy-moka.sh'
+```
+
+### Manual Deployment Steps
+
+1. **Clone the repository**:
+   ```bash
+   git clone https://github.com/chinaxiaoshijie/Moka_prod.git
+   cd Moka_prod
+   ```
+
+2. **Create environment file**:
+   ```bash
+   cp .env.example .env
+   # Edit .env with your production configuration
+   vim .env
+   ```
+
+3. **Start services**:
+   ```bash
+   docker compose up -d
+   ```
+
+4. **Verify deployment**:
+   ```bash
+   # Check container status
+   docker compose ps
+   
+   # Check logs
+   docker compose logs -f
+   ```
+
+### System Requirements
+
+- Ubuntu 20.04+ or Debian 11+
+- Docker 20.10+
+- Docker Compose 2.0+
+- Minimum 4GB RAM, 20GB disk space
+
+See [SYSTEM_REQUIREMENTS.md](SYSTEM_REQUIREMENTS.md) for detailed requirements.
