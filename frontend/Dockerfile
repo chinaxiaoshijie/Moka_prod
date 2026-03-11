@@ -56,9 +56,10 @@ WORKDIR /app
 RUN apk add --no-cache nginx curl
 
 # Copy built files
-COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
+# Copy public assets from source (not from builder)
+COPY public ./public
 COPY --from=builder /app/package.json ./
 
 # Copy nginx configuration
