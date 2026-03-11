@@ -8,7 +8,7 @@ WORKDIR /app
 
 # Copy package files
 # Copy package files
-COPY frontend/package.json ./package.json
+COPY package.json ./package.json
 
 # Install dependencies
 RUN bun install --production
@@ -26,7 +26,7 @@ WORKDIR /app
 RUN npm install -g bun
 
 # Copy dependency files
-COPY frontend/package.json ./package.json
+COPY package.json ./package.json
 
 
 # Install dependencies with bun
