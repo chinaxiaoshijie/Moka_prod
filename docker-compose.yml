@@ -36,6 +36,7 @@ services:
       context: ./backend
       dockerfile: Dockerfile
       target: runner
+      no_cache: true
     container_name: moka-backend
     restart: unless-stopped
     ports:
@@ -68,6 +69,7 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       target: runner
+      no_cache: true
     container_name: moka-frontend
     restart: unless-stopped
     ports:
