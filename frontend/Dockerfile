@@ -34,7 +34,7 @@ RUN bun install
 
 # Copy source files
 COPY next.config.* ./
-COPY tailwind.config.* ./
+# tailwind.config.* file doesn't exist, skip it
 COPY postcss.config.* ./
 COPY tsconfig.json ./
 COPY next-env.d.ts ./
