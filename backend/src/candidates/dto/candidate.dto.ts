@@ -66,8 +66,8 @@ export class CandidateResponseDto {
   email!: string | null;
   positionId!: string | null;
   position!: { title: string } | null;
-  status!: CandidateStatus;
-  source!: CandidateSource | null;
+  status: any;
+  source: any | null;
   resumeUrl!: string | null;
   createdAt!: Date;
   updatedAt!: Date;

@@ -71,7 +71,7 @@ export class PositionResponseDto {
   headcount!: number;
   hiredCount!: number;
   inProgressCount!: number;
-  // status!: PositionStatus;
+  status: any;
   location!: string | null;
   createdAt!: Date;
   updatedAt!: Date;
