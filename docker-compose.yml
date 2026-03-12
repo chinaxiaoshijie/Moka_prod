@@ -50,7 +50,7 @@ services:
       postgres:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "bunx", "curl", "-f", "http://localhost:3001/health"]
+      test: ["CMD", "bunx", "curl", "-f", "http://localhost:13001/health"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -79,12 +79,12 @@ services:
     depends_on:
       backend:
         condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
+    # healthcheck:
+    #   test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+    #   interval: 30s
+    #   timeout: 10s
+    #   retries: 3
+    #   start_period: 30s
     networks:
       - moka-network
 
