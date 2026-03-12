@@ -72,8 +72,9 @@ ENV NEXT_TELEMETRY_DISABLED=1
 EXPOSE 13000
 
 # Health check with longer start period
+# Health check with more robust curl options
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-  CMD curl -f http://localhost:13000 || exit 1
+  CMD curl --fail-with-body --silent http://localhost:13000 || exit 1
 
 # Start Next.js production server
-CMD ["npx", "next", "start"]
+CMD ["npx", "next", "start", "--hostname", "0.0.0.0"]
