@@ -29,8 +29,8 @@ RUN npm install -g bun
 COPY package.json ./package.json
 
 
-# Install dependencies with bun
-RUN bun install
+# Install all dependencies with bun
+RUN bun install --frozen-lockfile
 
 # Copy source files
 COPY next.config.* ./
@@ -47,7 +47,7 @@ ENV NEXT_TELEMETRY_DISABLED=1
 RUN bun run build
 
 # =======================================
-# Stage 3: Runner (Production - Next.js Standalone)
+# Stage 3: Runner (Production - Traditional Next.js)
 # =======================================
 FROM node:20-alpine AS runner
 
@@ -56,15 +56,11 @@ WORKDIR /app
 # Install curl for health check
 RUN apk add --no-cache curl
 
-# Copy built files
-COPY --from=builder /app/.next/standalone ./.next/standalone
-COPY --from=builder /app/.next/static ./.next/static
-# Copy public assets from source
+# Copy all necessary files
+COPY --from=builder /app/.next ./.next
+COPY --from=builder /app/node_modules ./node_modules
+COPY package.json ./
 COPY public ./public
-COPY --from=builder /app/package.json ./
-
-# Create necessary directories
-RUN mkdir -p /app/.next/cache
 
 # Set environment variables
 ENV NODE_ENV=production
@@ -75,9 +71,9 @@ ENV NEXT_TELEMETRY_DISABLED=1
 # Expose port
 EXPOSE 13000
 
-# Health check - check root endpoint instead of /health
-HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+# Health check with longer start period
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
   CMD curl -f http://localhost:13000 || exit 1
 
-# Start Next.js standalone server
-CMD ["node", ".next/standalone/server.js"]
+# Start Next.js production server
+CMD ["npx", "next", "start"]
