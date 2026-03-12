@@ -22,7 +22,7 @@ async function bootstrap() {
   const port = process.env.PORT || 13001;
   const host = process.env.HOST || '0.0.0.0';
   await app.listen(port, host);
-  console.log(`🚀 Backend server running on http://localhost:${port}`);
-}
+  console.log(`🚀 Backend server running on http://${host}:${port}`);
+  console.log(`✅ Health check available at http://${host}:${port}/health`);
 
 bootstrap();
