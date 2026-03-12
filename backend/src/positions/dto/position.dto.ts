@@ -58,7 +58,7 @@ export class UpdatePositionDto {
   location?: string;
 
   @IsOptional()
-  // @IsEnum(PositionStatus)
+  // // @IsEnum(PositionStatus)
   status?: PositionStatus;
 }
 

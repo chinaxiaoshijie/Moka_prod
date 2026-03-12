@@ -5,7 +5,7 @@ export class CreateNotificationDto {
   @IsString()
   userId!: string;
 
-  @IsEnum(NotificationType)
+  // @IsEnum(NotificationType)
   type!: NotificationType;
 
   @IsString()

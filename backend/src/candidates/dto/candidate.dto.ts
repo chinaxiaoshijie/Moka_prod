@@ -17,11 +17,11 @@ export class CreateCandidateDto {
   positionId?: string;
 
   @IsOptional()
-  @IsEnum(CandidateStatus)
+  // // @IsEnum(CandidateStatus)
   status?: CandidateStatus;
 
   @IsOptional()
-  @IsEnum(CandidateSource)
+  // // @IsEnum(CandidateSource)
   source?: CandidateSource;
 
   @IsOptional()
@@ -47,11 +47,11 @@ export class UpdateCandidateDto {
   positionId?: string;
 
   @IsOptional()
-  @IsEnum(CandidateStatus)
+  // @IsEnum(CandidateStatus)
   status?: CandidateStatus;
 
   @IsOptional()
-  @IsEnum(CandidateSource)
+  // @IsEnum(CandidateSource)
   source?: CandidateSource;
 
   @IsOptional()

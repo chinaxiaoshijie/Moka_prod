@@ -31,7 +31,7 @@ export class CreateUserDto {
     enum: ["HR", "INTERVIEWER"],
     description: "角色",
   })
-  @IsEnum(["HR", "INTERVIEWER"])
+  // @IsEnum(["HR", "INTERVIEWER"])
   role: "HR" | "INTERVIEWER";
 }
 
