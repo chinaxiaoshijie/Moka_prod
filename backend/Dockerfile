@@ -28,7 +28,7 @@ COPY prisma ./prisma
 COPY src ./src
 
 # Generate Prisma client
-RUN bunx prisma generate
+RUN apk add --no-cache openssl && bunx prisma generate && ls -la node_modules/.prisma/client/
 
 # Build TypeScript
 RUN bun run build
