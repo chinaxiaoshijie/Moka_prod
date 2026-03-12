@@ -46,24 +46,22 @@ ENV NEXT_TELEMETRY_DISABLED=1
 # Build the application with Next.js
 RUN bun run build
 
-# ========================================
-# Stage 3: Runner (Production with nginx)
+# =======================================
+# Stage 3: Runner (Production - Next.js Standalone)
+# =======================================
 FROM node:20-alpine AS runner
 
 WORKDIR /app
 
-# Install nginx and curl for health check
-RUN apk add --no-cache nginx curl
+# Install curl for health check
+RUN apk add --no-cache curl
 
 # Copy built files
-COPY --from=builder /app/.next/standalone ./
+COPY --from=builder /app/.next/standalone ./.next/standalone
 COPY --from=builder /app/.next/static ./.next/static
-# Copy public assets from source (not from builder)
+# Copy public assets from source
 COPY public ./public
 COPY --from=builder /app/package.json ./
-
-# Copy nginx configuration
-COPY nginx.conf /etc/nginx/http.d/default.conf
 
 # Create necessary directories
 RUN mkdir -p /app/.next/cache
@@ -77,9 +75,9 @@ ENV NEXT_TELEMETRY_DISABLED=1
 # Expose port
 EXPOSE 13000
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
-  CMD curl -f http://localhost:13000/health || exit 1
+# Health check - check root endpoint instead of /health
+HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+  CMD curl -f http://localhost:13000 || exit 1
 
-# Start nginx and node server
-CMD ["sh", "-c", "node server.js & nginx -g 'daemon off;'"]
+# Start Next.js standalone server
+CMD ["node", ".next/standalone/server.js"]
