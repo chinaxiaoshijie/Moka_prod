@@ -23,12 +23,18 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY package.json ./package.json
 COPY tsconfig.json ./
 COPY tsconfig.build.json ./
-# Copy prisma schema and source files
-COPY prisma ./prisma
-COPY src ./src
 
-# Prisma client is pre-generated in .prisma directory
+# Copy prisma schema
+COPY prisma ./prisma
+
+# Copy pre-generated Prisma client
 COPY .prisma ./.prisma
+
+# Generate Prisma client in node_modules (for TypeScript resolution)
+RUN bunx prisma generate
+
+# Copy source files
+COPY src ./src
 
 # Build TypeScript
 RUN bun run build
