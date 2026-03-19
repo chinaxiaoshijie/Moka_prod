@@ -21,8 +21,8 @@ WORKDIR /app
 # Copy package files
 COPY package.json ./package.json
 
-# Install ALL dependencies (including devDependencies for Prisma)
-RUN npm install --legacy-peer-deps
+# Install ALL dependencies (including devDependencies for Prisma and TypeScript)
+RUN npm install --legacy-peer-deps && npm ls typescript
 
 COPY tsconfig.json ./
 COPY tsconfig.build.json ./
@@ -40,7 +40,7 @@ RUN npx prisma generate
 COPY src ./src
 
 # Build TypeScript
-RUN npm run build
+RUN npx tsc -p tsconfig.build.json
 
 # ========================================
 # Stage 3: Runner (Production)
