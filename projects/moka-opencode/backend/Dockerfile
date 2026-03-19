@@ -46,8 +46,7 @@ FROM oven/bun:1 AS runner
 WORKDIR /app
 
 # Security: Run as non-root user
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 appuser
+RUN groupadd --gid 1001 nodejs && useradd --uid 1001 --gid nodejs --shell /bin/bash --create-home appuser
 
 # Copy built files
 COPY --from=builder /app/dist ./dist
