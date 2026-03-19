@@ -51,10 +51,11 @@ RUN adduser --system --uid 1001 appuser
 
 # Copy built files
 COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 COPY --from=deps /app/node_modules ./node_modules
 COPY package.json ./
 COPY prisma ./prisma
+COPY .prisma ./.prisma
 
 # Change ownership
 RUN chown -R appuser:nodejs /app
