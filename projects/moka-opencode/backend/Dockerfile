@@ -18,9 +18,12 @@ FROM node:18-alpine AS builder
 
 WORKDIR /app
 
-# Copy dependency files from deps stage
-COPY --from=deps /app/node_modules ./node_modules
+# Copy package files
 COPY package.json ./package.json
+
+# Install ALL dependencies (including devDependencies for Prisma)
+RUN npm install --legacy-peer-deps
+
 COPY tsconfig.json ./
 COPY tsconfig.build.json ./
 
