@@ -45,8 +45,8 @@ FROM node:18-alpine AS runner
 
 WORKDIR /app
 
-# Security: Run as non-root user
-RUN addgroup --system --gid 1001 nodejs && adduser --system --uid 1001 --ingroup nodejs --create-home --shell /bin/bash appuser
+# Security: Run as non-root user (Alpine syntax)
+RUN addgroup -g 1001 nodejs && adduser -S -u 1001 -G nodejs -h /app appuser
 
 # Copy built files
 COPY --from=builder /app/dist ./dist
