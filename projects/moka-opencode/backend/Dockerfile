@@ -9,8 +9,8 @@ WORKDIR /app
 # Copy package files
 COPY package.json ./package.json
 
-# Install dependencies
-RUN npm install --production
+# Install dependencies (use --legacy-peer-deps for @nestjs/serve-static compatibility)
+RUN npm install --production --legacy-peer-deps
 
 # ========================================
 # Stage 2: Builder
