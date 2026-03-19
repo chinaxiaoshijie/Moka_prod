@@ -2,39 +2,28 @@
 # Production Dockerfile for Frontend (Next.js)
 # ========================================
 # Stage 1: Dependencies
-FROM oven/bun:1-alpine AS deps
+FROM node:18-alpine AS deps
 
 WORKDIR /app
 
-# Copy package files
 # Copy package files
 COPY package.json ./package.json
 
 # Install dependencies
-RUN bun install --production
+RUN npm install --production
 
 # ========================================
 # Stage 2: Builder
-# =======================================
-# Stage 2: Builder
-# =======================================
-FROM node:20-alpine AS builder
+FROM node:18-alpine AS builder
 
 WORKDIR /app
 
-# Install bun for dependency management
-RUN npm install -g bun
-
-# Copy dependency files
+# Copy dependency files from deps stage
+COPY --from=deps /app/node_modules ./node_modules
 COPY package.json ./package.json
-
-
-# Install all dependencies with bun
-RUN bun install --frozen-lockfile
 
 # Copy source files
 COPY next.config.* ./
-# tailwind.config.* file doesn't exist, skip it
 COPY postcss.config.* ./
 COPY tsconfig.json ./
 COPY next-env.d.ts ./
@@ -44,12 +33,11 @@ COPY src ./src
 ENV NEXT_TELEMETRY_DISABLED=1
 
 # Build the application with Next.js
-RUN bun run build
+RUN npm run build
 
-# =======================================
-# Stage 3: Runner (Production - Traditional Next.js)
-# =======================================
-FROM node:20-alpine AS runner
+# ========================================
+# Stage 3: Runner (Production)
+FROM node:18-alpine AS runner
 
 WORKDIR /app
 
@@ -70,10 +58,6 @@ ENV NEXT_TELEMETRY_DISABLED=1
 
 # Expose port
 EXPOSE 13000
-
-# Temporarily disable health check to allow container to start
-# HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
-#   CMD curl --fail-with-body --silent http://localhost:13000 || exit 1
 
 # Start Next.js production server
 CMD ["npx", "next", "start", "--hostname", "0.0.0.0"]

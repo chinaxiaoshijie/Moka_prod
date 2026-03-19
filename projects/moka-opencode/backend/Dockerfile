@@ -2,7 +2,7 @@
 # Production Dockerfile for Backend (NestJS)
 # ========================================
 # Stage 1: Dependencies
-FROM oven/bun:1 AS deps
+FROM node:18-alpine AS deps
 
 WORKDIR /app
 
@@ -10,11 +10,11 @@ WORKDIR /app
 COPY package.json ./package.json
 
 # Install dependencies
-RUN bun install --production
+RUN npm install --production
 
 # ========================================
 # Stage 2: Builder
-FROM oven/bun:1 AS builder
+FROM node:18-alpine AS builder
 
 WORKDIR /app
 
@@ -31,22 +31,22 @@ COPY prisma ./prisma
 COPY .prisma ./.prisma
 
 # Generate Prisma client in node_modules (for TypeScript resolution)
-RUN bunx prisma generate
+RUN npx prisma generate
 
 # Copy source files
 COPY src ./src
 
 # Build TypeScript
-RUN bun run build
+RUN npm run build
 
 # ========================================
 # Stage 3: Runner (Production)
-FROM oven/bun:1 AS runner
+FROM node:18-alpine AS runner
 
 WORKDIR /app
 
 # Security: Run as non-root user
-RUN groupadd --gid 1001 nodejs && useradd --uid 1001 --gid nodejs --shell /bin/bash --create-home appuser
+RUN addgroup --system --gid 1001 nodejs && adduser --system --uid 1001 --ingroup nodejs --create-home --shell /bin/bash appuser
 
 # Copy built files
 COPY --from=builder /app/dist ./dist
@@ -66,4 +66,4 @@ USER appuser
 EXPOSE 13001
 
 # Start command
-CMD ["bun", "run", "dist/main.js"]
+CMD ["node", "dist/main.js"]
