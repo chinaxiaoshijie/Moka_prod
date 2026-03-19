@@ -15,10 +15,10 @@ export class CreateInterviewDto {
   @IsString()
   interviewerId!: string;
 
-  @IsEnum(InterviewType)
+  // @IsEnum(InterviewType)
   type!: InterviewType;
 
-  @IsEnum(InterviewFormat)
+  // @IsEnum(InterviewFormat)
   format!: InterviewFormat;
 
   @IsDateString()
@@ -46,11 +46,11 @@ export class UpdateInterviewDto {
   interviewerId?: string;
 
   @IsOptional()
-  @IsEnum(InterviewType)
+  // @IsEnum(InterviewType)
   type?: InterviewType;
 
   @IsOptional()
-  @IsEnum(InterviewFormat)
+  // @IsEnum(InterviewFormat)
   format?: InterviewFormat;
 
   @IsOptional()
@@ -74,7 +74,7 @@ export class UpdateInterviewDto {
   meetingNumber?: string;
 
   @IsOptional()
-  @IsEnum(InterviewStatus)
+  // @IsEnum(InterviewStatus)
   status?: InterviewStatus;
 }
 

@@ -13,6 +13,12 @@
     "allowImportingTsExtensions": true,
     "noEmit": true,
 
+    // Path mapping for Prisma client
+    "baseUrl": ".",
+    "paths": {
+      "@prisma/client": [".prisma/client"]
+    },
+
     // NestJS requirements
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,

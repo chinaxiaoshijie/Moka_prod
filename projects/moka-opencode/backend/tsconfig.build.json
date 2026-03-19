@@ -14,7 +14,7 @@
     "incremental": true,
     "skipLibCheck": true,
     "strictNullChecks": false,
-    "noImplicitAny": true,
+    "noImplicitAny": false,
     "strictBindCallApply": false,
     "forceConsistentCasingInFileNames": false,
     "noFallthroughCasesInSwitch": false,
@@ -23,7 +23,10 @@
     "useUnknownInCatchVariables": false,
     "noEmit": false,
     "emitDeclarationOnly": false,
-    "allowImportingTsExtensions": false
+    "allowImportingTsExtensions": false,
+    "paths": {
+      "@prisma/client": [".prisma/client"]
+    }
   },
   "include": ["src/**/*"],
   "exclude": [

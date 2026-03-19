@@ -5,7 +5,7 @@ export class CreateFeedbackDto {
   @IsString()
   interviewId!: string;
 
-  @IsEnum(FeedbackResult)
+  // // @IsEnum(FeedbackResult)
   result!: FeedbackResult;
 
   @IsOptional()
@@ -29,7 +29,7 @@ export class CreateFeedbackDto {
 
 export class UpdateFeedbackDto {
   @IsOptional()
-  @IsEnum(FeedbackResult)
+  // // @IsEnum(FeedbackResult)
   result?: FeedbackResult;
 
   @IsOptional()

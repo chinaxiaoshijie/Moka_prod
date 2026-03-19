@@ -353,20 +353,7 @@ export default function CalendarPage() {
                     week: "周",
                     day: "日",
                   }}
-                  noEventsContent={() => (
-                    <div className="text-center py-12">
-                      <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl">
-                        📅
-                      </div>
-                      <p className="text-slate-500">暂无面试安排</p>
-                      <button
-                        onClick={() => router.push("/interviews/new")}
-                        className="mt-4 px-4 py-2 bg-amber-500 text-white rounded-lg text-sm font-medium hover:bg-amber-600 transition-colors"
-                      >
-                        安排面试
-                      </button>
-                    </div>
-                  )}
+                  noEventsText="暂无面试安排"
                 />
               </div>
             </div>

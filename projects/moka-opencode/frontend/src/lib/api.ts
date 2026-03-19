@@ -1,11 +1,11 @@
 export const getApiUrl = (path: string = "") => {
   if (typeof window !== "undefined") {
     // Browser environment
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:13001";
     return `${baseUrl}${path.startsWith("/") ? path : `/${path}`}`;
   } else {
     // Server environment
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
+    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:13001";
     return `${baseUrl}${path.startsWith("/") ? path : `/${path}`}`;
   }
 };

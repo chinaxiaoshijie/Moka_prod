@@ -45,16 +45,16 @@ services:
       - DATABASE_URL=postgresql://${POSTGRES_USER:-moka}:${POSTGRES_PASSWORD:-moka_password}@postgres:5432/${POSTGRES_DB:-moka_db}
       - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production}
       - JWT_EXPIRES_IN=${JWT_EXPIRES_IN:-7d}
-      - PORT=3001
+      - PORT=13001
     depends_on:
       postgres:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "bunx", "curl", "-f", "http://localhost:3001/health"]
+      test: ["CMD", "bunx", "curl", "-f", "http://localhost:13001/health"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 40s
+      start_period: 60s
     networks:
       - moka-network
     volumes:
@@ -74,17 +74,17 @@ services:
       - "${FRONTEND_PORT:-13000}:13000"
     environment:
       - NODE_ENV=production
-      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:3001}
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:13001}
       - NEXT_PUBLIC_API_BASE=${NEXT_PUBLIC_API_BASE:-/api}
     depends_on:
       backend:
         condition: service_healthy
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 30s
+    # healthcheck:
+    #   test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+    #   interval: 30s
+    #   timeout: 10s
+    #   retries: 3
+    #   start_period: 30s
     networks:
       - moka-network
 

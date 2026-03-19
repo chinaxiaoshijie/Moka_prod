@@ -2,40 +2,40 @@
 # Production Dockerfile for Backend (NestJS)
 # ========================================
 # Stage 1: Dependencies
-FROM oven/bun:1-alpine AS deps
+FROM oven/bun:1 AS deps
 
 WORKDIR /app
 
 # Copy package files
-# Copy package files
-COPY backend/package.json ./package.json
+COPY package.json ./package.json
 
 # Install dependencies
 RUN bun install --production
 
 # ========================================
 # Stage 2: Builder
-FROM oven/bun:1-alpine AS builder
+FROM oven/bun:1 AS builder
 
 WORKDIR /app
 
 # Copy dependency files from deps stage
 COPY --from=deps /app/node_modules ./node_modules
-COPY backend/package.json ./package.json
+COPY package.json ./package.json
 COPY tsconfig.json ./
 COPY tsconfig.build.json ./
+# Copy prisma schema and source files
 COPY prisma ./prisma
 COPY src ./src
 
-# Generate Prisma client
-RUN bunx prisma generate
+# Prisma client is pre-generated in .prisma directory
+COPY .prisma ./.prisma
 
 # Build TypeScript
 RUN bun run build
 
 # ========================================
 # Stage 3: Runner (Production)
-FROM oven/bun:1-alpine AS runner
+FROM oven/bun:1 AS runner
 
 WORKDIR /app
 
