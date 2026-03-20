@@ -18,9 +18,9 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Copy dependency files from deps stage
-COPY --from=deps /app/node_modules ./node_modules
+# Install ALL dependencies (including devDependencies for TypeScript)
 COPY package.json ./package.json
+RUN npm install --legacy-peer-deps
 
 # Copy source files
 COPY next.config.* ./
