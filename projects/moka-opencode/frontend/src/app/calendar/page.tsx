@@ -1,13 +1,15 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import FullCalendar from "@fullcalendar/react";
-import dayGridPlugin from "@fullcalendar/daygrid";
-import timeGridPlugin from "@fullcalendar/timegrid";
-import interactionPlugin from "@fullcalendar/interaction";
-import type { EventClickArg, DateSelectArg } from "@fullcalendar/core";
+import { Calendar, momentLocalizer } from "react-big-calendar";
+import moment from "moment";
+import "react-big-calendar/lib/css/react-big-calendar.css";
 import Sidebar from "@/components/Sidebar";
+
+// 设置中文本地化
+const localizer = momentLocalizer(moment);
+moment.locale("zh-cn");
 
 interface Interview {
   id: string;
@@ -25,26 +27,18 @@ interface Interview {
 interface CalendarEvent {
   id: string;
   title: string;
-  start: string;
-  end: string;
-  backgroundColor: string;
-  borderColor: string;
-  textColor: string;
-  extendedProps: {
-    interview: Interview;
-  };
+  start: Date;
+  end: Date;
+  allDay: boolean;
+  resource?: Interview;
 }
 
 export default function CalendarPage() {
   const router = useRouter();
-  const calendarRef = useRef<FullCalendar>(null);
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [view, setView] = useState<
-    "dayGridMonth" | "timeGridWeek" | "timeGridDay"
-  >("timeGridWeek");
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
+  const [view, setView] = useState<"month" | "week" | "day">("week");
 
   useEffect(() => {
     fetchInterviews();
@@ -68,14 +62,10 @@ export default function CalendarPage() {
       const calendarEvents: CalendarEvent[] = interviews.map((interview) => ({
         id: interview.id,
         title: `${interview.candidate.name} - ${interview.position.title}`,
-        start: interview.startTime,
-        end: interview.endTime,
-        backgroundColor: getStatusColor(interview.status),
-        borderColor: getStatusColor(interview.status),
-        textColor: "#ffffff",
-        extendedProps: {
-          interview,
-        },
+        start: new Date(interview.startTime),
+        end: new Date(interview.endTime),
+        allDay: false,
+        resource: interview,
       }));
 
       setEvents(calendarEvents);
@@ -86,69 +76,17 @@ export default function CalendarPage() {
     }
   };
 
+  const handleEventClick = (event: any) => {
+    router.push(`/interviews/${event.id}`);
+  };
+
   const getStatusColor = (status: string) => {
     const colors: { [key: string]: string } = {
-      SCHEDULED: "#3b82f6", // blue-500
-      COMPLETED: "#10b981", // emerald-500
-      CANCELLED: "#ef4444", // red-500
+      SCHEDULED: "#3b82f6",
+      COMPLETED: "#10b981",
+      CANCELLED: "#ef4444",
     };
     return colors[status] || "#6b7280";
-  };
-
-  const getTypeText = (type: string) => {
-    const typeMap: { [key: string]: string } = {
-      INTERVIEW_1: "初试",
-      INTERVIEW_2: "复试",
-      INTERVIEW_3: "终试",
-    };
-    return typeMap[type] || type;
-  };
-
-  const getFormatText = (format: string) => {
-    const formatMap: { [key: string]: string } = {
-      ONLINE: "线上",
-      OFFLINE: "线下",
-    };
-    return formatMap[format] || format;
-  };
-
-  const handleEventClick = (clickInfo: EventClickArg) => {
-    const interviewId = clickInfo.event.id;
-    router.push(`/interviews/${interviewId}`);
-  };
-
-  const handleDateSelect = (selectInfo: DateSelectArg) => {
-    setSelectedDate(selectInfo.start);
-    // 可以在这里添加快速创建面试的功能
-  };
-
-  const handleViewChange = (newView: typeof view) => {
-    setView(newView);
-    if (calendarRef.current) {
-      const calendarApi = calendarRef.current.getApi();
-      calendarApi.changeView(newView);
-    }
-  };
-
-  const goToToday = () => {
-    if (calendarRef.current) {
-      const calendarApi = calendarRef.current.getApi();
-      calendarApi.today();
-    }
-  };
-
-  const goToPrev = () => {
-    if (calendarRef.current) {
-      const calendarApi = calendarRef.current.getApi();
-      calendarApi.prev();
-    }
-  };
-
-  const goToNext = () => {
-    if (calendarRef.current) {
-      const calendarApi = calendarRef.current.getApi();
-      calendarApi.next();
-    }
   };
 
   return (
@@ -168,9 +106,9 @@ export default function CalendarPage() {
               {/* 视图切换 */}
               <div className="flex bg-white rounded-xl border border-slate-200 p-1">
                 <button
-                  onClick={() => handleViewChange("dayGridMonth")}
+                  onClick={() => setView("month")}
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                    view === "dayGridMonth"
+                    view === "month"
                       ? "bg-amber-500 text-white"
                       : "text-slate-600 hover:bg-slate-50"
                   }`}
@@ -178,9 +116,9 @@ export default function CalendarPage() {
                   月
                 </button>
                 <button
-                  onClick={() => handleViewChange("timeGridWeek")}
+                  onClick={() => setView("week")}
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                    view === "timeGridWeek"
+                    view === "week"
                       ? "bg-amber-500 text-white"
                       : "text-slate-600 hover:bg-slate-50"
                   }`}
@@ -188,60 +126,14 @@ export default function CalendarPage() {
                   周
                 </button>
                 <button
-                  onClick={() => handleViewChange("timeGridDay")}
+                  onClick={() => setView("day")}
                   className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                    view === "timeGridDay"
+                    view === "day"
                       ? "bg-amber-500 text-white"
                       : "text-slate-600 hover:bg-slate-50"
                   }`}
                 >
                   日
-                </button>
-              </div>
-
-              {/* 导航按钮 */}
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={goToPrev}
-                  className="p-2 rounded-xl border border-slate-200 hover:bg-slate-50 transition-colors"
-                >
-                  <svg
-                    className="w-5 h-5 text-slate-600"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M15 19l-7-7 7-7"
-                    />
-                  </svg>
-                </button>
-                <button
-                  onClick={goToToday}
-                  className="px-4 py-2 rounded-xl border border-slate-200 text-slate-700 font-medium hover:bg-slate-50 transition-colors"
-                >
-                  今天
-                </button>
-                <button
-                  onClick={goToNext}
-                  className="p-2 rounded-xl border border-slate-200 hover:bg-slate-50 transition-colors"
-                >
-                  <svg
-                    className="w-5 h-5 text-slate-600"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 5l7 7-7 7"
-                    />
-                  </svg>
                 </button>
               </div>
 
@@ -297,76 +189,40 @@ export default function CalendarPage() {
               </div>
 
               {/* 日历组件 */}
-              <div className="h-[calc(100%-3rem)]">
-                <FullCalendar
-                  ref={calendarRef}
-                  plugins={[dayGridPlugin, timeGridPlugin, interactionPlugin]}
-                  initialView={view}
-                  headerToolbar={false}
+              <div className="h-[calc(100%-3rem)] rbc-calendar-wrapper">
+                {/* @ts-ignore */}
+                <Calendar
+                  localizer={localizer}
                   events={events}
-                  eventClick={handleEventClick}
-                  selectable={true}
-                  select={handleDateSelect}
-                  locale="zh-cn"
-                  slotMinTime="08:00:00"
-                  slotMaxTime="20:00:00"
-                  allDaySlot={false}
-                  slotDuration="00:30:00"
-                  snapDuration="00:15:00"
-                  height="100%"
-                  eventContent={(eventInfo) => {
-                    const interview = eventInfo.event.extendedProps.interview;
-                    return (
-                      <div className="p-1 text-xs">
-                        <div className="font-semibold truncate">
-                          {interview.candidate.name}
-                        </div>
-                        <div className="opacity-90 truncate">
-                          {interview.position.title}
-                        </div>
-                        <div className="opacity-75 truncate">
-                          {getTypeText(interview.type)} ·{" "}
-                          {interview.interviewer.name}
-                        </div>
-                      </div>
-                    );
-                  }}
-                  eventTimeFormat={{
-                    hour: "2-digit",
-                    minute: "2-digit",
-                    meridiem: false,
-                    hour12: false,
-                  }}
-                  slotLabelFormat={{
-                    hour: "2-digit",
-                    minute: "2-digit",
-                    hour12: false,
-                  }}
-                  dayHeaderFormat={{
-                    weekday: "short",
-                    month: "numeric",
-                    day: "numeric",
-                  }}
-                  buttonText={{
+                  view={view}
+                  onView={(newView) => setView(newView as any)}
+                  onSelectEvent={handleEventClick}
+                  startAccessor="start"
+                  endAccessor="end"
+                  style={{ height: "100%" }}
+                  messages={{
                     today: "今天",
+                    previous: "<",
+                    next: ">",
                     month: "月",
                     week: "周",
                     day: "日",
+                    agenda: "议程",
+                    date: "日期",
+                    time: "时间",
+                    event: "事件",
                   }}
-                  noEventsContent={() => (
-                    <div className="text-center py-12">
-                      <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl">
-                        📅
-                      </div>
-                      <p className="text-slate-500">暂无面试安排</p>
-                      <button
-                        onClick={() => router.push("/interviews/new")}
-                        className="mt-4 px-4 py-2 bg-amber-500 text-white rounded-lg text-sm font-medium hover:bg-amber-600 transition-colors"
-                      >
-                        安排面试
-                      </button>
-                    </div>
-                  )}
+                  eventPropGetter={(event: any) => {
+                    const status = event.resource?.status || "SCHEDULED";
+                    return {
+                      style: {
+                        backgroundColor: getStatusColor(status),
+                        color: "white",
+                        borderRadius: "4px",
+                        border: "none",
+                      },
+                    };
+                  }}
                 />
               </div>
             </div>

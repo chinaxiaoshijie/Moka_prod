@@ -1,9 +1,14 @@
 import { IsString, IsOptional, IsEnum, IsDateString } from "class-validator";
-import {
-  InterviewType,
-  InterviewFormat,
-  InterviewStatus,
-} from "@prisma/client";
+
+// 使用字符串字面量而非 Prisma 枚举
+export type InterviewType = "INTERVIEW_1" | "INTERVIEW_2" | "INTERVIEW_3";
+export const INTERVIEW_TYPE_VALUES = ["INTERVIEW_1", "INTERVIEW_2", "INTERVIEW_3"] as const;
+
+export type InterviewFormat = "ONLINE" | "OFFLINE";
+export const INTERVIEW_FORMAT_VALUES = ["ONLINE", "OFFLINE"] as const;
+
+export type InterviewStatus = "SCHEDULED" | "COMPLETED" | "CANCELLED";
+export const INTERVIEW_STATUS_VALUES = ["SCHEDULED", "COMPLETED", "CANCELLED"] as const;
 
 export class CreateInterviewDto {
   @IsString()
@@ -15,10 +20,14 @@ export class CreateInterviewDto {
   @IsString()
   interviewerId!: string;
 
-  @IsEnum(InterviewType)
+  @IsEnum(INTERVIEW_TYPE_VALUES, {
+    message: "面试类型必须是 INTERVIEW_1, INTERVIEW_2 或 INTERVIEW_3",
+  })
   type!: InterviewType;
 
-  @IsEnum(InterviewFormat)
+  @IsEnum(INTERVIEW_FORMAT_VALUES, {
+    message: "面试形式必须是 ONLINE 或 OFFLINE",
+  })
   format!: InterviewFormat;
 
   @IsDateString()
@@ -46,11 +55,15 @@ export class UpdateInterviewDto {
   interviewerId?: string;
 
   @IsOptional()
-  @IsEnum(InterviewType)
+  @IsEnum(INTERVIEW_TYPE_VALUES, {
+    message: "面试类型必须是 INTERVIEW_1, INTERVIEW_2 或 INTERVIEW_3",
+  })
   type?: InterviewType;
 
   @IsOptional()
-  @IsEnum(InterviewFormat)
+  @IsEnum(INTERVIEW_FORMAT_VALUES, {
+    message: "面试形式必须是 ONLINE 或 OFFLINE",
+  })
   format?: InterviewFormat;
 
   @IsOptional()
@@ -74,7 +87,9 @@ export class UpdateInterviewDto {
   meetingNumber?: string;
 
   @IsOptional()
-  @IsEnum(InterviewStatus)
+  @IsEnum(INTERVIEW_STATUS_VALUES, {
+    message: "面试状态必须是 SCHEDULED, COMPLETED 或 CANCELLED",
+  })
   status?: InterviewStatus;
 }
 

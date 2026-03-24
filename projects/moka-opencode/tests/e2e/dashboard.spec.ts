@@ -117,6 +117,9 @@ test.describe("Moka 面试管理系统 - 仪表盘", () => {
     test.beforeEach(async ({ page }) => {
       await loginPage.goto();
       await loginPage.login("interviewer", "interviewer123");
+      // 等待登录完成并跳转到 dashboard
+      await page.waitForURL(/.*dashboard/, { timeout: 15000 });
+      await page.waitForTimeout(1000);
     });
 
     test("面试官应该能够访问仪表盘", async ({ page }) => {
@@ -197,9 +200,16 @@ test.describe("Moka 面试管理系统 - 仪表盘", () => {
 
 test.describe("仪表盘 - 未认证访问", () => {
   test("未登录用户访问仪表盘应该跳转到登录", async ({ page }) => {
+    // 清除所有认证信息
+    await page.context().clearCookies();
+    await page.goto("http://localhost:3000/login");
+    await page.evaluate(() => localStorage.clear());
+    
+    // 访问 Dashboard，应该被中间件重定向
     await page.goto("http://localhost:3000/dashboard");
-    await page.waitForLoadState("networkidle");
-
+    
+    // 等待重定向到登录页
+    await page.waitForURL(/.*login/, { timeout: 10000 });
     await expect(page).toHaveURL(/.*login/);
   });
 });

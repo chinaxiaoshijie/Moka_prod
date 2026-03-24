@@ -13,6 +13,8 @@ test.describe("Moka 面试管理系统 - 职位管理边界情况", () => {
     // Login as HR
     await loginPage.goto();
     await loginPage.login("hr", "hr123456");
+      await page.waitForURL(/.*dashboard/, { timeout: 15000 });
+      await page.waitForTimeout(500);
   });
 
   test("HR应该能够查看职位列表或空状态", async ({ page }) => {

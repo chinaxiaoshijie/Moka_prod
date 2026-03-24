@@ -13,12 +13,14 @@ import { EmailModule } from "./email/email.module";
 import { NotificationModule } from "./notifications/notification.module";
 import { AnalyticsModule } from "./analytics/analytics.module";
 import { UsersModule } from "./users/users.module";
+import { HealthModule } from "./health/health.module";
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
-      envFilePath: "env/.env",
+      envFilePath: [".env", ".env.production", ".env.local"],
+      ignoreEnvFile: false,
     }),
     ServeStaticModule.forRoot({
       rootPath: join(__dirname, "..", "uploads"),
@@ -35,6 +37,7 @@ import { UsersModule } from "./users/users.module";
     NotificationModule,
     AnalyticsModule,
     UsersModule,
+    HealthModule,
   ],
 })
 export class AppModule {}

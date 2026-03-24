@@ -1,8 +1,9 @@
 import { NestFactory } from "@nestjs/core";
-import { ValidationPipe } from "@nestjs/common";
+import { ValidationPipe, Logger } from "@nestjs/common";
 import { AppModule } from "./app.module";
 
 async function bootstrap() {
+  const logger = new Logger("Bootstrap");
   const app = await NestFactory.create(AppModule);
 
   // 全局验证管道
@@ -10,6 +11,7 @@ async function bootstrap() {
     new ValidationPipe({
       whitelist: true,
       transform: true,
+      forbidNonWhitelisted: true,
     }),
   );
 
@@ -17,12 +19,14 @@ async function bootstrap() {
   app.enableCors({
     origin: process.env.FRONTEND_URL || "http://localhost:3000",
     credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
+    allowedHeaders: ["Content-Type", "Authorization"],
   });
 
-    const port = process.env.PORT || 3002;
-  const host = process.env.HOST || '0.0.0.0';
+  const port = parseInt(process.env.PORT || "3001", 10);
+  const host = process.env.HOST || "0.0.0.0";
   await app.listen(port, host);
-  console.log("🚀 Backend server running on http://localhost:3001");
+  logger.log(`🚀 Backend server running on http://${host}:${port}`);
 }
 
 bootstrap();

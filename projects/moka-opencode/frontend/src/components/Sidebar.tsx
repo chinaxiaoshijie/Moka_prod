@@ -33,13 +33,20 @@ export default function Sidebar() {
   useEffect(() => {
     const userData = localStorage.getItem("user");
     if (userData) {
-      setUser(JSON.parse(userData));
+      try {
+        setUser(JSON.parse(userData));
+      } catch {
+        localStorage.removeItem("user");
+      }
     }
   }, []);
 
   const handleLogout = () => {
     localStorage.clear();
-    router.push("/login");
+    // 清除 cookie
+    document.cookie = 'token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+    // 使用硬跳转确保重定向生效
+    window.location.href = "/login";
   };
 
   const items = user?.role === "INTERVIEWER" ? interviewerNavItems : navItems;

@@ -13,6 +13,8 @@ test.describe("Moka 面试管理系统 - 候选人管理边界情况", () => {
     // Login as HR
     await loginPage.goto();
     await loginPage.login("hr", "hr123456");
+      await page.waitForURL(/.*dashboard/, { timeout: 15000 });
+      await page.waitForTimeout(500);
   });
 
   test("HR应该能够使用空关键词搜索候选人", async ({ page }) => {
@@ -151,6 +153,8 @@ test.describe("候选人管理 - 数据验证", () => {
     loginPage = new LoginPage(page);
     await loginPage.goto();
     await loginPage.login("hr", "hr123456");
+      await page.waitForURL(/.*dashboard/, { timeout: 15000 });
+      await page.waitForTimeout(500);
   });
 
   test("添加重复手机号的候选人应该显示错误", async ({ page }) => {

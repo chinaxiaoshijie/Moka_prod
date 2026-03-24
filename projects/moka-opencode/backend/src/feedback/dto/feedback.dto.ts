@@ -1,11 +1,16 @@
 import { IsString, IsOptional, IsEnum, IsInt, Min, Max } from "class-validator";
-import { FeedbackResult } from "@prisma/client";
+
+// 使用字符串字面量而非 Prisma 枚举
+export type FeedbackResult = "PASS" | "FAIL" | "PENDING";
+export const FEEDBACK_RESULT_VALUES = ["PASS", "FAIL", "PENDING"] as const;
 
 export class CreateFeedbackDto {
   @IsString()
   interviewId!: string;
 
-  @IsEnum(FeedbackResult)
+  @IsEnum(FEEDBACK_RESULT_VALUES, {
+    message: "反馈结果必须是 PASS, FAIL 或 PENDING",
+  })
   result!: FeedbackResult;
 
   @IsOptional()
@@ -29,7 +34,9 @@ export class CreateFeedbackDto {
 
 export class UpdateFeedbackDto {
   @IsOptional()
-  @IsEnum(FeedbackResult)
+  @IsEnum(FEEDBACK_RESULT_VALUES, {
+    message: "反馈结果必须是 PASS, FAIL 或 PENDING",
+  })
   result?: FeedbackResult;
 
   @IsOptional()

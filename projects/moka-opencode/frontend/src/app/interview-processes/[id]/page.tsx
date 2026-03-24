@@ -438,11 +438,11 @@ export default function InterviewProcessDetailPage() {
                               </div>
                               
                               {/* Rating stars */}
-                              {interview.feedbacks[0].overallRating && (
+                              {interview.feedbacks && interview.feedbacks[0]?.overallRating && (
                                 <div className="flex items-center gap-1 mb-3">
                                   {[1, 2, 3, 4, 5].map((star) => (
                                     <span key={star} className={`text-lg ${
-                                      star <= interview.feedbacks[0].overallRating! ? "text-amber-400" : "text-slate-200"
+                                      star <= (interview.feedbacks?.[0]?.overallRating ?? 0) ? "text-amber-400" : "text-slate-200"
                                     }`}>★</span>
                                   ))}
                                   <span className="ml-2 text-sm text-slate-600">

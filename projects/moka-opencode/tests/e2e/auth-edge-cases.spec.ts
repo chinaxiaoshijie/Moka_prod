@@ -117,7 +117,9 @@ test.describe("Moka 面试管理系统 - 认证边界情况", () => {
     test("有效登录后应该存储token", async ({ page }) => {
       await loginPage.goto();
       await loginPage.login("hr", "hr123456");
-      await page.waitForLoadState("networkidle");
+      // 等待登录完成并跳转到 dashboard
+      await page.waitForURL(/.*dashboard/, { timeout: 10000 });
+      await page.waitForTimeout(500);
 
       // Check localStorage has token
       const token = await page.evaluate(() => localStorage.getItem("token"));
@@ -127,7 +129,9 @@ test.describe("Moka 面试管理系统 - 认证边界情况", () => {
     test("有效登录后应该存储用户信息", async ({ page }) => {
       await loginPage.goto();
       await loginPage.login("hr", "hr123456");
-      await page.waitForLoadState("networkidle");
+      // 等待登录完成并跳转到 dashboard
+      await page.waitForURL(/.*dashboard/, { timeout: 10000 });
+      await page.waitForTimeout(500);
 
       // Check localStorage has user data
       const userData = await page.evaluate(() => localStorage.getItem("user"));
@@ -138,7 +142,9 @@ test.describe("Moka 面试管理系统 - 认证边界情况", () => {
     test("登录后刷新页面应该保持登录状态", async ({ page }) => {
       await loginPage.goto();
       await loginPage.login("hr", "hr123456");
-      await page.waitForLoadState("networkidle");
+      // 等待登录完成并跳转到 dashboard
+      await page.waitForURL(/.*dashboard/, { timeout: 10000 });
+      await page.waitForTimeout(500);
 
       // Refresh page
       await page.reload();
@@ -153,7 +159,8 @@ test.describe("Moka 面试管理系统 - 认证边界情况", () => {
       // Login first
       await loginPage.goto();
       await loginPage.login("hr", "hr123456");
-      await page.waitForLoadState("networkidle");
+      await page.waitForURL(/.*dashboard/, { timeout: 10000 });
+      await page.waitForTimeout(500);
 
       // Clear localStorage to simulate logout
       await page.evaluate(() => localStorage.clear());

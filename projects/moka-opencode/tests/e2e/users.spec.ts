@@ -13,6 +13,8 @@ test.describe("Moka 面试管理系统 - 用户管理", () => {
     // Login as HR
     await loginPage.goto();
     await loginPage.login("hr", "hr123456");
+      await page.waitForURL(/.*dashboard/, { timeout: 15000 });
+      await page.waitForTimeout(500);
   });
 
   test("HR应该能够访问用户管理页面", async ({ page }) => {

@@ -1,12 +1,15 @@
 export const getApiUrl = (path: string = "") => {
+  // Always use /api prefix for proxy to nginx
+  const apiPath = path.startsWith("/") ? path : `/${path}`;
+  const fullPath = apiPath.startsWith("/api") ? apiPath : `/api${apiPath}`;
+  
   if (typeof window !== "undefined") {
-    // Browser environment
-    const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
-    return `${baseUrl}${path.startsWith("/") ? path : `/${path}`}`;
+    // Browser environment - use relative path for proxy
+    return fullPath;
   } else {
-    // Server environment
+    // Server environment - use configured API URL
     const baseUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001";
-    return `${baseUrl}${path.startsWith("/") ? path : `/${path}`}`;
+    return `${baseUrl}${apiPath}`;
   }
 };
 

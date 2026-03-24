@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
 
 interface Interview {
@@ -15,8 +15,14 @@ interface Interview {
 
 export default function SubmitFeedbackPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const interviewId = searchParams.get("interviewId");
+  const [interviewId, setInterviewId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      setInterviewId(params.get("interviewId"));
+    }
+  }, []);
 
   const [interview, setInterview] = useState<Interview | null>(null);
   const [loading, setLoading] = useState(false);

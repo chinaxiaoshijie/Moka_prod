@@ -20,12 +20,13 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./docker/postgres/init:/docker-entrypoint-initdb.d
-#   #   #     # healthcheck:
-#   #   #       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-moka}"]
-#   #   #       interval: 10s
-#   #   #       timeout: 5s
-#   #   #       retries: 5
-#   #   #     networks:
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-moka} -d ${POSTGRES_DB:-moka_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
       - moka-network
 
   # ========================================
@@ -46,16 +47,17 @@ services:
       - JWT_SECRET=${JWT_SECRET:-your-secret-key-change-in-production}
       - JWT_EXPIRES_IN=${JWT_EXPIRES_IN:-7d}
       - PORT=3001
-# #   #     depends_on:
-# #   #       postgres:
-# #   #         condition: service_healthy
-    # healthcheck:
-# #       test: ["CMD", "bunx", "curl", "-f", "http://localhost:3001/health"]
-# #       interval: 30s
-# #       timeout: 10s
-# #       retries: 3
-# #       start_period: 40s
-# #     networks:
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:13000}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3001/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
       - moka-network
     volumes:
       - backend-uploads:/app/uploads
@@ -74,17 +76,17 @@ services:
       - "${FRONTEND_PORT:-13000}:3000"
     environment:
       - NODE_ENV=production
-      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://localhost:13001}
+      - NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL:-http://backend:3001}
       - NEXT_PUBLIC_API_BASE=${NEXT_PUBLIC_API_BASE:-/api}
-#     depends_on:
-#       backend:
-#         condition: service_healthy
-#     # healthcheck:
-#       test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
-#       interval: 30s
-#       timeout: 10s
-#       retries: 3
-#       start_period: 30s
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
     networks:
       - moka-network
 

@@ -1,62 +1,55 @@
 # ========================================
 # Production Dockerfile for Backend (NestJS)
+# Using Debian for better Prisma compatibility
 # ========================================
-# Stage 1: Dependencies
-FROM oven/bun:1-alpine AS deps
+FROM node:20-bullseye AS deps
 
 WORKDIR /app
 
-# Copy package files
-COPY package.json bun.lock* ./
-
 # Install dependencies
-RUN bun install --frozen-lockfile --production
+COPY package.json ./
+RUN npm install --legacy-peer-deps
 
 # ========================================
 # Stage 2: Builder
-FROM oven/bun:1-alpine AS builder
+FROM node:20-bullseye AS builder
 
 WORKDIR /app
 
+# Install TypeScript globally
+RUN npm install -g typescript
+
+# Install Prisma CLI globally
+RUN npm install -g prisma@5.22.0
+
 # Copy dependency files from deps stage
 COPY --from=deps /app/node_modules ./node_modules
-COPY package.json bun.lock* ./
+COPY package.json ./
 COPY tsconfig.json ./
 COPY tsconfig.build.json ./
 COPY prisma ./prisma
 COPY src ./src
 
 # Generate Prisma client
-RUN bunx prisma generate
+RUN npx prisma generate
 
 # Build TypeScript
-RUN bun run build
+RUN npm run build
 
 # ========================================
 # Stage 3: Runner (Production)
-FROM oven/bun:1-alpine AS runner
+FROM node:20-bullseye AS runner
 
 WORKDIR /app
 
-# Security: Run as non-root user
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 appuser
-
 # Copy built files
 COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
-COPY --from=deps /app/node_modules ./node_modules
+COPY --from=builder /app/node_modules ./node_modules
 COPY package.json ./
 COPY prisma ./prisma
-
-# Change ownership
-RUN chown -R appuser:nodejs /app
-
-# Switch to non-root user
-USER appuser
 
 # Expose port
 EXPOSE 3001
 
 # Start command
-CMD ["bun", "run", "dist/main.js"]
+CMD ["node", "dist/main.js"]

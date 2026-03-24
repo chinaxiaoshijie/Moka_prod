@@ -1,5 +1,8 @@
 import { IsString, IsOptional, IsInt, IsEnum, Min } from "class-validator";
-import { PositionStatus } from "@prisma/client";
+
+// 使用字符串字面量而非 Prisma 枚举，因为 Prisma 枚举在运行时不可用
+export type PositionStatus = "OPEN" | "PAUSED" | "CLOSED";
+export const POSITION_STATUS_VALUES = ["OPEN", "PAUSED", "CLOSED"] as const;
 
 export class CreatePositionDto {
   @IsString({ message: "职位名称不能为空" })
@@ -58,7 +61,9 @@ export class UpdatePositionDto {
   location?: string;
 
   @IsOptional()
-  @IsEnum(PositionStatus)
+  @IsEnum(POSITION_STATUS_VALUES, {
+    message: "职位状态必须是 OPEN, PAUSED 或 CLOSED",
+  })
   status?: PositionStatus;
 }
 

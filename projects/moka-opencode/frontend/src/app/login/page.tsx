@@ -29,17 +29,29 @@ export default function LoginPage() {
 
       if (!response.ok) {
         setError(data.message || "登录失败，请检查用户名和密码");
+        setLoading(false);
         return;
       }
 
+      // 确保数据存在
+      if (!data.access_token || !data.user) {
+        setError("登录响应格式错误");
+        setLoading(false);
+        return;
+      }
+
+      // 存储到 localStorage
       localStorage.setItem("token", data.access_token);
       localStorage.setItem("user", JSON.stringify(data.user));
 
-      router.push("/dashboard");
+      // 设置 cookie 供中间件使用
+      document.cookie = `token=${data.access_token}; path=/; max-age=${7 * 24 * 60 * 60}`;
+
+      // 使用硬跳转确保页面完全刷新
+      window.location.href = "/dashboard";
     } catch (err) {
-      setError("网络错误，请稍后重试");
       console.error("Login error:", err);
-    } finally {
+      setError("网络错误，请稍后重试");
       setLoading(false);
     }
   };
@@ -77,7 +89,7 @@ export default function LoginPage() {
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   required
-                  className="w-full rounded-xl border border-slate-200 bg-white pl-11 pr-4 py-3 text-slate-900 placeholder-slate-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 transition-all"
+                  className="w-full rounded-xl border border-slate-200 bg-white pl-11 pr-4 py-3 text-slate-900 placeholder-slate-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 transition-all outline-none"
                   placeholder="请输入用户名"
                   disabled={loading}
                 />
@@ -95,7 +107,7 @@ export default function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  className="w-full rounded-xl border border-slate-200 bg-white pl-11 pr-4 py-3 text-slate-900 placeholder-slate-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 transition-all"
+                  className="w-full rounded-xl border border-slate-200 bg-white pl-11 pr-4 py-3 text-slate-900 placeholder-slate-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 transition-all outline-none"
                   placeholder="请输入密码"
                   disabled={loading}
                 />

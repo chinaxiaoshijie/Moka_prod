@@ -42,7 +42,7 @@ export default function ResumeUploadModal({
       formData.append("file", selectedFile);
 
       const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/candidates/${candidateId}/resumes`,
+        `/api/candidates/${candidateId}/resumes`,
         {
           method: "POST",
           headers: {

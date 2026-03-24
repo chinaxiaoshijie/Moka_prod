@@ -1,75 +1,45 @@
 # ========================================
-# Production Dockerfile for Frontend (Next.js)
+# Production Dockerfile for Frontend (Next.js 16)
+# Using Node.js with standalone output
 # ========================================
-# Stage 1: Dependencies
-FROM oven/bun:1-alpine AS deps
+
+FROM node:20-alpine AS builder
 
 WORKDIR /app
-
-# Copy package files
-COPY package.json bun.lock* ./
 
 # Install dependencies
-RUN bun install --frozen-lockfile --production
+COPY package.json package-lock.json* ./
+RUN npm install --legacy-peer-deps
 
-# ========================================
-# Stage 2: Builder
-FROM oven/bun:1-alpine AS builder
+# Copy source files
+COPY . .
 
-# Install npm for Next.js build
-RUN apk add --no-cache npm
+# Build application
+RUN npm run build
 
-WORKDIR /app
-
-# Copy dependency files from deps stage
-COPY --from=deps /app/node_modules ./node_modules
-COPY package.json bun.lock* ./
-COPY next.config.* ./
-COPY tailwind.config.* ./
-COPY postcss.config.* ./
-COPY tsconfig.json ./
-COPY next-env.d.ts ./
-COPY src ./src
-
-# Disable Next.js telemetry
-ENV NEXT_TELEMETRY_DISABLED 1
-
-# Build the application
-RUN bun run build
-
-# ========================================
-# Stage 3: Runner (Production with nginx)
+# Stage 2: Runner
 FROM node:20-alpine AS runner
 
 WORKDIR /app
 
-# Install nginx and curl for health check
+# Install nginx
 RUN apk add --no-cache nginx curl
 
-# Copy built files
-COPY --from=builder /app/public ./public
+# Copy standalone output
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
-COPY --from=builder /app/package.json ./
-
-# Copy nginx configuration
 COPY nginx.conf /etc/nginx/http.d/default.conf
 
-# Create necessary directories
 RUN mkdir -p /app/.next/cache
 
-# Set environment variables
 ENV NODE_ENV=production
-ENV PORT=3000
+ENV PORT=3001
 ENV HOSTNAME="0.0.0.0"
 ENV NEXT_TELEMETRY_DISABLED 1
 
-# Expose port
 EXPOSE 3000
 
-# Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
-  CMD curl -f http://localhost:3000/health || exit 1
+  CMD curl -f http://localhost:3000/ || exit 1
 
-# Start nginx and node server
 CMD ["sh", "-c", "node server.js & nginx -g 'daemon off;'"]

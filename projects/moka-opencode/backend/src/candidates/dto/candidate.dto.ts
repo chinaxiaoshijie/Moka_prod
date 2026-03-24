@@ -1,5 +1,11 @@
 import { IsString, IsOptional, IsInt, IsEnum } from "class-validator";
-import { CandidateStatus, CandidateSource } from "@prisma/client";
+
+// 使用字符串字面量而非 Prisma 枚举
+export type CandidateStatus = "PENDING" | "SCREENING" | "INTERVIEW_1" | "INTERVIEW_2" | "INTERVIEW_3" | "HIRED" | "REJECTED";
+export const CANDIDATE_STATUS_VALUES = ["PENDING", "SCREENING", "INTERVIEW_1", "INTERVIEW_2", "INTERVIEW_3", "HIRED", "REJECTED"] as const;
+
+export type CandidateSource = "BOSS" | "REFERRAL" | "HEADHUNTER" | "WEBSITE";
+export const CANDIDATE_SOURCE_VALUES = ["BOSS", "REFERRAL", "HEADHUNTER", "WEBSITE"] as const;
 
 export class CreateCandidateDto {
   @IsString({ message: "姓名不能为空" })
@@ -17,11 +23,15 @@ export class CreateCandidateDto {
   positionId?: string;
 
   @IsOptional()
-  @IsEnum(CandidateStatus)
+  @IsEnum(CANDIDATE_STATUS_VALUES, {
+    message: "候选人状态必须是 PENDING, SCREENING, INTERVIEW_1, INTERVIEW_2, INTERVIEW_3, HIRED 或 REJECTED",
+  })
   status?: CandidateStatus;
 
   @IsOptional()
-  @IsEnum(CandidateSource)
+  @IsEnum(CANDIDATE_SOURCE_VALUES, {
+    message: "候选人来源必须是 BOSS, REFERRAL, HEADHUNTER 或 WEBSITE",
+  })
   source?: CandidateSource;
 
   @IsOptional()
@@ -47,11 +57,15 @@ export class UpdateCandidateDto {
   positionId?: string;
 
   @IsOptional()
-  @IsEnum(CandidateStatus)
+  @IsEnum(CANDIDATE_STATUS_VALUES, {
+    message: "候选人状态必须是 PENDING, SCREENING, INTERVIEW_1, INTERVIEW_2, INTERVIEW_3, HIRED 或 REJECTED",
+  })
   status?: CandidateStatus;
 
   @IsOptional()
-  @IsEnum(CandidateSource)
+  @IsEnum(CANDIDATE_SOURCE_VALUES, {
+    message: "候选人来源必须是 BOSS, REFERRAL, HEADHUNTER 或 WEBSITE",
+  })
   source?: CandidateSource;
 
   @IsOptional()

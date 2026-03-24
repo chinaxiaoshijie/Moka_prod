@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
+import { apiFetch } from "@/lib/api";
 
 interface User {
   id: string;
@@ -10,6 +11,11 @@ interface User {
   name: string;
   email: string | null;
   role: "HR" | "INTERVIEWER";
+}
+
+interface Candidate {
+  id: string;
+  status: string;
 }
 
 export default function DashboardPage() {
@@ -29,21 +35,27 @@ export default function DashboardPage() {
       const token = localStorage.getItem("token");
 
       if (!userData || !token) {
-        router.push("/login");
+        // 使用硬跳转确保重定向生效
+        window.location.href = "/login";
         return;
       }
 
-      setUser(JSON.parse(userData));
+      try {
+        setUser(JSON.parse(userData));
+      } catch {
+        window.location.href = "/login";
+        return;
+      }
 
       try {
         const [posRes, candRes, intRes] = await Promise.all([
-          fetch("http://localhost:3001/positions", {
+          apiFetch("/positions", {
             headers: { Authorization: `Bearer ${token}` },
           }),
-          fetch("http://localhost:3001/candidates", {
+          apiFetch("/candidates", {
             headers: { Authorization: `Bearer ${token}` },
           }),
-          fetch("http://localhost:3001/interviews", {
+          apiFetch("/interviews", {
             headers: { Authorization: `Bearer ${token}` },
           }),
         ]);
@@ -59,14 +71,15 @@ export default function DashboardPage() {
           candidates: candData.total || 0,
           interviews: intData.total || 0,
           pending:
-            candData.items?.filter((c: any) => c.status === "PENDING").length ||
-            0,
+            candData.items?.filter(
+              (c: Candidate) => c.status === "PENDING"
+            ).length || 0,
         });
       } catch (error) {
         console.error("加载统计数据失败", error);
+        // 即使加载失败也要停止 loading
+        setLoading(false);
       }
-
-      setLoading(false);
     };
 
     init();
@@ -119,7 +132,7 @@ export default function DashboardPage() {
   return (
     <div className="flex min-h-screen bg-slate-50">
       <Sidebar />
-      <main className="flex-1 ml-64 p-8">
+      <main className="flex-1 lg:ml-64 p-4 lg:p-8 pb-20 lg:pb-8">
         <div className="max-w-6xl mx-auto">
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-slate-900 mb-2">
@@ -137,7 +150,7 @@ export default function DashboardPage() {
           </div>
 
           {user?.role === "HR" && (
-            <div className="grid grid-cols-4 gap-6 mb-10">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mb-10">
               <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 card-hover">
                 <div className="flex items-center justify-between mb-4">
                   <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center text-2xl">
@@ -194,7 +207,7 @@ export default function DashboardPage() {
 
           <div>
             <h2 className="text-xl font-bold text-slate-900 mb-6">功能模块</h2>
-            <div className="grid grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
               {modules.map((module) => (
                 <button
                   key={module.path}

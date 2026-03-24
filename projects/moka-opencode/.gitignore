@@ -33,3 +33,22 @@ worktrees/
 .env
 .env.local
 .env.*.local
+
+# Test results
+test-results/
+playwright-report/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Temporary files
+*.tmp
+*.temp

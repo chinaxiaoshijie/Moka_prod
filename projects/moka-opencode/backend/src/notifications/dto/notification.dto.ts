@@ -1,11 +1,16 @@
 import { IsString, IsOptional, IsEnum, IsBoolean } from "class-validator";
-import { NotificationType } from "@prisma/client";
+
+// 使用字符串字面量而非 Prisma 枚举
+export type NotificationType = "INTERVIEW_REMINDER" | "FEEDBACK_REQUEST" | "PROCESS_UPDATE" | "SYSTEM";
+export const NOTIFICATION_TYPE_VALUES = ["INTERVIEW_REMINDER", "FEEDBACK_REQUEST", "PROCESS_UPDATE", "SYSTEM"] as const;
 
 export class CreateNotificationDto {
   @IsString()
   userId!: string;
 
-  @IsEnum(NotificationType)
+  @IsEnum(NOTIFICATION_TYPE_VALUES, {
+    message: "通知类型必须是 INTERVIEW_REMINDER, FEEDBACK_REQUEST, PROCESS_UPDATE 或 SYSTEM",
+  })
   type!: NotificationType;
 
   @IsString()
