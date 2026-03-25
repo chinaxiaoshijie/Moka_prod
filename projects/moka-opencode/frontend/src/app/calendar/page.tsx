@@ -1,4 +1,5 @@
 "use client";
+import { apiFetch } from "@/lib/api";
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
@@ -6,6 +7,7 @@ import { Calendar, momentLocalizer } from "react-big-calendar";
 import moment from "moment";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import Sidebar from "@/components/Sidebar";
+import MobileNav from "@/components/MobileNav";
 
 // 设置中文本地化
 const localizer = momentLocalizer(moment);
@@ -47,7 +49,7 @@ export default function CalendarPage() {
   const fetchInterviews = async () => {
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch("http://localhost:3001/interviews", {
+      const response = await apiFetch("/interviews", {
         headers: { Authorization: `Bearer ${token}` },
       });
 
@@ -90,26 +92,27 @@ export default function CalendarPage() {
   };
 
   return (
-    <div className="flex min-h-screen bg-slate-50">
+    <div className="flex min-h-screen bg-[#f8fafc]">
       <Sidebar />
-      <main className="flex-1 ml-64 p-8">
+      <MobileNav />
+      <main className="flex-1 lg:ml-60 p-6 lg:p-8">
         <div className="max-w-7xl mx-auto h-[calc(100vh-4rem)]">
           {/* 头部 */}
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h1 className="text-3xl font-bold text-slate-900 mb-2">
+              <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
                 面试日历
               </h1>
-              <p className="text-slate-500">以日历形式查看和管理面试安排</p>
+              <p className="text-sm text-slate-500 mt-0.5">以日历形式查看和管理面试安排</p>
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
               {/* 视图切换 */}
-              <div className="flex bg-white rounded-xl border border-slate-200 p-1">
+              <div className="flex bg-white rounded-lg border border-slate-200 p-1">
                 <button
                   onClick={() => setView("month")}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                  className={`px-3.5 py-2 rounded-md text-sm font-medium transition-all ${
                     view === "month"
-                      ? "bg-amber-500 text-white"
+                      ? "bg-amber-600 text-white shadow-sm"
                       : "text-slate-600 hover:bg-slate-50"
                   }`}
                 >
@@ -117,9 +120,9 @@ export default function CalendarPage() {
                 </button>
                 <button
                   onClick={() => setView("week")}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                  className={`px-3.5 py-2 rounded-md text-sm font-medium transition-all ${
                     view === "week"
-                      ? "bg-amber-500 text-white"
+                      ? "bg-amber-600 text-white shadow-sm"
                       : "text-slate-600 hover:bg-slate-50"
                   }`}
                 >
@@ -127,9 +130,9 @@ export default function CalendarPage() {
                 </button>
                 <button
                   onClick={() => setView("day")}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                  className={`px-3.5 py-2 rounded-md text-sm font-medium transition-all ${
                     view === "day"
-                      ? "bg-amber-500 text-white"
+                      ? "bg-amber-600 text-white shadow-sm"
                       : "text-slate-600 hover:bg-slate-50"
                   }`}
                 >
@@ -139,10 +142,10 @@ export default function CalendarPage() {
 
               <button
                 onClick={() => router.push("/interviews/new")}
-                className="px-6 py-3 bg-gradient-to-r from-amber-500 to-amber-600 text-white rounded-xl hover:shadow-lg transition-all flex items-center gap-2 font-medium"
+                className="bg-amber-600 hover:bg-amber-700 text-white rounded-lg px-4 py-2.5 text-sm font-medium shadow-sm flex items-center gap-2"
               >
                 <svg
-                  className="w-5 h-5"
+                  className="w-4 h-4"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -160,36 +163,38 @@ export default function CalendarPage() {
           </div>
 
           {error && (
-            <div className="mb-6 rounded-xl bg-red-50 border border-red-200 p-4 text-red-600 flex items-center gap-2">
-              <span>⚠️</span>
+            <div className="mb-6 rounded-lg bg-red-50 border border-red-100 p-4 text-sm text-red-600 flex items-center gap-2">
+              <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+              </svg>
               <span>{error}</span>
             </div>
           )}
 
           {loading ? (
             <div className="flex items-center justify-center h-96">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-500" />
+              <div className="animate-spin rounded-full h-7 w-7 border-2 border-slate-200 border-t-amber-600" />
             </div>
           ) : (
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-6 h-[calc(100%-6rem)]">
+            <div className="bg-white rounded-xl border border-slate-100 shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-5 h-[calc(100%-5.5rem)]">
               {/* 图例 */}
-              <div className="flex items-center gap-6 mb-4 text-sm">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-blue-500"></div>
-                  <span className="text-slate-600">已安排</span>
+              <div className="flex items-center gap-5 mb-4">
+                <div className="flex items-center gap-1.5">
+                  <div className="w-2.5 h-2.5 rounded-full bg-blue-500"></div>
+                  <span className="text-xs text-slate-500">已安排</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-emerald-500"></div>
-                  <span className="text-slate-600">已完成</span>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-2.5 h-2.5 rounded-full bg-emerald-500"></div>
+                  <span className="text-xs text-slate-500">已完成</span>
                 </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-red-500"></div>
-                  <span className="text-slate-600">已取消</span>
+                <div className="flex items-center gap-1.5">
+                  <div className="w-2.5 h-2.5 rounded-full bg-red-500"></div>
+                  <span className="text-xs text-slate-500">已取消</span>
                 </div>
               </div>
 
               {/* 日历组件 */}
-              <div className="h-[calc(100%-3rem)] rbc-calendar-wrapper">
+              <div className="h-[calc(100%-2.5rem)] rbc-calendar-wrapper">
                 {/* @ts-ignore */}
                 <Calendar
                   localizer={localizer}

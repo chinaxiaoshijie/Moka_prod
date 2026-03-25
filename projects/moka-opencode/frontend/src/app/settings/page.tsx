@@ -1,8 +1,10 @@
 "use client";
+import { apiFetch } from "@/lib/api";
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
+import MobileNav from "@/components/MobileNav";
 
 interface UserProfile {
   id: string;
@@ -47,7 +49,7 @@ export default function SettingsPage() {
 
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch("http://localhost:3001/auth/profile", {
+      const response = await apiFetch("/auth/profile", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -112,55 +114,45 @@ export default function SettingsPage() {
     router.push("/login");
   };
 
+  const tabs = [
+    { id: "profile" as const, label: "个人资料" },
+    { id: "system" as const, label: "系统信息" },
+    { id: "about" as const, label: "关于" },
+  ];
+
   return (
-    <div className="flex min-h-screen bg-slate-50">
+    <div className="flex min-h-screen bg-[#f8fafc]">
       <Sidebar />
-      <main className="flex-1 ml-64 p-8">
+      <MobileNav />
+      <main className="flex-1 lg:ml-60 p-8">
         <div className="max-w-4xl mx-auto">
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-slate-900 mb-2">系统设置</h1>
-            <p className="text-slate-500">管理个人信息和系统配置</p>
+            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">系统设置</h1>
+            <p className="text-slate-500 text-sm mt-1">管理个人信息和系统配置</p>
           </div>
 
           {/* 标签页 */}
-          <div className="flex gap-2 mb-6">
-            <button
-              onClick={() => setActiveTab("profile")}
-              className={`px-6 py-3 rounded-xl font-medium transition-all ${
-                activeTab === "profile"
-                  ? "bg-amber-500 text-white"
-                  : "bg-white text-slate-600 hover:bg-slate-100"
-              }`}
-            >
-              个人资料
-            </button>
-            <button
-              onClick={() => setActiveTab("system")}
-              className={`px-6 py-3 rounded-xl font-medium transition-all ${
-                activeTab === "system"
-                  ? "bg-amber-500 text-white"
-                  : "bg-white text-slate-600 hover:bg-slate-100"
-              }`}
-            >
-              系统信息
-            </button>
-            <button
-              onClick={() => setActiveTab("about")}
-              className={`px-6 py-3 rounded-xl font-medium transition-all ${
-                activeTab === "about"
-                  ? "bg-amber-500 text-white"
-                  : "bg-white text-slate-600 hover:bg-slate-100"
-              }`}
-            >
-              关于
-            </button>
+          <div className="flex gap-1 mb-6 bg-white rounded-xl border border-slate-100 shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-1">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                  activeTab === tab.id
+                    ? "bg-amber-600 text-white shadow-sm"
+                    : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                }`}
+              >
+                {tab.label}
+              </button>
+            ))}
           </div>
 
           {message && (
             <div
-              className={`mb-6 rounded-xl p-4 ${
+              className={`mb-6 rounded-xl p-4 text-sm ${
                 message.includes("成功")
-                  ? "bg-emerald-50 border border-emerald-200 text-emerald-600"
+                  ? "bg-emerald-50 border border-emerald-200 text-emerald-700"
                   : "bg-red-50 border border-red-200 text-red-600"
               }`}
             >
@@ -170,14 +162,14 @@ export default function SettingsPage() {
 
           {/* 个人资料 */}
           {activeTab === "profile" && (
-            <div className="space-y-6">
-              <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-                <h3 className="text-lg font-bold text-slate-900 mb-4">
+            <div className="space-y-5">
+              <div className="bg-white rounded-xl border border-slate-100 shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-6">
+                <h3 className="text-sm font-semibold text-slate-700 mb-5">
                   基本信息
                 </h3>
                 <form onSubmit={handleUpdateProfile} className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                    <label className="block text-sm font-medium text-slate-700 mb-1.5">
                       姓名
                     </label>
                     <input
@@ -189,11 +181,11 @@ export default function SettingsPage() {
                           name: e.target.value,
                         }))
                       }
-                      className="w-full rounded-xl border border-slate-200 px-4 py-3 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20"
+                      className="w-full rounded-lg border border-slate-200 px-3.5 py-2.5 text-sm focus:border-amber-500 focus:ring-2 focus:ring-amber-500/10 outline-none"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                    <label className="block text-sm font-medium text-slate-700 mb-1.5">
                       邮箱
                     </label>
                     <input
@@ -205,37 +197,37 @@ export default function SettingsPage() {
                           email: e.target.value,
                         }))
                       }
-                      className="w-full rounded-xl border border-slate-200 px-4 py-3 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20"
+                      className="w-full rounded-lg border border-slate-200 px-3.5 py-2.5 text-sm focus:border-amber-500 focus:ring-2 focus:ring-amber-500/10 outline-none"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                    <label className="block text-sm font-medium text-slate-700 mb-1.5">
                       角色
                     </label>
                     <input
                       type="text"
                       value={user?.role === "HR" ? "HR管理员" : "面试官"}
                       disabled
-                      className="w-full rounded-xl border border-slate-200 px-4 py-3 bg-slate-50 text-slate-500"
+                      className="w-full rounded-lg border border-slate-200 px-3.5 py-2.5 text-sm bg-slate-50 text-slate-400"
                     />
                   </div>
                   <button
                     type="submit"
                     disabled={loading}
-                    className="px-6 py-3 bg-gradient-to-r from-amber-500 to-amber-600 text-white rounded-xl hover:shadow-lg font-medium disabled:opacity-50"
+                    className="bg-amber-600 hover:bg-amber-700 text-white rounded-lg px-4 py-2.5 text-sm font-medium shadow-sm disabled:opacity-50"
                   >
                     {loading ? "保存中..." : "保存修改"}
                   </button>
                 </form>
               </div>
 
-              <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-                <h3 className="text-lg font-bold text-slate-900 mb-4">
+              <div className="bg-white rounded-xl border border-slate-100 shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-6">
+                <h3 className="text-sm font-semibold text-slate-700 mb-5">
                   修改密码
                 </h3>
                 <form onSubmit={handleChangePassword} className="space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                    <label className="block text-sm font-medium text-slate-700 mb-1.5">
                       当前密码
                     </label>
                     <input
@@ -247,11 +239,11 @@ export default function SettingsPage() {
                           currentPassword: e.target.value,
                         }))
                       }
-                      className="w-full rounded-xl border border-slate-200 px-4 py-3 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20"
+                      className="w-full rounded-lg border border-slate-200 px-3.5 py-2.5 text-sm focus:border-amber-500 focus:ring-2 focus:ring-amber-500/10 outline-none"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                    <label className="block text-sm font-medium text-slate-700 mb-1.5">
                       新密码
                     </label>
                     <input
@@ -263,11 +255,11 @@ export default function SettingsPage() {
                           newPassword: e.target.value,
                         }))
                       }
-                      className="w-full rounded-xl border border-slate-200 px-4 py-3 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20"
+                      className="w-full rounded-lg border border-slate-200 px-3.5 py-2.5 text-sm focus:border-amber-500 focus:ring-2 focus:ring-amber-500/10 outline-none"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                    <label className="block text-sm font-medium text-slate-700 mb-1.5">
                       确认新密码
                     </label>
                     <input
@@ -279,13 +271,13 @@ export default function SettingsPage() {
                           confirmPassword: e.target.value,
                         }))
                       }
-                      className="w-full rounded-xl border border-slate-200 px-4 py-3 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20"
+                      className="w-full rounded-lg border border-slate-200 px-3.5 py-2.5 text-sm focus:border-amber-500 focus:ring-2 focus:ring-amber-500/10 outline-none"
                     />
                   </div>
                   <button
                     type="submit"
                     disabled={loading}
-                    className="px-6 py-3 bg-gradient-to-r from-amber-500 to-amber-600 text-white rounded-xl hover:shadow-lg font-medium disabled:opacity-50"
+                    className="bg-amber-600 hover:bg-amber-700 text-white rounded-lg px-4 py-2.5 text-sm font-medium shadow-sm disabled:opacity-50"
                   >
                     {loading ? "修改中..." : "修改密码"}
                   </button>
@@ -296,39 +288,39 @@ export default function SettingsPage() {
 
           {/* 系统信息 */}
           {activeTab === "system" && (
-            <div className="space-y-6">
-              <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-                <h3 className="text-lg font-bold text-slate-900 mb-4">
+            <div className="space-y-5">
+              <div className="bg-white rounded-xl border border-slate-100 shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-6">
+                <h3 className="text-sm font-semibold text-slate-700 mb-5">
                   系统信息
                 </h3>
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between py-3 border-b border-slate-100">
-                    <span className="text-slate-600">系统版本</span>
-                    <span className="font-medium">v1.0.0</span>
+                <div className="space-y-0">
+                  <div className="flex items-center justify-between py-3.5 border-b border-slate-50">
+                    <span className="text-sm text-slate-600">系统版本</span>
+                    <span className="text-sm font-medium text-slate-900">v1.0.0</span>
                   </div>
-                  <div className="flex items-center justify-between py-3 border-b border-slate-100">
-                    <span className="text-slate-600">最后更新</span>
-                    <span className="font-medium">2026-02-24</span>
+                  <div className="flex items-center justify-between py-3.5 border-b border-slate-50">
+                    <span className="text-sm text-slate-600">最后更新</span>
+                    <span className="text-sm font-medium text-slate-900">2026-02-24</span>
                   </div>
-                  <div className="flex items-center justify-between py-3 border-b border-slate-100">
-                    <span className="text-slate-600">数据库状态</span>
-                    <span className="px-2 py-1 bg-emerald-100 text-emerald-700 rounded-full text-sm">
+                  <div className="flex items-center justify-between py-3.5">
+                    <span className="text-sm text-slate-600">数据库状态</span>
+                    <span className="inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">
                       正常
                     </span>
                   </div>
                 </div>
               </div>
 
-              <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
-                <h3 className="text-lg font-bold text-slate-900 mb-4">
+              <div className="bg-white rounded-xl border border-slate-100 shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-6">
+                <h3 className="text-sm font-semibold text-slate-700 mb-2">
                   缓存管理
                 </h3>
-                <p className="text-slate-500 mb-4">
+                <p className="text-sm text-slate-500 mb-4">
                   清除本地缓存数据，需要重新登录
                 </p>
                 <button
                   onClick={handleClearCache}
-                  className="px-6 py-3 border border-red-200 text-red-600 rounded-xl hover:bg-red-50 font-medium"
+                  className="border border-red-200 text-red-600 hover:bg-red-50 rounded-lg px-4 py-2.5 text-sm font-medium"
                 >
                   清除缓存并退出
                 </button>
@@ -338,15 +330,15 @@ export default function SettingsPage() {
 
           {/* 关于 */}
           {activeTab === "about" && (
-            <div className="bg-white rounded-2xl p-8 shadow-sm border border-slate-100 text-center">
-              <div className="w-20 h-20 bg-gradient-to-br from-amber-400 to-amber-600 rounded-2xl flex items-center justify-center mx-auto mb-6">
-                <span className="text-white text-3xl font-bold">M</span>
+            <div className="bg-white rounded-xl border border-slate-100 shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-10 text-center">
+              <div className="w-16 h-16 bg-gradient-to-br from-amber-500 to-amber-700 rounded-2xl flex items-center justify-center mx-auto mb-6">
+                <span className="text-white text-2xl font-bold">M</span>
               </div>
-              <h2 className="text-2xl font-bold text-slate-900 mb-2">
+              <h2 className="text-xl font-bold text-slate-900 mb-1">
                 Moka 面试管理系统
               </h2>
-              <p className="text-slate-500 mb-6">智能化招聘管理平台</p>
-              <div className="space-y-2 text-sm text-slate-600">
+              <p className="text-slate-500 text-sm mb-6">智能化招聘管理平台</p>
+              <div className="space-y-2 text-sm text-slate-500">
                 <p>版本: v1.0.0</p>
                 <p>技术栈: NestJS + Next.js + Prisma + PostgreSQL</p>
                 <p>© 2026 Moka Interview System. All rights reserved.</p>

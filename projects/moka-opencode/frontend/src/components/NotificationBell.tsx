@@ -1,4 +1,5 @@
 "use client";
+import { apiFetch } from "@/lib/api";
 
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
@@ -49,8 +50,8 @@ export default function NotificationBell() {
       const token = localStorage.getItem("token");
       if (!token) return;
 
-      const response = await fetch(
-        "http://localhost:3001/notifications?unreadOnly=false",
+      const response = await apiFetch(
+        "/notifications?unreadOnly=false",
         {
           headers: { Authorization: `Bearer ${token}` },
         },
@@ -69,8 +70,8 @@ export default function NotificationBell() {
   const markAsRead = async (notificationId: string, link?: string | null) => {
     try {
       const token = localStorage.getItem("token");
-      await fetch(
-        `http://localhost:3001/notifications/${notificationId}/read`,
+      await apiFetch(
+        `/notifications/${notificationId}/read`,
         {
           method: "PUT",
           headers: { Authorization: `Bearer ${token}` },
@@ -97,7 +98,7 @@ export default function NotificationBell() {
     setLoading(true);
     try {
       const token = localStorage.getItem("token");
-      await fetch("http://localhost:3001/notifications/read-all", {
+      await apiFetch("/notifications/read-all", {
         method: "PUT",
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -112,14 +113,14 @@ export default function NotificationBell() {
     }
   };
 
-  const getNotificationIcon = (type: string) => {
-    const icons: { [key: string]: string } = {
-      INTERVIEW_REMINDER: "📅",
-      FEEDBACK_REQUEST: "📝",
-      PROCESS_UPDATE: "🔄",
-      SYSTEM: "🔔",
+  const getNotificationTypeLabel = (type: string) => {
+    const labels: { [key: string]: string } = {
+      INTERVIEW_REMINDER: "面试提醒",
+      FEEDBACK_REQUEST: "反馈请求",
+      PROCESS_UPDATE: "流程更新",
+      SYSTEM: "系统通知",
     };
-    return icons[type] || "🔔";
+    return labels[type] || "通知";
   };
 
   const formatTime = (dateStr: string) => {
@@ -168,7 +169,7 @@ export default function NotificationBell() {
 
       {/* 下拉框 */}
       {showDropdown && (
-        <div className="absolute right-0 mt-2 w-96 bg-white rounded-2xl shadow-2xl border border-slate-100 z-50 overflow-hidden">
+        <div className="absolute right-0 mt-2 w-96 bg-white rounded-xl border border-slate-100 shadow-lg z-50 overflow-hidden">
           {/* 头部 */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 bg-slate-50">
             <h3 className="font-semibold text-slate-900">通知</h3>
@@ -187,8 +188,20 @@ export default function NotificationBell() {
           <div className="max-h-96 overflow-y-auto">
             {notifications.length === 0 ? (
               <div className="text-center py-8">
-                <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3 text-2xl">
-                  🔔
+                <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-3">
+                  <svg
+                    className="w-5 h-5 text-slate-400"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
+                    />
+                  </svg>
                 </div>
                 <p className="text-slate-500 text-sm">暂无通知</p>
               </div>
@@ -201,13 +214,15 @@ export default function NotificationBell() {
                     markAsRead(notification.id, notification.link)
                   }
                   className={`px-4 py-3 border-b border-slate-50 cursor-pointer hover:bg-slate-50 transition-colors ${
-                    !notification.read ? "bg-blue-50/50" : ""
+                    !notification.read ? "bg-amber-50/40" : ""
                   }`}
                 >
                   <div className="flex items-start gap-3">
-                    <span className="text-xl">
-                      {getNotificationIcon(notification.type)}
-                    </span>
+                    <div className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                      <span className="text-xs font-medium text-slate-500">
+                        {getNotificationTypeLabel(notification.type).charAt(0)}
+                      </span>
+                    </div>
                     <div className="flex-1 min-w-0">
                       <p
                         className={`font-medium text-sm truncate ${
@@ -226,7 +241,7 @@ export default function NotificationBell() {
                       </p>
                     </div>
                     {!notification.read && (
-                      <span className="w-2 h-2 bg-blue-500 rounded-full flex-shrink-0 mt-1.5"></span>
+                      <span className="w-2 h-2 bg-amber-500 rounded-full flex-shrink-0 mt-1.5"></span>
                     )}
                   </div>
                 </div>

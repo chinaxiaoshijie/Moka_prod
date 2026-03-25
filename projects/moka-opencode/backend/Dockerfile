@@ -36,6 +36,9 @@ RUN npx prisma generate
 # Build TypeScript
 RUN npm run build
 
+# Compile seed script separately
+RUN npx tsc prisma/seed.ts --outDir dist/prisma --esModuleInterop --skipLibCheck --resolveJsonModule --module commonjs --target ES2021 --ignoreConfig
+
 # ========================================
 # Stage 3: Runner (Production)
 FROM node:20-bullseye AS runner
@@ -48,8 +51,13 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY package.json ./
 COPY prisma ./prisma
 
+# Copy entrypoint script
+COPY docker-entrypoint.sh ./
+RUN chmod +x docker-entrypoint.sh
+
 # Expose port
 EXPOSE 3001
 
-# Start command
+# Start command with auto migration
+ENTRYPOINT ["./docker-entrypoint.sh"]
 CMD ["node", "dist/main.js"]

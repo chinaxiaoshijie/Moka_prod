@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
+import MobileNav from "@/components/MobileNav";
 import { apiFetch } from "@/lib/api";
 
 interface User {
@@ -35,7 +36,6 @@ export default function DashboardPage() {
       const token = localStorage.getItem("token");
 
       if (!userData || !token) {
-        // 使用硬跳转确保重定向生效
         window.location.href = "/login";
         return;
       }
@@ -77,7 +77,7 @@ export default function DashboardPage() {
         });
       } catch (error) {
         console.error("加载统计数据失败", error);
-        // 即使加载失败也要停止 loading
+      } finally {
         setLoading(false);
       }
     };
@@ -87,59 +87,92 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-500" />
+      <div className="min-h-screen flex items-center justify-center bg-[#f8fafc]">
+        <div className="animate-spin rounded-full h-7 w-7 border-2 border-slate-200 border-t-amber-600" />
       </div>
     );
   }
 
+  const statCards = [
+    { label: "在招职位", value: stats.positions, color: "text-blue-600", bg: "bg-blue-50" },
+    { label: "总候选人", value: stats.candidates, color: "text-emerald-600", bg: "bg-emerald-50" },
+    { label: "面试安排", value: stats.interviews, color: "text-violet-600", bg: "bg-violet-50" },
+    { label: "待处理", value: stats.pending, color: "text-amber-600", bg: "bg-amber-50" },
+  ];
+
   const hrModules = [
     {
       title: "职位管理",
-      desc: "管理招聘职位信息",
-      icon: "💼",
+      desc: "创建和管理招聘职位",
       path: "/positions",
-      color: "from-blue-500 to-blue-600",
+      color: "border-blue-100 hover:border-blue-200",
+      iconBg: "bg-blue-50",
+      iconColor: "text-blue-600",
+      icon: (
+        <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+          <rect x="2" y="7" width="20" height="14" rx="2" /><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2" />
+        </svg>
+      ),
     },
     {
       title: "候选人管理",
-      desc: "查看候选人信息",
-      icon: "👥",
+      desc: "筛选和跟踪候选人",
       path: "/candidates",
-      color: "from-emerald-500 to-emerald-600",
+      color: "border-emerald-100 hover:border-emerald-200",
+      iconBg: "bg-emerald-50",
+      iconColor: "text-emerald-600",
+      icon: (
+        <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+          <path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" />
+        </svg>
+      ),
     },
     {
       title: "面试安排",
-      desc: "安排面试日程",
-      icon: "📅",
+      desc: "管理面试日程",
       path: "/interviews",
-      color: "from-violet-500 to-violet-600",
+      color: "border-violet-100 hover:border-violet-200",
+      iconBg: "bg-violet-50",
+      iconColor: "text-violet-600",
+      icon: (
+        <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+          <path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+        </svg>
+      ),
     },
   ];
 
   const interviewerModules = [
     {
       title: "我的面试",
-      desc: "查看待面试的候选人",
-      icon: "🎯",
+      desc: "查看待完成的面试任务",
       path: "/my-interviews",
-      color: "from-amber-500 to-amber-600",
+      color: "border-amber-100 hover:border-amber-200",
+      iconBg: "bg-amber-50",
+      iconColor: "text-amber-600",
+      icon: (
+        <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
+          <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2" /><rect x="9" y="3" width="6" height="4" rx="1" /><path d="M9 14l2 2 4-4" />
+        </svg>
+      ),
     },
   ];
 
   const modules = user?.role === "HR" ? hrModules : interviewerModules;
 
   return (
-    <div className="flex min-h-screen bg-slate-50">
+    <div className="flex min-h-screen bg-[#f8fafc]">
       <Sidebar />
-      <main className="flex-1 lg:ml-64 p-4 lg:p-8 pb-20 lg:pb-8">
-        <div className="max-w-6xl mx-auto">
+      <MobileNav />
+      <main className="flex-1 lg:ml-60 p-5 lg:p-8 pb-20 lg:pb-8">
+        <div className="max-w-5xl mx-auto">
+          {/* Header */}
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-slate-900 mb-2">
+            <h1 className="text-2xl font-bold text-slate-900 tracking-tight mb-1">
               欢迎回来，{user?.name}
             </h1>
-            <p className="text-slate-500">
-              {user?.role === "HR" ? "HR管理员" : "面试官"} ·{" "}
+            <p className="text-sm text-slate-500">
+              {user?.role === "HR" ? "HR 管理员" : "面试官"} &middot;{" "}
               {new Date().toLocaleDateString("zh-CN", {
                 weekday: "long",
                 year: "numeric",
@@ -149,90 +182,51 @@ export default function DashboardPage() {
             </p>
           </div>
 
+          {/* Stats */}
           {user?.role === "HR" && (
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6 mb-10">
-              <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 card-hover">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center text-2xl">
-                    💼
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4 mb-8">
+              {statCards.map((card) => (
+                <div
+                  key={card.label}
+                  className="bg-white rounded-xl border border-slate-100 p-5 shadow-[0_1px_3px_rgba(0,0,0,0.04)]"
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <div className={`w-9 h-9 rounded-lg ${card.bg} flex items-center justify-center`}>
+                      <span className={`text-lg font-bold font-mono ${card.color}`}>
+                        {card.value}
+                      </span>
+                    </div>
                   </div>
-                  <span className="text-sm text-slate-400">职位</span>
+                  <p className="text-sm font-medium text-slate-900">
+                    {card.value}
+                  </p>
+                  <p className="text-xs text-slate-400 mt-0.5">{card.label}</p>
                 </div>
-                <p className="text-3xl font-bold text-slate-900">
-                  {stats.positions}
-                </p>
-                <p className="text-sm text-slate-500 mt-1">在招职位</p>
-              </div>
-
-              <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 card-hover">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="w-12 h-12 rounded-xl bg-emerald-100 flex items-center justify-center text-2xl">
-                    👥
-                  </div>
-                  <span className="text-sm text-slate-400">候选人</span>
-                </div>
-                <p className="text-3xl font-bold text-slate-900">
-                  {stats.candidates}
-                </p>
-                <p className="text-sm text-slate-500 mt-1">总候选人</p>
-              </div>
-
-              <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 card-hover">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="w-12 h-12 rounded-xl bg-violet-100 flex items-center justify-center text-2xl">
-                    📅
-                  </div>
-                  <span className="text-sm text-slate-400">面试</span>
-                </div>
-                <p className="text-3xl font-bold text-slate-900">
-                  {stats.interviews}
-                </p>
-                <p className="text-sm text-slate-500 mt-1">待进行</p>
-              </div>
-
-              <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 card-hover">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="w-12 h-12 rounded-xl bg-amber-100 flex items-center justify-center text-2xl">
-                    ⏳
-                  </div>
-                  <span className="text-sm text-slate-400">待处理</span>
-                </div>
-                <p className="text-3xl font-bold text-slate-900">
-                  {stats.pending}
-                </p>
-                <p className="text-sm text-slate-500 mt-1">待处理候选人</p>
-              </div>
+              ))}
             </div>
           )}
 
+          {/* Modules */}
           <div>
-            <h2 className="text-xl font-bold text-slate-900 mb-6">功能模块</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
-              {modules.map((module) => (
+            <h2 className="text-base font-semibold text-slate-900 mb-4">
+              功能模块
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4">
+              {modules.map((m) => (
                 <button
-                  key={module.path}
-                  onClick={() => router.push(module.path)}
-                  className="group relative bg-white rounded-2xl p-6 text-left shadow-sm border border-slate-100 card-hover overflow-hidden"
+                  key={m.path}
+                  onClick={() => router.push(m.path)}
+                  className={`group bg-white rounded-xl border p-5 text-left shadow-[0_1px_3px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.06)] transition-all duration-200 ${m.color}`}
                 >
                   <div
-                    className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-br ${module.color} opacity-10 rounded-bl-full transform translate-x-16 -translate-y-16 group-hover:scale-110 transition-transform duration-500`}
-                  />
-                  <div className="relative z-10">
-                    <div
-                      className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${module.color} flex items-center justify-center text-3xl text-white shadow-lg mb-4 group-hover:scale-110 transition-transform duration-300`}
-                    >
-                      {module.icon}
-                    </div>
-                    <h3 className="text-lg font-bold text-slate-900 mb-2">
-                      {module.title}
-                    </h3>
-                    <p className="text-slate-500 text-sm">{module.desc}</p>
+                    className={`w-10 h-10 rounded-lg ${m.iconBg} ${m.iconColor} flex items-center justify-center mb-4`}
+                  >
+                    {m.icon}
                   </div>
-                  <div className="absolute bottom-6 right-6 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <div className="w-10 h-10 rounded-full bg-slate-100 flex items-center justify-center">
-                      <span className="text-slate-600">→</span>
-                    </div>
-                  </div>
+                  <h3 className="text-sm font-semibold text-slate-900 mb-1">
+                    {m.title}
+                  </h3>
+                  <p className="text-xs text-slate-500">{m.desc}</p>
                 </button>
               ))}
             </div>

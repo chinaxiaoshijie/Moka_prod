@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { apiFetch } from "@/lib/api";
 import FileUpload from "./FileUpload";
 
 interface ResumeUploadModalProps {
@@ -41,8 +42,8 @@ export default function ResumeUploadModal({
       const formData = new FormData();
       formData.append("file", selectedFile);
 
-      const response = await fetch(
-        `/api/candidates/${candidateId}/resumes`,
+      const response = await apiFetch(
+        `/candidates/${candidateId}/resumes`,
         {
           method: "POST",
           headers: {
@@ -76,10 +77,10 @@ export default function ResumeUploadModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50">
       <div className="bg-white rounded-xl shadow-xl max-w-md w-full mx-4 p-6">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold text-slate-800">
+          <h2 className="text-lg font-semibold text-slate-800">
             上传简历 - {candidateName}
           </h2>
           <button
@@ -87,7 +88,7 @@ export default function ResumeUploadModal({
             className="text-slate-400 hover:text-slate-600 transition-colors"
           >
             <svg
-              className="w-6 h-6"
+              className="w-5 h-5"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -103,8 +104,21 @@ export default function ResumeUploadModal({
         </div>
 
         {error && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
-            {error}
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm flex items-start gap-2">
+            <svg
+              className="w-4 h-4 mt-0.5 flex-shrink-0"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+              />
+            </svg>
+            <span>{error}</span>
           </div>
         )}
 
@@ -126,9 +140,9 @@ export default function ResumeUploadModal({
         </div>
 
         {selectedFile && (
-          <div className="mb-4 p-3 bg-slate-50 rounded-lg">
+          <div className="mb-4 p-3 bg-slate-50 rounded-lg border border-slate-100">
             <p className="text-sm text-slate-600">
-              已选择: <span className="font-medium">{selectedFile.name}</span>
+              已选择: <span className="font-medium text-slate-800">{selectedFile.name}</span>
             </p>
             <p className="text-xs text-slate-400 mt-1">
               大小: {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
@@ -136,40 +150,22 @@ export default function ResumeUploadModal({
           </div>
         )}
 
-        <div className="flex justify-end space-x-3">
+        <div className="flex justify-end gap-3">
           <button
             onClick={handleClose}
             disabled={uploading}
-            className="px-4 py-2 text-slate-600 hover:text-slate-800 transition-colors disabled:opacity-50"
+            className="border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-lg px-4 py-2.5 text-sm font-medium disabled:opacity-50 transition-colors"
           >
             取消
           </button>
           <button
             onClick={handleUpload}
             disabled={!selectedFile || uploading}
-            className="px-6 py-2 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+            className="bg-amber-600 hover:bg-amber-700 text-white rounded-lg px-4 py-2.5 text-sm font-medium shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-colors"
           >
             {uploading ? (
               <>
-                <svg
-                  className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                >
-                  <circle
-                    className="opacity-25"
-                    cx="12"
-                    cy="12"
-                    r="10"
-                    stroke="currentColor"
-                    strokeWidth="4"
-                  />
-                  <path
-                    className="opacity-75"
-                    fill="currentColor"
-                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                  />
-                </svg>
+                <span className="animate-spin rounded-full h-4 w-4 border-2 border-slate-200 border-t-amber-600" />
                 上传中...
               </>
             ) : (

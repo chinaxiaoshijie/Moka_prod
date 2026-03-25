@@ -1,79 +1,158 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* React Big Calendar Custom Styles */
+/* ========================================
+   Design System: 精致商务风
+   ======================================== */
+
+@layer base {
+  :root {
+    --brand: #d97706;
+    --brand-hover: #b45309;
+    --brand-soft: #fef3c7;
+    --brand-ring: rgba(217, 119, 6, 0.1);
+    --surface: #ffffff;
+    --surface-secondary: #f8fafc;
+    --surface-elevated: #ffffff;
+    --sidebar-bg: #0c1222;
+    --sidebar-hover: rgba(255, 255, 255, 0.04);
+    --sidebar-active: rgba(217, 119, 6, 0.12);
+    --text-primary: #0f172a;
+    --text-secondary: #64748b;
+    --text-muted: #94a3b8;
+    --success: #059669;
+    --success-soft: #ecfdf5;
+    --danger: #dc2626;
+    --danger-soft: #fef2f2;
+    --warning-soft: #fffbeb;
+    --border: #e2e8f0;
+    --border-light: #f1f5f9;
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.04);
+    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.06);
+    --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.08);
+  }
+
+  html {
+    font-family: 'Inter', 'Noto Sans SC', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  body {
+    margin: 0;
+    background: var(--surface-secondary);
+    color: var(--text-primary);
+    line-height: 1.6;
+  }
+
+  code, .font-mono {
+    font-family: 'JetBrains Mono', 'Geist Mono', ui-monospace, monospace;
+  }
+}
+
+/* ========================================
+   Scrollbar
+   ======================================== */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* ========================================
+   Card hover
+   ======================================== */
+.card-hover {
+  transition: box-shadow 0.2s ease-out;
+}
+
+.card-hover:hover {
+  box-shadow: var(--shadow-md);
+}
+
+/* ========================================
+   React Big Calendar overrides
+   ======================================== */
 .rbc-calendar-wrapper {
   height: 100%;
 }
 
 .rbc-calendar-wrapper .rbc-toolbar {
   margin-bottom: 1rem;
+  font-family: 'Inter', 'Noto Sans SC', sans-serif;
+}
+
+.rbc-calendar-wrapper .rbc-toolbar button {
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  padding: 6px 12px;
+  border-color: var(--border);
+  color: var(--text-secondary);
+  transition: all 0.15s ease;
+}
+
+.rbc-calendar-wrapper .rbc-toolbar button:hover {
+  background: var(--surface-secondary);
+}
+
+.rbc-calendar-wrapper .rbc-toolbar button.rbc-active {
+  background: var(--brand);
+  color: white;
+  border-color: var(--brand);
 }
 
 .rbc-calendar-wrapper .rbc-event {
   cursor: pointer;
-  padding: 2px 4px;
+  padding: 2px 6px;
   font-size: 0.75rem;
+  border-radius: 4px;
+  border: none;
 }
 
 .rbc-calendar-wrapper .rbc-event:hover {
   opacity: 0.9;
-  transform: translateY(-1px);
 }
 
-.rbc-calendar-wrapper .rbc-day-bg {
-  border-color: #e2e8f0;
-}
-
-.rbc-calendar-wrapper .rbc-time-header-content {
-  border-color: #e2e8f0;
-}
-
-.rbc-calendar-wrapper .rbc-time-content {
-  border-color: #e2e8f0;
+.rbc-calendar-wrapper .rbc-day-bg,
+.rbc-calendar-wrapper .rbc-time-header-content,
+.rbc-calendar-wrapper .rbc-time-content,
+.rbc-calendar-wrapper .rbc-time-view {
+  border-color: var(--border-light);
 }
 
 .rbc-calendar-wrapper .rbc-header {
   padding: 8px;
   font-weight: 500;
-  color: #4a5568;
-  border-color: #e2e8f0;
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  border-color: var(--border-light);
 }
 
 .rbc-calendar-wrapper .rbc-off-range-bg {
-  background-color: #f8fafc;
-}
-
-.rbc-calendar-wrapper .rbc-time-view {
-  border-color: #e2e8f0;
+  background-color: var(--surface-secondary);
 }
 
 .rbc-calendar-wrapper .rbc-slot-selection {
-  background-color: rgba(245, 158, 11, 0.1);
+  background-color: var(--brand-ring);
 }
 
-/* 卡片悬停效果 */
-.card-hover {
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.card-hover:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
-}
-
-/* 全局样式 */
-body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+.rbc-calendar-wrapper .rbc-today {
+  background-color: var(--brand-soft);
 }

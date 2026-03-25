@@ -2,10 +2,8 @@
 
 import { useState } from "react";
 import { apiFetch } from "@/lib/api";
-import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
-  const router = useRouter();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -19,9 +17,6 @@ export default function LoginPage() {
     try {
       const response = await apiFetch("/auth/login", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
         body: JSON.stringify({ username, password }),
       });
 
@@ -33,21 +28,15 @@ export default function LoginPage() {
         return;
       }
 
-      // 确保数据存在
       if (!data.access_token || !data.user) {
         setError("登录响应格式错误");
         setLoading(false);
         return;
       }
 
-      // 存储到 localStorage
       localStorage.setItem("token", data.access_token);
       localStorage.setItem("user", JSON.stringify(data.user));
-
-      // 设置 cookie 供中间件使用
       document.cookie = `token=${data.access_token}; path=/; max-age=${7 * 24 * 60 * 60}`;
-
-      // 使用硬跳转确保页面完全刷新
       window.location.href = "/dashboard";
     } catch (err) {
       console.error("Login error:", err);
@@ -57,78 +46,132 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-slate-100 to-slate-50 relative overflow-hidden">
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute -top-40 -right-40 w-80 h-80 bg-amber-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30" />
-        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-blue-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30" />
-      </div>
+    <div className="min-h-screen flex">
+      {/* Left — Branding */}
+      <div className="hidden lg:flex lg:w-[55%] relative bg-[#0c1222] overflow-hidden">
+        <div className="absolute inset-0">
+          <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-amber-600/8 via-transparent to-blue-600/5" />
+          <div className="absolute top-24 left-16 w-64 h-64 bg-amber-500/10 rounded-full blur-[100px]" />
+          <div className="absolute bottom-24 right-16 w-80 h-80 bg-slate-500/5 rounded-full blur-[100px]" />
+          <div
+            className="absolute inset-0 opacity-[0.02]"
+            style={{
+              backgroundImage:
+                "linear-gradient(rgba(255,255,255,.08) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.08) 1px, transparent 1px)",
+              backgroundSize: "64px 64px",
+            }}
+          />
+        </div>
 
-      <div className="w-full max-w-md relative z-10">
-        <div className="bg-white/80 backdrop-blur-xl rounded-3xl p-8 shadow-2xl border border-white/50">
-          <div className="text-center mb-8">
-            <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-white font-bold text-2xl shadow-lg">
+        <div className="relative z-10 flex flex-col justify-between p-12 xl:p-16 w-full">
+          <div className="flex items-center gap-2.5">
+            <div className="w-9 h-9 rounded-lg bg-amber-600 flex items-center justify-center text-white font-bold text-sm">
               M
             </div>
-            <h1 className="text-2xl font-bold text-slate-900 mb-2">
-              Moka 面试系统
-            </h1>
-            <p className="text-slate-500">
-              智能化招聘管理平台
-            </p>
+            <span className="text-white/80 text-base font-semibold tracking-tight">
+              Moka
+            </span>
           </div>
 
-          <form onSubmit={handleLogin} className="space-y-5">
+          <div className="max-w-md">
+            <h1 className="text-[2.5rem] xl:text-5xl font-bold text-white leading-[1.15] mb-5 tracking-tight">
+              智能化
+              <br />
+              <span className="text-amber-400">招聘管理平台</span>
+            </h1>
+            <p className="text-slate-400 text-base leading-relaxed mb-12">
+              高效管理职位发布、候选人筛选、面试流程与反馈评估，助力企业精准招聘。
+            </p>
+
+            <div className="space-y-5">
+              {[
+                { label: "职位管理", desc: "灵活创建和跟踪招聘需求" },
+                { label: "简历解析", desc: "PDF 简历一键导入候选人信息" },
+                { label: "面试协调", desc: "多轮面试自动安排与提醒" },
+                { label: "数据洞察", desc: "招聘漏斗与转化率实时分析" },
+              ].map((item, i) => (
+                <div key={i} className="flex items-center gap-4">
+                  <div className="w-1.5 h-1.5 rounded-full bg-amber-500/60 flex-shrink-0" />
+                  <div>
+                    <span className="text-white/80 text-sm font-medium">
+                      {item.label}
+                    </span>
+                    <span className="text-slate-500 text-sm ml-2">
+                      {item.desc}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <p className="text-slate-600 text-xs">&copy; 2026 Moka</p>
+        </div>
+      </div>
+
+      {/* Right — Login Form */}
+      <div className="flex-1 flex items-center justify-center bg-white px-6 py-12">
+        <div className="w-full max-w-[340px]">
+          {/* Mobile logo */}
+          <div className="lg:hidden text-center mb-10">
+            <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-amber-600 flex items-center justify-center text-white font-bold text-lg">
+              M
+            </div>
+            <h1 className="text-lg font-semibold text-slate-900">Moka</h1>
+          </div>
+
+          <div className="mb-8">
+            <h2 className="text-2xl font-bold text-slate-900 tracking-tight mb-1">
+              欢迎回来
+            </h2>
+            <p className="text-slate-500 text-sm">登录您的账号以继续</p>
+          </div>
+
+          <form onSubmit={handleLogin} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">
                 用户名
               </label>
-              <div className="relative">
-                <span className="absolute left-4 top-3.5 text-slate-400">👤</span>
-                <input
-                  type="text"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
-                  required
-                  className="w-full rounded-xl border border-slate-200 bg-white pl-11 pr-4 py-3 text-slate-900 placeholder-slate-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 transition-all outline-none"
-                  placeholder="请输入用户名"
-                  disabled={loading}
-                />
-              </div>
+              <input
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                required
+                className="w-full rounded-lg border border-slate-200 px-3.5 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/10 transition-all outline-none"
+                placeholder="请输入用户名"
+                disabled={loading}
+              />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">
+              <label className="block text-sm font-medium text-slate-700 mb-1.5">
                 密码
               </label>
-              <div className="relative">
-                <span className="absolute left-4 top-3.5 text-slate-400">🔒</span>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  className="w-full rounded-xl border border-slate-200 bg-white pl-11 pr-4 py-3 text-slate-900 placeholder-slate-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 transition-all outline-none"
-                  placeholder="请输入密码"
-                  disabled={loading}
-                />
-              </div>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                className="w-full rounded-lg border border-slate-200 px-3.5 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/10 transition-all outline-none"
+                placeholder="请输入密码"
+                disabled={loading}
+              />
             </div>
 
             {error && (
-              <div className="rounded-xl bg-red-50 border border-red-100 p-3 text-sm text-red-600 flex items-center gap-2">
-                <span>⚠️</span>
-                <span>{error}</span>
+              <div className="rounded-lg bg-red-50 border border-red-100 px-3.5 py-2.5 text-sm text-red-600">
+                {error}
               </div>
             )}
 
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-xl bg-gradient-to-r from-amber-500 to-amber-600 px-4 py-3.5 text-base font-semibold text-white shadow-lg shadow-amber-500/25 hover:shadow-amber-500/40 hover:scale-[1.02] transition-all duration-200 disabled:cursor-not-allowed disabled:opacity-50"
+              className="w-full rounded-lg bg-amber-600 hover:bg-amber-700 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-50 mt-2"
             >
               {loading ? (
                 <span className="flex items-center justify-center gap-2">
-                  <span className="animate-spin rounded-full h-5 w-5 border-b-2 border-white" />
+                  <span className="animate-spin rounded-full h-4 w-4 border-2 border-white/30 border-t-white" />
                   登录中...
                 </span>
               ) : (
@@ -139,20 +182,38 @@ export default function LoginPage() {
 
           <div className="mt-8 pt-6 border-t border-slate-100">
             <p className="text-xs text-slate-400 text-center mb-3">测试账号</p>
-            <div className="flex gap-3 justify-center">
-              <div className="px-3 py-2 bg-slate-50 rounded-lg text-xs text-slate-600">
-                <span className="font-medium">HR:</span> hr / hr123456
-              </div>
-              <div className="px-3 py-2 bg-slate-50 rounded-lg text-xs text-slate-600">
-                <span className="font-medium">面试官:</span> interviewer / interviewer123
-              </div>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setUsername("hr");
+                  setPassword("hr123456");
+                }}
+                className="px-3 py-2 bg-slate-50 border border-slate-100 rounded-lg text-xs text-slate-600 hover:border-amber-200 hover:bg-amber-50/50 transition-colors text-center"
+              >
+                <span className="font-medium text-amber-700 block text-[11px]">
+                  HR
+                </span>
+                <span className="text-slate-400 text-[11px]">
+                  hr / hr123456
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setUsername("interviewer");
+                  setPassword("interviewer123");
+                }}
+                className="px-3 py-2 bg-slate-50 border border-slate-100 rounded-lg text-xs text-slate-600 hover:border-blue-200 hover:bg-blue-50/50 transition-colors text-center"
+              >
+                <span className="font-medium text-blue-700 block text-[11px]">
+                  面试官
+                </span>
+                <span className="text-slate-400 text-[11px]">interviewer</span>
+              </button>
             </div>
           </div>
         </div>
-
-        <p className="text-center text-slate-400 text-sm mt-6">
-          © 2026 Moka Interview System
-        </p>
       </div>
     </div>
   );

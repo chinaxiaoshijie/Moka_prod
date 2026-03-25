@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { apiFetch } from "@/lib/api";
 
 interface User {
   id: string;
@@ -35,7 +36,7 @@ export default function MentionButton({
   useEffect(() => {
     const fetchInterviewers = async () => {
       const token = localStorage.getItem("token");
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/auth/users`, {
+      const res = await apiFetch(`/auth/users`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await res.json();
@@ -66,8 +67,8 @@ export default function MentionButton({
     setLoading(true);
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch(
-        `/api/candidates/${candidateId}/mentions`,
+      const res = await apiFetch(
+        `/candidates/${candidateId}/mentions`,
         {
           method: "POST",
           headers: {
@@ -102,10 +103,10 @@ export default function MentionButton({
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="inline-flex items-center px-3 py-1.5 text-sm bg-amber-100 text-amber-700 rounded-md hover:bg-amber-200 transition-colors"
+        className="inline-flex items-center gap-1.5 border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors"
       >
         <svg
-          className="w-4 h-4 mr-1"
+          className="w-4 h-4"
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -117,31 +118,45 @@ export default function MentionButton({
             d="M16 12a4 4 0 10-8 0 4 4 0 008 0zm0 0v1.5a2.5 2.5 0 005 0V12a9 9 0 10-9 9m4.5-1.206a8.959 8.959 0 01-4.5 1.207"
           />
         </svg>
-        @面试官
+        面试官
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
+        <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl border border-slate-100 shadow-lg z-50">
           <div className="p-4">
-            <h3 className="text-sm font-medium text-gray-900 mb-3">
-              @面试官查看简历
+            <h3 className="text-sm font-semibold text-slate-900 mb-3">
+              通知面试官查看简历
             </h3>
 
             {success ? (
               <div className="text-center py-4">
-                <div className="text-green-500 text-4xl mb-2">✓</div>
-                <p className="text-sm text-green-600">通知已发送</p>
+                <div className="w-10 h-10 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-2">
+                  <svg
+                    className="w-5 h-5 text-green-500"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M5 13l4 4L19 7"
+                    />
+                  </svg>
+                </div>
+                <p className="text-sm text-green-600 font-medium">通知已发送</p>
               </div>
             ) : (
               <>
                 <div className="mb-3">
-                  <label className="block text-xs text-gray-500 mb-1">
+                  <label className="block text-xs font-medium text-slate-500 mb-1">
                     候选人
                   </label>
-                  <div className="text-sm font-medium text-gray-900">
+                  <div className="text-sm font-medium text-slate-900">
                     {candidateName}
                     {positionTitle && (
-                      <span className="text-gray-500 font-normal ml-2">
+                      <span className="text-slate-500 font-normal ml-2">
                         - {positionTitle}
                       </span>
                     )}
@@ -149,7 +164,7 @@ export default function MentionButton({
                 </div>
 
                 <div className="mb-3">
-                  <label className="block text-xs text-gray-500 mb-1">
+                  <label className="block text-xs font-medium text-slate-500 mb-1">
                     选择面试官 *
                   </label>
                   <select
@@ -160,7 +175,7 @@ export default function MentionButton({
                       );
                       setSelectedInterviewer(interviewer || null);
                     }}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500"
+                    className="w-full rounded-lg border border-slate-200 px-3.5 py-2.5 text-sm focus:border-amber-500 focus:ring-2 focus:ring-amber-500/10 outline-none transition-colors"
                   >
                     <option value="">请选择面试官</option>
                     {interviewers.map((interviewer) => (
@@ -172,7 +187,7 @@ export default function MentionButton({
                 </div>
 
                 <div className="mb-4">
-                  <label className="block text-xs text-gray-500 mb-1">
+                  <label className="block text-xs font-medium text-slate-500 mb-1">
                     留言（可选）
                   </label>
                   <textarea
@@ -180,16 +195,23 @@ export default function MentionButton({
                     onChange={(e) => setMessage(e.target.value)}
                     placeholder="请输入想对面试官说的话..."
                     rows={2}
-                    className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 resize-none"
+                    className="w-full rounded-lg border border-slate-200 px-3.5 py-2.5 text-sm focus:border-amber-500 focus:ring-2 focus:ring-amber-500/10 outline-none resize-none transition-colors"
                   />
                 </div>
 
                 <button
                   onClick={handleMention}
                   disabled={!selectedInterviewer || loading}
-                  className="w-full bg-amber-600 text-white py-2 rounded-md text-sm hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  className="w-full bg-amber-600 hover:bg-amber-700 text-white rounded-lg px-4 py-2.5 text-sm font-medium shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
                 >
-                  {loading ? "发送中..." : "发送通知"}
+                  {loading ? (
+                    <>
+                      <span className="animate-spin rounded-full h-4 w-4 border-2 border-slate-200 border-t-amber-600" />
+                      发送中...
+                    </>
+                  ) : (
+                    "发送通知"
+                  )}
                 </button>
               </>
             )}

@@ -107,7 +107,7 @@ export default function DataImport({
         </button>
       </div>
 
-      <div className="border-2 border-dashed border-slate-300 rounded-xl p-8 text-center hover:border-amber-500 transition-colors">
+      <div className="border-2 border-dashed border-slate-200 rounded-xl p-8 text-center hover:border-amber-400 transition-colors">
         <input
           type="file"
           accept=".xlsx,.xls"
@@ -116,9 +116,9 @@ export default function DataImport({
           id="excel-upload"
         />
         <label htmlFor="excel-upload" className="cursor-pointer block">
-          <div className="w-12 h-12 bg-emerald-100 rounded-full flex items-center justify-center mx-auto mb-4">
+          <div className="w-12 h-12 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
             <svg
-              className="w-6 h-6 text-emerald-600"
+              className="w-6 h-6 text-slate-400"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -131,28 +131,41 @@ export default function DataImport({
               />
             </svg>
           </div>
-          <p className="text-slate-700 font-medium">点击上传Excel文件</p>
+          <p className="text-slate-700 font-medium text-sm">点击上传Excel文件</p>
           <p className="text-slate-400 text-sm mt-1">支持 .xlsx 格式</p>
         </label>
       </div>
 
       {error && (
-        <div className="rounded-xl bg-red-50 border border-red-200 p-3 text-red-600 text-sm">
-          ⚠️ {error}
+        <div className="rounded-xl bg-red-50 border border-red-200 p-3 text-red-600 text-sm flex items-start gap-2">
+          <svg
+            className="w-4 h-4 mt-0.5 flex-shrink-0"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+            />
+          </svg>
+          <span>{error}</span>
         </div>
       )}
 
       {preview.length > 0 && (
         <div className="mt-4">
-          <h4 className="font-medium text-slate-900 mb-2">数据预览（前5条）</h4>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-slate-50">
+          <h4 className="font-medium text-slate-900 mb-2 text-sm">数据预览（前5条）</h4>
+          <div className="overflow-x-auto rounded-xl border border-slate-100 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+            <table className="w-full text-sm bg-white">
+              <thead className="bg-slate-50 border-b border-slate-100">
                 <tr>
                   {Object.keys(preview[0]).map((key) => (
                     <th
                       key={key}
-                      className="px-3 py-2 text-left text-slate-600"
+                      className="px-3 py-2 text-left text-slate-600 font-medium"
                     >
                       {key}
                     </th>
@@ -161,7 +174,7 @@ export default function DataImport({
               </thead>
               <tbody>
                 {preview.map((row, index) => (
-                  <tr key={index} className="border-b border-slate-100">
+                  <tr key={index} className="border-b border-slate-50 last:border-0">
                     {Object.values(row).map((value: any, i) => (
                       <td key={i} className="px-3 py-2 text-slate-700">
                         {String(value)}
@@ -176,9 +189,16 @@ export default function DataImport({
           <button
             onClick={handleImport}
             disabled={loading}
-            className="w-full mt-4 px-4 py-3 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-xl font-medium hover:shadow-lg disabled:opacity-50"
+            className="w-full mt-4 bg-amber-600 hover:bg-amber-700 text-white rounded-lg px-4 py-2.5 text-sm font-medium shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            {loading ? "导入中..." : `确认导入 (${preview.length}+ 条数据)`}
+            {loading ? (
+              <span className="flex items-center justify-center gap-2">
+                <span className="animate-spin rounded-full h-4 w-4 border-2 border-slate-200 border-t-amber-600 inline-block" />
+                导入中...
+              </span>
+            ) : (
+              `确认导入 (${preview.length}+ 条数据)`
+            )}
           </button>
         </div>
       )}

@@ -1,8 +1,10 @@
 "use client";
+import { apiFetch } from "@/lib/api";
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
+import MobileNav from "@/components/MobileNav";
 
 interface Candidate {
   id: string;
@@ -98,7 +100,7 @@ export default function CandidatesPage() {
   const fetchInterviewers = async () => {
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch("http://localhost:3001/auth/users", {
+      const response = await apiFetch("/auth/users", {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (response.ok) {
@@ -114,7 +116,7 @@ export default function CandidatesPage() {
   const fetchPositions = async () => {
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch("http://localhost:3001/positions", {
+      const response = await apiFetch("/positions", {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (response.ok) {
@@ -134,8 +136,8 @@ export default function CandidatesPage() {
       if (statusFilter) params.append("status", statusFilter);
       if (positionFilter) params.append("positionId", positionFilter);
 
-      const response = await fetch(
-        `http://localhost:3001/candidates?${params.toString()}`,
+      const response = await apiFetch(
+        `/candidates?${params.toString()}`,
         { headers: { Authorization: `Bearer ${token}` } },
       );
 
@@ -189,8 +191,8 @@ export default function CandidatesPage() {
 
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch(
-        "http://localhost:3001/interview-processes",
+      const response = await apiFetch(
+        "/interview-processes",
         {
           method: "POST",
           headers: {
@@ -306,8 +308,8 @@ export default function CandidatesPage() {
       const formData = new FormData();
       formData.append("file", file);
 
-      const response = await fetch(
-        "http://localhost:3001/candidates/parse-resume",
+      const response = await apiFetch(
+        "/candidates/parse-resume",
         {
           method: "POST",
           headers: { Authorization: `Bearer ${token}` },
@@ -330,7 +332,7 @@ export default function CandidatesPage() {
     setImportLoading(true);
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch("http://localhost:3001/candidates", {
+      const response = await apiFetch("/candidates", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -366,7 +368,7 @@ export default function CandidatesPage() {
     setImportLoading(true);
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch("http://localhost:3001/candidates", {
+      const response = await apiFetch("/candidates", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -397,25 +399,27 @@ export default function CandidatesPage() {
   };
 
   return (
-    <div className="flex min-h-screen bg-slate-50">
+    <div className="flex min-h-screen bg-[#f8fafc]">
       <Sidebar />
-      <main className="flex-1 ml-64 p-8">
+      <MobileNav />
+      <main className="flex-1 lg:ml-60 p-6 lg:p-8">
         <div className="max-w-6xl mx-auto">
+          {/* Page Header */}
           <div className="flex items-center justify-between mb-8">
             <div>
-              <h1 className="text-3xl font-bold text-slate-900 mb-2">
+              <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
                 候选人管理
               </h1>
-              <p className="text-slate-500">管理候选人信息和应聘进度</p>
+              <p className="text-slate-500 text-sm mt-1">管理候选人信息和应聘进度</p>
             </div>
             {user?.role === "HR" && (
               <div className="flex gap-3">
                 <button
                   onClick={() => setShowAddModal(true)}
-                  className="px-6 py-3 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-xl hover:shadow-lg transition-all flex items-center gap-2"
+                  className="bg-amber-600 hover:bg-amber-700 text-white rounded-lg px-4 py-2.5 text-sm font-medium shadow-sm flex items-center gap-2"
                 >
                   <svg
-                    className="w-5 h-5"
+                    className="w-4 h-4"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -431,10 +435,10 @@ export default function CandidatesPage() {
                 </button>
                 <button
                   onClick={() => setShowImportModal(true)}
-                  className="px-6 py-3 bg-gradient-to-r from-amber-500 to-amber-600 text-white rounded-xl hover:shadow-lg transition-all flex items-center gap-2"
+                  className="border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-lg px-4 py-2.5 text-sm font-medium flex items-center gap-2"
                 >
                   <svg
-                    className="w-5 h-5"
+                    className="w-4 h-4"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -453,16 +457,17 @@ export default function CandidatesPage() {
           </div>
 
           {error && (
-            <div className="mb-6 rounded-xl bg-red-50 border border-red-200 p-4 text-red-600">
-              ⚠️ {error}
+            <div className="mb-6 rounded-lg bg-red-50 border border-red-200 p-4 text-red-600 text-sm">
+              {error}
             </div>
           )}
 
+          {/* Import Modal */}
           {showImportModal && (
-            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-              <div className="bg-white rounded-2xl max-w-lg w-full shadow-2xl">
+            <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+              <div className="bg-white rounded-xl shadow-xl max-w-lg w-full">
                 <div className="p-6 border-b border-slate-100">
-                  <h2 className="text-xl font-bold text-slate-900">
+                  <h2 className="text-lg font-semibold text-slate-900">
                     导入候选人
                   </h2>
                   <p className="text-slate-500 text-sm mt-1">
@@ -470,9 +475,9 @@ export default function CandidatesPage() {
                   </p>
                 </div>
 
-                <div className="p-6 space-y-6">
+                <div className="p-6 space-y-5">
                   {!importPreview ? (
-                    <div className="border-2 border-dashed border-slate-300 rounded-xl p-8 text-center hover:border-amber-500 transition-colors">
+                    <div className="border-2 border-dashed border-slate-200 rounded-xl p-8 text-center hover:border-amber-500 transition-colors">
                       <input
                         type="file"
                         accept=".pdf"
@@ -484,9 +489,9 @@ export default function CandidatesPage() {
                         htmlFor="resume-upload"
                         className="cursor-pointer block"
                       >
-                        <div className="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                        <div className="w-14 h-14 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-4">
                           <svg
-                            className="w-8 h-8 text-amber-600"
+                            className="w-7 h-7 text-amber-600"
                             fill="none"
                             stroke="currentColor"
                             viewBox="0 0 24 24"
@@ -499,20 +504,20 @@ export default function CandidatesPage() {
                             />
                           </svg>
                         </div>
-                        <p className="text-slate-700 font-medium mb-2">
+                        <p className="text-slate-700 font-medium text-sm mb-1">
                           点击上传PDF简历
                         </p>
-                        <p className="text-slate-400 text-sm">
+                        <p className="text-slate-400 text-xs">
                           支持从Boss直聘下载的PDF格式简历
                         </p>
                       </label>
                     </div>
                   ) : (
                     <div className="space-y-4">
-                      <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 flex items-center gap-3">
-                        <div className="w-10 h-10 bg-emerald-100 rounded-full flex items-center justify-center">
+                      <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-3 flex items-center gap-3">
+                        <div className="w-8 h-8 bg-emerald-100 rounded-full flex items-center justify-center flex-shrink-0">
                           <svg
-                            className="w-5 h-5 text-emerald-600"
+                            className="w-4 h-4 text-emerald-600"
                             fill="none"
                             stroke="currentColor"
                             viewBox="0 0 24 24"
@@ -526,18 +531,18 @@ export default function CandidatesPage() {
                           </svg>
                         </div>
                         <div>
-                          <p className="text-emerald-800 font-medium">
+                          <p className="text-emerald-800 font-medium text-sm">
                             简历解析成功
                           </p>
-                          <p className="text-emerald-600 text-sm">
+                          <p className="text-emerald-600 text-xs">
                             {importFile?.name}
                           </p>
                         </div>
                       </div>
 
-                      <div className="bg-slate-50 rounded-xl p-4 space-y-3">
+                      <div className="bg-slate-50 rounded-lg p-4 space-y-3">
                         <div>
-                          <label className="block text-xs text-slate-500 mb-1">
+                          <label className="block text-xs font-medium text-slate-600 mb-1">
                             姓名 <span className="text-red-500">*</span>
                           </label>
                           <input
@@ -549,12 +554,12 @@ export default function CandidatesPage() {
                                 name: e.target.value,
                               })
                             }
-                            className="w-full px-3 py-2 rounded-lg border border-slate-200 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20"
+                            className="w-full rounded-lg border border-slate-200 px-3.5 py-2.5 text-sm focus:border-amber-500 focus:ring-2 focus:ring-amber-500/10 outline-none"
                             placeholder="请输入姓名"
                           />
                         </div>
                         <div>
-                          <label className="block text-xs text-slate-500 mb-1">
+                          <label className="block text-xs font-medium text-slate-600 mb-1">
                             电话 <span className="text-red-500">*</span>
                           </label>
                           <input
@@ -566,12 +571,12 @@ export default function CandidatesPage() {
                                 phone: e.target.value,
                               })
                             }
-                            className="w-full px-3 py-2 rounded-lg border border-slate-200 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20"
+                            className="w-full rounded-lg border border-slate-200 px-3.5 py-2.5 text-sm focus:border-amber-500 focus:ring-2 focus:ring-amber-500/10 outline-none"
                             placeholder="请输入电话"
                           />
                         </div>
                         <div>
-                          <label className="block text-xs text-slate-500 mb-1">
+                          <label className="block text-xs font-medium text-slate-600 mb-1">
                             邮箱
                           </label>
                           <input
@@ -583,13 +588,13 @@ export default function CandidatesPage() {
                                 email: e.target.value,
                               })
                             }
-                            className="w-full px-3 py-2 rounded-lg border border-slate-200 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20"
+                            className="w-full rounded-lg border border-slate-200 px-3.5 py-2.5 text-sm focus:border-amber-500 focus:ring-2 focus:ring-amber-500/10 outline-none"
                             placeholder="请输入邮箱"
                           />
                         </div>
                       </div>
 
-                      <p className="text-sm text-slate-500 text-center">
+                      <p className="text-xs text-slate-500 text-center">
                         请检查并编辑信息后导入
                       </p>
                     </div>
@@ -597,18 +602,18 @@ export default function CandidatesPage() {
 
                   {importLoading && (
                     <div className="flex items-center justify-center py-4">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-500" />
+                      <div className="animate-spin rounded-full h-7 w-7 border-2 border-slate-200 border-t-amber-600" />
                     </div>
                   )}
 
-                  <div className="flex gap-3 pt-2">
+                  <div className="flex gap-3 pt-1">
                     <button
                       onClick={() => {
                         setShowImportModal(false);
                         setImportFile(null);
                         setImportPreview(null);
                       }}
-                      className="flex-1 px-4 py-3 border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50"
+                      className="flex-1 border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-lg px-4 py-2.5 text-sm font-medium"
                     >
                       取消
                     </button>
@@ -616,7 +621,7 @@ export default function CandidatesPage() {
                       <button
                         onClick={handleImportCandidate}
                         disabled={importLoading}
-                        className="flex-1 px-4 py-3 bg-gradient-to-r from-amber-500 to-amber-600 text-white rounded-xl hover:shadow-lg disabled:opacity-50"
+                        className="flex-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg px-4 py-2.5 text-sm font-medium shadow-sm disabled:opacity-50"
                       >
                         确认导入
                       </button>
@@ -627,11 +632,12 @@ export default function CandidatesPage() {
             </div>
           )}
 
+          {/* Add Candidate Modal */}
           {showAddModal && (
-            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-              <div className="bg-white rounded-2xl max-w-lg w-full shadow-2xl">
+            <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+              <div className="bg-white rounded-xl shadow-xl max-w-lg w-full">
                 <div className="p-6 border-b border-slate-100">
-                  <h2 className="text-xl font-bold text-slate-900">
+                  <h2 className="text-lg font-semibold text-slate-900">
                     添加候选人
                   </h2>
                   <p className="text-slate-500 text-sm mt-1">
@@ -641,7 +647,7 @@ export default function CandidatesPage() {
 
                 <div className="p-6 space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                    <label className="block text-sm font-medium text-slate-700 mb-1.5">
                       姓名 <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -653,13 +659,13 @@ export default function CandidatesPage() {
                           name: e.target.value,
                         }))
                       }
-                      className="w-full rounded-xl border border-slate-200 px-4 py-3 focus:border-emerald-500"
+                      className="w-full rounded-lg border border-slate-200 px-3.5 py-2.5 text-sm focus:border-amber-500 focus:ring-2 focus:ring-amber-500/10 outline-none"
                       placeholder="候选人姓名"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                    <label className="block text-sm font-medium text-slate-700 mb-1.5">
                       电话 <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -671,13 +677,13 @@ export default function CandidatesPage() {
                           phone: e.target.value,
                         }))
                       }
-                      className="w-full rounded-xl border border-slate-200 px-4 py-3 focus:border-emerald-500"
+                      className="w-full rounded-lg border border-slate-200 px-3.5 py-2.5 text-sm focus:border-amber-500 focus:ring-2 focus:ring-amber-500/10 outline-none"
                       placeholder="手机号码"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                    <label className="block text-sm font-medium text-slate-700 mb-1.5">
                       邮箱
                     </label>
                     <input
@@ -689,13 +695,13 @@ export default function CandidatesPage() {
                           email: e.target.value,
                         }))
                       }
-                      className="w-full rounded-xl border border-slate-200 px-4 py-3 focus:border-emerald-500"
+                      className="w-full rounded-lg border border-slate-200 px-3.5 py-2.5 text-sm focus:border-amber-500 focus:ring-2 focus:ring-amber-500/10 outline-none"
                       placeholder="邮箱地址（选填）"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                    <label className="block text-sm font-medium text-slate-700 mb-1.5">
                       应聘职位
                     </label>
                     <select
@@ -706,7 +712,7 @@ export default function CandidatesPage() {
                           positionId: e.target.value,
                         }))
                       }
-                      className="w-full rounded-xl border border-slate-200 px-4 py-3 focus:border-emerald-500"
+                      className="w-full rounded-lg border border-slate-200 px-3.5 py-2.5 text-sm focus:border-amber-500 focus:ring-2 focus:ring-amber-500/10 outline-none"
                     >
                       <option value="">请选择职位（选填）</option>
                       {positions.map((pos) => (
@@ -719,11 +725,11 @@ export default function CandidatesPage() {
 
                   {importLoading && (
                     <div className="flex items-center justify-center py-4">
-                      <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500" />
+                      <div className="animate-spin rounded-full h-7 w-7 border-2 border-slate-200 border-t-amber-600" />
                     </div>
                   )}
 
-                  <div className="flex gap-3 pt-4">
+                  <div className="flex gap-3 pt-2">
                     <button
                       onClick={() => {
                         setShowAddModal(false);
@@ -734,14 +740,14 @@ export default function CandidatesPage() {
                           positionId: "",
                         });
                       }}
-                      className="flex-1 px-4 py-3 border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50"
+                      className="flex-1 border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-lg px-4 py-2.5 text-sm font-medium"
                     >
                       取消
                     </button>
                     <button
                       onClick={handleAddCandidate}
                       disabled={importLoading}
-                      className="flex-1 px-4 py-3 bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-xl hover:shadow-lg disabled:opacity-50"
+                      className="flex-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg px-4 py-2.5 text-sm font-medium shadow-sm disabled:opacity-50"
                     >
                       添加并启动流程
                     </button>
@@ -751,11 +757,12 @@ export default function CandidatesPage() {
             </div>
           )}
 
+          {/* Interview Process Modal */}
           {showProcessModal && selectedCandidate && (
-            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-              <div className="bg-white rounded-2xl max-w-2xl w-full shadow-2xl max-h-[90vh] overflow-y-auto">
+            <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+              <div className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
                 <div className="p-6 border-b border-slate-100">
-                  <h2 className="text-xl font-bold text-slate-900">
+                  <h2 className="text-lg font-semibold text-slate-900">
                     启动面试流程
                   </h2>
                   <p className="text-slate-500 text-sm mt-1">
@@ -765,7 +772,7 @@ export default function CandidatesPage() {
 
                 <div className="p-6 space-y-6">
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                    <label className="block text-sm font-medium text-slate-700 mb-1.5">
                       应聘职位
                     </label>
                     <select
@@ -776,7 +783,7 @@ export default function CandidatesPage() {
                           positionId: e.target.value,
                         }))
                       }
-                      className="w-full rounded-xl border border-slate-200 px-4 py-3 focus:border-amber-500"
+                      className="w-full rounded-lg border border-slate-200 px-3.5 py-2.5 text-sm focus:border-amber-500 focus:ring-2 focus:ring-amber-500/10 outline-none"
                     >
                       <option value="">请选择职位</option>
                       {positions.map((pos) => (
@@ -788,14 +795,14 @@ export default function CandidatesPage() {
                   </div>
 
                   <div>
-                    <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center justify-between mb-3">
                       <label className="block text-sm font-medium text-slate-700">
                         面试轮次配置
                       </label>
                       <button
                         onClick={addRound}
                         disabled={processConfig.rounds.length >= 5}
-                        className="text-sm text-amber-600 hover:text-amber-700 disabled:text-slate-400"
+                        className="text-sm text-amber-600 hover:text-amber-700 disabled:text-slate-400 font-medium"
                       >
                         + 添加轮次
                       </button>
@@ -805,13 +812,13 @@ export default function CandidatesPage() {
                       {processConfig.rounds.map((round, index) => (
                         <div
                           key={round.roundNumber}
-                          className="flex items-center gap-3 p-4 bg-slate-50 rounded-xl"
+                          className="flex items-center gap-3 p-4 bg-slate-50 rounded-lg border border-slate-100"
                         >
-                          <div className="w-8 h-8 bg-amber-100 rounded-full flex items-center justify-center text-amber-700 font-semibold text-sm">
+                          <div className="w-8 h-8 bg-amber-100 rounded-full flex items-center justify-center text-amber-700 font-semibold text-sm flex-shrink-0">
                             {round.roundNumber}
                           </div>
-                          <div className="flex-1">
-                            <div className="text-sm font-medium text-slate-700">
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm font-medium text-slate-700 mb-1">
                               {round.isHRRound
                                 ? "HR初面"
                                 : round.roundType === "TECHNICAL"
@@ -826,7 +833,7 @@ export default function CandidatesPage() {
                                   e.target.value,
                                 )
                               }
-                              className="w-full mt-1 text-sm rounded-lg border border-slate-200 px-3 py-2"
+                              className="w-full text-sm rounded-lg border border-slate-200 px-3 py-2 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/10 outline-none"
                             >
                               <option value="">选择面试官</option>
                               {round.isHRRound ? (
@@ -845,9 +852,11 @@ export default function CandidatesPage() {
                           {index > 0 && (
                             <button
                               onClick={() => removeRound(round.roundNumber)}
-                              className="text-slate-400 hover:text-red-500"
+                              className="text-slate-400 hover:text-red-500 flex-shrink-0 transition-colors"
                             >
-                              ✕
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                              </svg>
                             </button>
                           )}
                         </div>
@@ -855,16 +864,16 @@ export default function CandidatesPage() {
                     </div>
                   </div>
 
-                  <div className="flex gap-3 pt-4">
+                  <div className="flex gap-3 pt-2">
                     <button
                       onClick={() => setShowProcessModal(false)}
-                      className="flex-1 px-4 py-3 border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50"
+                      className="flex-1 border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-lg px-4 py-2.5 text-sm font-medium"
                     >
                       取消
                     </button>
                     <button
                       onClick={handleCreateProcess}
-                      className="flex-1 px-4 py-3 bg-gradient-to-r from-amber-500 to-amber-600 text-white rounded-xl hover:shadow-lg"
+                      className="flex-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg px-4 py-2.5 text-sm font-medium shadow-sm"
                     >
                       启动流程
                     </button>
@@ -874,10 +883,11 @@ export default function CandidatesPage() {
             </div>
           )}
 
-          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 mb-6">
+          {/* Filter Bar */}
+          <div className="bg-white rounded-xl border border-slate-100 shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-5 mb-5">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
+                <label className="block text-xs font-medium text-slate-600 mb-1.5">
                   搜索
                 </label>
                 <input
@@ -885,17 +895,17 @@ export default function CandidatesPage() {
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   placeholder="姓名、电话"
-                  className="w-full rounded-xl border border-slate-200 px-4 py-2.5"
+                  className="w-full rounded-lg border border-slate-200 px-3.5 py-2.5 text-sm focus:border-amber-500 focus:ring-2 focus:ring-amber-500/10 outline-none"
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
+                <label className="block text-xs font-medium text-slate-600 mb-1.5">
                   状态
                 </label>
                 <select
                   value={statusFilter}
                   onChange={(e) => setStatusFilter(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 px-4 py-2.5"
+                  className="w-full rounded-lg border border-slate-200 px-3.5 py-2.5 text-sm focus:border-amber-500 focus:ring-2 focus:ring-amber-500/10 outline-none"
                 >
                   <option value="">全部状态</option>
                   <option value="PENDING">待处理</option>
@@ -906,13 +916,13 @@ export default function CandidatesPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-2">
+                <label className="block text-xs font-medium text-slate-600 mb-1.5">
                   职位
                 </label>
                 <select
                   value={positionFilter}
                   onChange={(e) => setPositionFilter(e.target.value)}
-                  className="w-full rounded-xl border border-slate-200 px-4 py-2.5"
+                  className="w-full rounded-lg border border-slate-200 px-3.5 py-2.5 text-sm focus:border-amber-500 focus:ring-2 focus:ring-amber-500/10 outline-none"
                 >
                   <option value="">全部职位</option>
                   {positions.map((pos) => (
@@ -922,10 +932,10 @@ export default function CandidatesPage() {
                   ))}
                 </select>
               </div>
-              <div className="flex items-end gap-2">
+              <div className="flex items-end">
                 <button
                   onClick={fetchCandidates}
-                  className="px-6 py-2.5 bg-slate-900 text-white rounded-xl"
+                  className="w-full bg-amber-600 hover:bg-amber-700 text-white rounded-lg px-4 py-2.5 text-sm font-medium shadow-sm"
                 >
                   搜索
                 </button>
@@ -933,63 +943,64 @@ export default function CandidatesPage() {
             </div>
           </div>
 
+          {/* Candidates Table */}
           {loading ? (
             <div className="flex items-center justify-center py-20">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-500" />
+              <div className="animate-spin rounded-full h-7 w-7 border-2 border-slate-200 border-t-amber-600" />
             </div>
           ) : (
-            <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+            <div className="bg-white rounded-xl border border-slate-100 shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
               <table className="w-full">
-                <thead className="bg-slate-50 border-b border-slate-100">
-                  <tr>
-                    <th className="px-6 py-4 text-left text-sm font-semibold">
+                <thead>
+                  <tr className="bg-slate-50/80">
+                    <th className="px-6 py-3.5 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
                       候选人
                     </th>
-                    <th className="px-6 py-4 text-left text-sm font-semibold">
+                    <th className="px-6 py-3.5 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
                       联系方式
                     </th>
-                    <th className="px-6 py-4 text-left text-sm font-semibold">
+                    <th className="px-6 py-3.5 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
                       应聘职位
                     </th>
-                    <th className="px-6 py-4 text-left text-sm font-semibold">
+                    <th className="px-6 py-3.5 text-left text-xs font-medium uppercase tracking-wider text-slate-500">
                       状态
                     </th>
-                    <th className="px-6 py-4 text-right text-sm font-semibold">
+                    <th className="px-6 py-3.5 text-right text-xs font-medium uppercase tracking-wider text-slate-500">
                       操作
                     </th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody>
                   {candidates.map((candidate) => (
-                    <tr key={candidate.id} className="hover:bg-slate-50">
+                    <tr key={candidate.id} className="border-b border-slate-50 hover:bg-slate-50/50">
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-slate-400 to-slate-500 flex items-center justify-center text-white font-medium">
+                          <div className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 font-semibold text-sm flex-shrink-0">
                             {candidate.name.charAt(0)}
                           </div>
-                          <span className="font-medium text-slate-900">
+                          <span className="font-medium text-slate-900 text-sm">
                             {candidate.name}
                           </span>
                         </div>
                       </td>
                       <td className="px-6 py-4">
-                        <div className="text-sm">
-                          <p className="text-slate-900">{candidate.phone}</p>
+                        <div>
+                          <p className="text-sm text-slate-900">{candidate.phone}</p>
                           {candidate.email && (
-                            <p className="text-slate-500 text-xs">
+                            <p className="text-xs text-slate-500 mt-0.5">
                               {candidate.email}
                             </p>
                           )}
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-slate-700">
+                      <td className="px-6 py-4 text-sm text-slate-700">
                         {candidate.position?.title || (
                           <span className="text-slate-400">未分配</span>
                         )}
                       </td>
                       <td className="px-6 py-4">
                         <span
-                          className={`inline-flex px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(candidate.status)}`}
+                          className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(candidate.status)}`}
                         >
                           {getStatusText(candidate.status)}
                         </span>
@@ -1000,14 +1011,14 @@ export default function CandidatesPage() {
                             (canStartProcess(candidate.status) ? (
                               <button
                                 onClick={() => handleStartProcess(candidate)}
-                                className="px-4 py-2 text-sm bg-gradient-to-r from-emerald-500 to-emerald-600 text-white rounded-lg hover:shadow-md transition-all font-medium"
+                                className="bg-amber-600 hover:bg-amber-700 text-white rounded-lg px-4 py-2 text-xs font-medium shadow-sm"
                               >
                                 启动面试流程
                               </button>
                             ) : (
                               <button
                                 disabled
-                                className="px-4 py-2 text-sm bg-slate-100 text-slate-400 rounded-lg cursor-not-allowed"
+                                className="px-4 py-2 text-xs bg-slate-100 text-slate-400 rounded-lg cursor-not-allowed font-medium"
                                 title="该候选人已有进行中的面试流程"
                               >
                                 流程进行中
@@ -1022,10 +1033,12 @@ export default function CandidatesPage() {
 
               {candidates.length === 0 && (
                 <div className="text-center py-20">
-                  <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4 text-4xl">
-                    👥
+                  <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg className="w-8 h-8 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
                   </div>
-                  <p className="text-slate-500">暂无候选人</p>
+                  <p className="text-slate-500 text-sm">暂无候选人</p>
                 </div>
               )}
             </div>

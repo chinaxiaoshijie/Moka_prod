@@ -1,8 +1,10 @@
 "use client";
+import { apiFetch } from "@/lib/api";
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
+import MobileNav from "@/components/MobileNav";
 
 interface Interview {
   id: string;
@@ -30,7 +32,7 @@ export default function MyInterviewsPage() {
   const fetchInterviews = async () => {
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch("http://localhost:3001/interviews", {
+      const response = await apiFetch("/interviews", {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
@@ -103,118 +105,129 @@ export default function MyInterviewsPage() {
   ).length;
 
   return (
-    <div className="flex min-h-screen bg-slate-50">
+    <div className="flex min-h-screen bg-[#f8fafc]">
       <Sidebar />
-      <main className="flex-1 ml-64 p-8">
+      <MobileNav />
+      <main className="flex-1 lg:ml-60 p-8">
         <div className="max-w-6xl mx-auto">
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-slate-900 mb-2">我的面试</h1>
-            <p className="text-slate-500">查看待面试和已完成的面试</p>
+            <h1 className="text-2xl font-bold text-slate-900 tracking-tight">我的面试</h1>
+            <p className="text-slate-500 mt-1">查看待面试和已完成的面试</p>
           </div>
 
-          <div className="grid grid-cols-3 gap-6 mb-8">
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 card-hover">
+          <div className="grid grid-cols-3 gap-5 mb-8">
+            <div className="bg-white rounded-xl border border-slate-100 shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-6">
               <div className="flex items-center justify-between mb-4">
-                <div className="w-12 h-12 rounded-xl bg-amber-100 flex items-center justify-center text-2xl">
-                  ⏳
+                <div className="w-10 h-10 rounded-lg bg-amber-50 flex items-center justify-center">
+                  <svg className="w-5 h-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6v6l4 2m6-2a10 10 0 11-20 0 10 10 0 0120 0z" />
+                  </svg>
                 </div>
-                <span className="text-sm text-slate-400">待面试</span>
+                <span className="text-xs text-slate-400 font-medium uppercase tracking-wider">待面试</span>
               </div>
-              <p className="text-3xl font-bold text-slate-900">
-                {scheduledCount}
-              </p>
+              <p className="text-3xl font-bold text-slate-900">{scheduledCount}</p>
               <p className="text-sm text-slate-500 mt-1">场待进行</p>
             </div>
 
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 card-hover">
+            <div className="bg-white rounded-xl border border-slate-100 shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-6">
               <div className="flex items-center justify-between mb-4">
-                <div className="w-12 h-12 rounded-xl bg-emerald-100 flex items-center justify-center text-2xl">
-                  ✓
+                <div className="w-10 h-10 rounded-lg bg-emerald-50 flex items-center justify-center">
+                  <svg className="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
                 </div>
-                <span className="text-sm text-slate-400">已完成</span>
+                <span className="text-xs text-slate-400 font-medium uppercase tracking-wider">已完成</span>
               </div>
-              <p className="text-3xl font-bold text-slate-900">
-                {completedCount}
-              </p>
+              <p className="text-3xl font-bold text-slate-900">{completedCount}</p>
               <p className="text-sm text-slate-500 mt-1">场已完成</p>
             </div>
 
-            <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 card-hover">
+            <div className="bg-white rounded-xl border border-slate-100 shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-6">
               <div className="flex items-center justify-between mb-4">
-                <div className="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center text-2xl">
-                  📊
+                <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
+                  <svg className="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  </svg>
                 </div>
-                <span className="text-sm text-slate-400">总计</span>
+                <span className="text-xs text-slate-400 font-medium uppercase tracking-wider">总计</span>
               </div>
-              <p className="text-3xl font-bold text-slate-900">
-                {interviews.length}
-              </p>
+              <p className="text-3xl font-bold text-slate-900">{interviews.length}</p>
               <p className="text-sm text-slate-500 mt-1">场面试</p>
             </div>
           </div>
 
           {error && (
-            <div className="mb-6 rounded-xl bg-red-50 border border-red-200 p-4 text-red-600 flex items-center gap-2">
-              <span>⚠️</span>
+            <div className="mb-6 rounded-xl bg-red-50 border border-red-200 p-4 text-red-600 flex items-center gap-2 text-sm">
+              <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+              </svg>
               <span>{error}</span>
             </div>
           )}
 
           {loading ? (
             <div className="flex items-center justify-center py-20">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-500" />
+              <div className="animate-spin rounded-full h-7 w-7 border-2 border-slate-200 border-t-amber-600" />
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-3">
               {interviews.map((interview, index) => (
                 <div
                   key={interview.id}
-                  className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 card-hover animate-fade-in"
+                  className="bg-white rounded-xl border border-slate-100 shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-6"
                   style={{ animationDelay: `${index * 0.05}s` }}
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <div className="flex items-center gap-3 mb-3">
-                        <h3 className="text-lg font-bold text-slate-900">
+                        <h3 className="text-base font-semibold text-slate-900">
                           {interview.candidate.name}
                         </h3>
-                        <span className="text-slate-400">·</span>
-                        <span className="text-slate-600">
+                        <span className="text-slate-300">·</span>
+                        <span className="text-sm text-slate-600">
                           {interview.position.title}
                         </span>
                         <span
-                          className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(interview.status)}`}
+                          className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusColor(interview.status)}`}
                         >
                           {getStatusText(interview.status)}
                         </span>
                       </div>
 
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
-                        <div className="flex items-center gap-2 text-slate-600">
-                          <span className="text-blue-500">🎯</span>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
+                        <div className="flex items-center gap-2 text-slate-500">
+                          <svg className="w-4 h-4 text-slate-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A2 2 0 013 12V7a2 2 0 012-2z" />
+                          </svg>
                           <span>
-                            {getTypeText(interview.type)} ·{" "}
-                            {getFormatText(interview.format)}
+                            {getTypeText(interview.type)} · {getFormatText(interview.format)}
                           </span>
                         </div>
-                        <div className="flex items-center gap-2 text-slate-600">
-                          <span className="text-amber-500">📅</span>
+                        <div className="flex items-center gap-2 text-slate-500">
+                          <svg className="w-4 h-4 text-slate-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                          </svg>
                           <span>{formatDateTime(interview.startTime)}</span>
                         </div>
                         {interview.location && (
-                          <div className="flex items-center gap-2 text-slate-600">
-                            <span className="text-emerald-500">📍</span>
+                          <div className="flex items-center gap-2 text-slate-500">
+                            <svg className="w-4 h-4 text-slate-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
                             <span>{interview.location}</span>
                           </div>
                         )}
                         {interview.meetingUrl && (
-                          <div className="flex items-center gap-2 text-slate-600 col-span-2">
-                            <span className="text-blue-500">🔗</span>
+                          <div className="flex items-center gap-2 text-slate-500 col-span-2">
+                            <svg className="w-4 h-4 text-slate-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                            </svg>
                             <a
                               href={interview.meetingUrl}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-blue-600 hover:text-blue-700 hover:underline truncate"
+                              className="text-amber-600 hover:text-amber-700 hover:underline truncate"
                             >
                               {interview.meetingUrl}
                             </a>
@@ -229,7 +242,7 @@ export default function MyInterviewsPage() {
                           onClick={() =>
                             router.push(`/feedback?interviewId=${interview.id}`)
                           }
-                          className="px-4 py-2 bg-gradient-to-r from-amber-500 to-amber-600 text-white rounded-xl text-sm font-medium shadow-lg shadow-amber-500/25 hover:shadow-amber-500/40 transition-all"
+                          className="bg-amber-600 hover:bg-amber-700 text-white rounded-lg px-4 py-2.5 text-sm font-medium shadow-sm"
                         >
                           开始面试
                         </button>
@@ -242,7 +255,7 @@ export default function MyInterviewsPage() {
                                 `/feedback?interviewId=${interview.id}`,
                               )
                             }
-                            className="px-4 py-2 text-slate-600 hover:text-amber-600 hover:bg-amber-50 rounded-xl transition-colors text-sm font-medium"
+                            className="border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-lg px-4 py-2.5 text-sm font-medium"
                           >
                             查看反馈
                           </button>
@@ -252,7 +265,7 @@ export default function MyInterviewsPage() {
                                 `/feedback?interviewId=${interview.id}`,
                               )
                             }
-                            className="px-4 py-2 bg-gradient-to-r from-amber-500 to-amber-600 text-white rounded-xl text-sm font-medium shadow-lg shadow-amber-500/25 hover:shadow-amber-500/40 transition-all"
+                            className="bg-amber-600 hover:bg-amber-700 text-white rounded-lg px-4 py-2.5 text-sm font-medium shadow-sm"
                           >
                             修改反馈
                           </button>
@@ -264,14 +277,16 @@ export default function MyInterviewsPage() {
               ))}
 
               {interviews.length === 0 && (
-                <div className="text-center py-20">
-                  <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4 text-4xl">
-                    🎯
+                <div className="text-center py-20 bg-white rounded-xl border border-slate-100 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+                  <div className="w-14 h-14 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg className="w-7 h-7 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
                   </div>
-                  <h3 className="text-lg font-medium text-slate-900 mb-2">
+                  <h3 className="text-base font-medium text-slate-900 mb-1">
                     暂无面试安排
                   </h3>
-                  <p className="text-slate-500">HR安排面试后将显示在这里</p>
+                  <p className="text-sm text-slate-500">HR安排面试后将显示在这里</p>
                 </div>
               )}
             </div>

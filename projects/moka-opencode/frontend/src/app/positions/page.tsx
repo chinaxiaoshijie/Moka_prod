@@ -1,8 +1,10 @@
 "use client";
+import { apiFetch } from "@/lib/api";
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Sidebar from "@/components/Sidebar";
+import MobileNav from "@/components/MobileNav";
 
 interface Position {
   id: string;
@@ -41,7 +43,7 @@ export default function PositionsPage() {
   const fetchPositions = async () => {
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch("http://localhost:3001/positions", {
+      const response = await apiFetch("/positions", {
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
@@ -67,11 +69,11 @@ export default function PositionsPage() {
     try {
       const token = localStorage.getItem("token");
       const url = editingId
-        ? `http://localhost:3001/positions/${editingId}`
-        : "http://localhost:3001/positions";
+        ? `/positions/${editingId}`
+        : "/positions";
       const method = editingId ? "PUT" : "POST";
 
-      const response = await fetch(url, {
+      const response = await apiFetch(url, {
         method,
         headers: {
           "Content-Type": "application/json",
@@ -138,7 +140,7 @@ export default function PositionsPage() {
 
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch(`http://localhost:3001/positions/${id}`, {
+      const response = await apiFetch(`/positions/${id}`, {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
@@ -172,55 +174,68 @@ export default function PositionsPage() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case "OPEN":
-        return "bg-emerald-100 text-emerald-700 border-emerald-200";
+        return "bg-emerald-50 text-emerald-700";
       case "PAUSED":
-        return "bg-amber-100 text-amber-700 border-amber-200";
+        return "bg-amber-50 text-amber-700";
       case "CLOSED":
-        return "bg-slate-100 text-slate-700 border-slate-200";
+        return "bg-slate-100 text-slate-600";
       default:
-        return "bg-slate-100 text-slate-700 border-slate-200";
+        return "bg-slate-100 text-slate-600";
     }
   };
 
   return (
-    <div className="flex min-h-screen bg-slate-50">
+    <div className="flex min-h-screen bg-[#f8fafc]">
       <Sidebar />
-      <main className="flex-1 ml-64 p-8">
+      <MobileNav />
+      <main className="flex-1 lg:ml-60 p-6 lg:p-8">
         <div className="max-w-6xl mx-auto">
           <div className="flex items-center justify-between mb-8">
             <div>
-              <h1 className="text-3xl font-bold text-slate-900 mb-2">
+              <h1 className="text-2xl font-bold text-slate-900 tracking-tight">
                 职位管理
               </h1>
-              <p className="text-slate-500">管理公司招聘职位信息</p>
+              <p className="text-sm text-slate-500 mt-0.5">管理公司招聘职位信息</p>
             </div>
             <button
               onClick={() => setShowForm(true)}
-              className="px-6 py-3 bg-gradient-to-r from-amber-500 to-amber-600 text-white rounded-xl font-medium shadow-lg shadow-amber-500/25 hover:shadow-amber-500/40 hover:scale-105 transition-all duration-200 flex items-center gap-2"
+              className="bg-amber-600 hover:bg-amber-700 text-white rounded-lg px-4 py-2.5 text-sm font-medium shadow-sm flex items-center gap-2"
             >
-              <span className="text-xl">+</span>
-              <span>添加职位</span>
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              添加职位
             </button>
           </div>
 
           {error && (
-            <div className="mb-6 rounded-xl bg-red-50 border border-red-200 p-4 text-red-600 flex items-center gap-2">
-              <span>⚠️</span>
+            <div className="mb-6 rounded-lg bg-red-50 border border-red-100 p-4 text-sm text-red-600 flex items-center gap-2">
+              <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+              </svg>
               <span>{error}</span>
             </div>
           )}
 
           {showForm && (
-            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-              <div className="bg-white rounded-2xl max-w-lg w-full shadow-2xl animate-fade-in">
-                <div className="p-6 border-b border-slate-100">
-                  <h2 className="text-xl font-bold text-slate-900">
+            <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+              <div className="bg-white rounded-xl max-w-lg w-full shadow-xl">
+                <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                  <h2 className="text-base font-semibold text-slate-900">
                     {editingId ? "编辑职位" : "添加职位"}
                   </h2>
+                  <button
+                    onClick={closeForm}
+                    className="text-slate-400 hover:text-slate-600 transition-colors"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
                 </div>
-                <form onSubmit={handleSubmit} className="p-6 space-y-5">
+                <form onSubmit={handleSubmit} className="p-6 space-y-4">
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                    <label className="block text-sm font-medium text-slate-700 mb-1.5">
                       职位名称 <span className="text-red-500">*</span>
                     </label>
                     <input
@@ -229,14 +244,14 @@ export default function PositionsPage() {
                       onChange={(e) =>
                         setFormData({ ...formData, title: e.target.value })
                       }
-                      className="w-full rounded-xl border border-slate-200 px-4 py-3 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 transition-all"
+                      className="w-full rounded-lg border border-slate-200 px-3.5 py-2.5 text-sm focus:border-amber-500 focus:ring-2 focus:ring-amber-500/10 outline-none"
                       placeholder="例如：高级前端工程师"
                       required
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                    <label className="block text-sm font-medium text-slate-700 mb-1.5">
                       职位描述
                     </label>
                     <textarea
@@ -247,7 +262,7 @@ export default function PositionsPage() {
                           description: e.target.value,
                         })
                       }
-                      className="w-full rounded-xl border border-slate-200 px-4 py-3 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 transition-all"
+                      className="w-full rounded-lg border border-slate-200 px-3.5 py-2.5 text-sm focus:border-amber-500 focus:ring-2 focus:ring-amber-500/10 outline-none"
                       rows={3}
                       placeholder="描述职位职责和要求..."
                     />
@@ -255,7 +270,7 @@ export default function PositionsPage() {
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-2">
+                      <label className="block text-sm font-medium text-slate-700 mb-1.5">
                         最低薪资
                       </label>
                       <div className="relative">
@@ -268,16 +283,16 @@ export default function PositionsPage() {
                               salaryMin: e.target.value,
                             })
                           }
-                          className="w-full rounded-xl border border-slate-200 px-4 py-3 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 transition-all"
+                          className="w-full rounded-lg border border-slate-200 px-3.5 py-2.5 text-sm focus:border-amber-500 focus:ring-2 focus:ring-amber-500/10 outline-none pr-12"
                           placeholder="20000"
                         />
-                        <span className="absolute right-4 top-3 text-slate-400 text-sm">
+                        <span className="absolute right-3 top-2.5 text-slate-400 text-xs">
                           元/月
                         </span>
                       </div>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-2">
+                      <label className="block text-sm font-medium text-slate-700 mb-1.5">
                         最高薪资
                       </label>
                       <div className="relative">
@@ -290,10 +305,10 @@ export default function PositionsPage() {
                               salaryMax: e.target.value,
                             })
                           }
-                          className="w-full rounded-xl border border-slate-200 px-4 py-3 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 transition-all"
+                          className="w-full rounded-lg border border-slate-200 px-3.5 py-2.5 text-sm focus:border-amber-500 focus:ring-2 focus:ring-amber-500/10 outline-none pr-12"
                           placeholder="35000"
                         />
-                        <span className="absolute right-4 top-3 text-slate-400 text-sm">
+                        <span className="absolute right-3 top-2.5 text-slate-400 text-xs">
                           元/月
                         </span>
                       </div>
@@ -302,7 +317,7 @@ export default function PositionsPage() {
 
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-2">
+                      <label className="block text-sm font-medium text-slate-700 mb-1.5">
                         招聘人数 <span className="text-red-500">*</span>
                       </label>
                       <input
@@ -314,13 +329,13 @@ export default function PositionsPage() {
                             headcount: e.target.value,
                           })
                         }
-                        className="w-full rounded-xl border border-slate-200 px-4 py-3 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 transition-all"
+                        className="w-full rounded-lg border border-slate-200 px-3.5 py-2.5 text-sm focus:border-amber-500 focus:ring-2 focus:ring-amber-500/10 outline-none"
                         min="1"
                         required
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-2">
+                      <label className="block text-sm font-medium text-slate-700 mb-1.5">
                         工作地点
                       </label>
                       <input
@@ -329,7 +344,7 @@ export default function PositionsPage() {
                         onChange={(e) =>
                           setFormData({ ...formData, location: e.target.value })
                         }
-                        className="w-full rounded-xl border border-slate-200 px-4 py-3 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 transition-all"
+                        className="w-full rounded-lg border border-slate-200 px-3.5 py-2.5 text-sm focus:border-amber-500 focus:ring-2 focus:ring-amber-500/10 outline-none"
                         placeholder="例如：北京"
                       />
                     </div>
@@ -337,7 +352,7 @@ export default function PositionsPage() {
 
                   {editingId && (
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-2">
+                      <label className="block text-sm font-medium text-slate-700 mb-1.5">
                         状态
                       </label>
                       <select
@@ -351,7 +366,7 @@ export default function PositionsPage() {
                               | "CLOSED",
                           })
                         }
-                        className="w-full rounded-xl border border-slate-200 px-4 py-3 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/20 transition-all"
+                        className="w-full rounded-lg border border-slate-200 px-3.5 py-2.5 text-sm focus:border-amber-500 focus:ring-2 focus:ring-amber-500/10 outline-none"
                       >
                         <option value="OPEN">招聘中</option>
                         <option value="PAUSED">暂停</option>
@@ -360,17 +375,17 @@ export default function PositionsPage() {
                     </div>
                   )}
 
-                  <div className="flex gap-3 pt-4">
+                  <div className="flex gap-3 pt-2">
                     <button
                       type="button"
                       onClick={closeForm}
-                      className="flex-1 px-4 py-3 border border-slate-200 text-slate-700 rounded-xl hover:bg-slate-50 transition-colors font-medium"
+                      className="flex-1 border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-lg px-4 py-2.5 text-sm font-medium"
                     >
                       取消
                     </button>
                     <button
                       type="submit"
-                      className="flex-1 px-4 py-3 bg-gradient-to-r from-amber-500 to-amber-600 text-white rounded-xl hover:shadow-lg hover:shadow-amber-500/30 transition-all font-medium"
+                      className="flex-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg px-4 py-2.5 text-sm font-medium shadow-sm"
                     >
                       {editingId ? "保存修改" : "创建职位"}
                     </button>
@@ -382,72 +397,59 @@ export default function PositionsPage() {
 
           {loading ? (
             <div className="flex items-center justify-center py-20">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-500" />
+              <div className="animate-spin rounded-full h-7 w-7 border-2 border-slate-200 border-t-amber-600" />
             </div>
           ) : (
-            <div className="space-y-4">
-              {positions.map((position, index) => (
+            <div className="space-y-3">
+              {positions.map((position) => (
                 <div
                   key={position.id}
-                  className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 card-hover animate-fade-in"
-                  style={{ animationDelay: `${index * 0.05}s` }}
+                  className="bg-white rounded-xl border border-slate-100 shadow-[0_1px_3px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.06)] transition-shadow duration-200 p-5"
                 >
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-3">
-                        <h3 className="text-xl font-bold text-slate-900">
+                      <div className="flex items-center gap-3 mb-2">
+                        <h3 className="text-base font-semibold text-slate-900">
                           {position.title}
                         </h3>
                         <span
-                          className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(position.status)}`}
+                          className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(position.status)}`}
                         >
                           {getStatusText(position.status)}
                         </span>
                       </div>
-                      <p className="text-slate-600 mb-4 line-clamp-2">
+                      <p className="text-sm text-slate-500 mb-3 line-clamp-2">
                         {position.description || "暂无描述"}
                       </p>
-                      <div className="flex items-center gap-6 text-sm">
+                      <div className="flex flex-wrap items-center gap-4 text-sm text-slate-600">
                         {position.salaryMin && position.salaryMax && (
-                          <div className="flex items-center gap-2 text-slate-700">
-                            <span className="text-amber-500">💰</span>
-                            <span className="font-medium">
-                              {position.salaryMin}-{position.salaryMax} 元/月
-                            </span>
-                          </div>
+                          <span className="font-medium text-slate-700">
+                            {position.salaryMin}–{position.salaryMax} 元/月
+                          </span>
                         )}
-                        <div className="flex items-center gap-2 text-slate-700">
-                          <span className="text-blue-500">👥</span>
-                          <span>招聘 {position.headcount} 人</span>
-                        </div>
+                        <span>招聘 {position.headcount} 人</span>
                         {(position.hiredCount > 0 ||
                           position.inProgressCount > 0) && (
-                          <div className="flex items-center gap-2 text-slate-700">
-                            <span className="text-emerald-500">✓</span>
-                            <span>
-                              已录用 {position.hiredCount} / 进行中{" "}
-                              {position.inProgressCount}
-                            </span>
-                          </div>
+                          <span>
+                            已录用 {position.hiredCount} / 进行中{" "}
+                            {position.inProgressCount}
+                          </span>
                         )}
                         {position.location && (
-                          <div className="flex items-center gap-2 text-slate-700">
-                            <span className="text-violet-500">📍</span>
-                            <span>{position.location}</span>
-                          </div>
+                          <span>{position.location}</span>
                         )}
                       </div>
                     </div>
-                    <div className="flex gap-2 ml-6">
+                    <div className="flex gap-2 ml-6 flex-shrink-0">
                       <button
                         onClick={() => handleEdit(position)}
-                        className="px-4 py-2 text-slate-600 hover:text-amber-600 hover:bg-amber-50 rounded-xl transition-colors font-medium"
+                        className="border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-lg px-4 py-2.5 text-sm font-medium"
                       >
                         编辑
                       </button>
                       <button
                         onClick={() => handleDelete(position.id)}
-                        className="px-4 py-2 text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-xl transition-colors font-medium"
+                        className="bg-red-50 text-red-600 hover:bg-red-100 rounded-lg px-4 py-2.5 text-sm font-medium"
                       >
                         删除
                       </button>
@@ -458,18 +460,20 @@ export default function PositionsPage() {
 
               {positions.length === 0 && (
                 <div className="text-center py-20">
-                  <div className="w-20 h-20 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4 text-4xl">
-                    💼
+                  <div className="w-12 h-12 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <svg className="w-6 h-6 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
                   </div>
-                  <h3 className="text-lg font-medium text-slate-900 mb-2">
+                  <h3 className="text-sm font-medium text-slate-900 mb-1">
                     暂无职位
                   </h3>
-                  <p className="text-slate-500 mb-6">
+                  <p className="text-sm text-slate-500 mb-6">
                     点击上方按钮添加第一个职位
                   </p>
                   <button
                     onClick={() => setShowForm(true)}
-                    className="px-6 py-3 bg-gradient-to-r from-amber-500 to-amber-600 text-white rounded-xl font-medium shadow-lg shadow-amber-500/25 hover:shadow-amber-500/40 transition-all"
+                    className="bg-amber-600 hover:bg-amber-700 text-white rounded-lg px-4 py-2.5 text-sm font-medium shadow-sm"
                   >
                     添加职位
                   </button>
