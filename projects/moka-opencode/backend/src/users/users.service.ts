@@ -56,10 +56,13 @@ export class UsersService {
     return user;
   }
 
-  async findAll(role?: string) {
+  async findAll(role?: string, includeInactive?: boolean) {
     const where: any = {};
     if (role) {
       where.role = role;
+    }
+    if (!includeInactive) {
+      where.isActive = true;
     }
 
     return this.prisma.user.findMany({
@@ -70,6 +73,7 @@ export class UsersService {
         name: true,
         email: true,
         role: true,
+        isActive: true,
         avatarUrl: true,
         createdAt: true,
       },
@@ -163,7 +167,7 @@ export class UsersService {
     });
 
     if (!currentUser || currentUser.role !== "HR") {
-      throw new ForbiddenException("只有HR才能删除用户");
+      throw new ForbiddenException("只有HR才能停用用户");
     }
 
     // Check if user exists
@@ -175,15 +179,41 @@ export class UsersService {
       throw new NotFoundException("用户不存在");
     }
 
-    // Prevent HR from deleting themselves
+    // Prevent HR from deactivating themselves
     if (id === currentUserId) {
-      throw new BadRequestException("不能删除自己的账户");
+      throw new BadRequestException("不能停用自己的账户");
     }
 
-    await this.prisma.user.delete({
+    await this.prisma.user.update({
+      where: { id },
+      data: { isActive: false },
+    });
+
+    return { message: "用户已停用" };
+  }
+
+  async activate(id: string, currentUserId: string) {
+    const currentUser = await this.prisma.user.findUnique({
+      where: { id: currentUserId },
+    });
+
+    if (!currentUser || currentUser.role !== "HR") {
+      throw new ForbiddenException("只有HR才能启用用户");
+    }
+
+    const existingUser = await this.prisma.user.findUnique({
       where: { id },
     });
 
-    return { message: "用户删除成功" };
+    if (!existingUser) {
+      throw new NotFoundException("用户不存在");
+    }
+
+    await this.prisma.user.update({
+      where: { id },
+      data: { isActive: true },
+    });
+
+    return { message: "用户已启用" };
   }
 }

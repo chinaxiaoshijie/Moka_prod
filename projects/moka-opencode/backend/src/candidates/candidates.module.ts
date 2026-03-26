@@ -5,9 +5,10 @@ import { ResumeParserService } from "./resume-parser.service";
 import { CandidateStatusService } from "./candidate-status.service";
 import { PrismaModule } from "../prisma/prisma.module";
 import { AuthModule } from "../auth/auth.module";
+import { EmailModule } from "../email/email.module";
 
 @Module({
-  imports: [PrismaModule, AuthModule],
+  imports: [PrismaModule, AuthModule, EmailModule],
   controllers: [CandidateController],
   providers: [CandidateService, ResumeParserService, CandidateStatusService],
   exports: [CandidateService, CandidateStatusService],

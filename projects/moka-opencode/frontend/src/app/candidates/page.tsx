@@ -211,6 +211,8 @@ export default function CandidatesPage() {
       if (!response.ok) throw new Error("创建面试流程失败");
 
       const process = await response.json();
+      setShowProcessModal(false);
+      setSelectedCandidate(null);
       router.push(`/interview-processes/${process.id}`);
     } catch (err: any) {
       setError(err.message);
@@ -230,6 +232,11 @@ export default function CandidatesPage() {
   };
 
   const removeRound = (roundNumber: number) => {
+    const targetRound = processConfig.rounds.find((r) => r.roundNumber === roundNumber);
+    if (targetRound?.roundType === "FINAL") {
+      setError("终面不能删除");
+      return;
+    }
     setProcessConfig((prev) => ({
       ...prev,
       rounds: prev.rounds
@@ -242,22 +249,25 @@ export default function CandidatesPage() {
   };
 
   const addRound = () => {
-    if (processConfig.rounds.length >= 5) {
-      setError("最多5轮面试");
+    if (processConfig.rounds.length >= 4) {
+      setError("最多4轮面试（HR初面 + 最多2轮技术面 + 终面）");
       return;
     }
-    setProcessConfig((prev) => ({
-      ...prev,
-      rounds: [
-        ...prev.rounds,
+    setProcessConfig((prev) => {
+      const finalIndex = prev.rounds.findIndex((r) => r.roundType === "FINAL");
+      const insertAt = finalIndex >= 0 ? finalIndex : prev.rounds.length;
+      const newRounds = [
+        ...prev.rounds.slice(0, insertAt),
         {
-          roundNumber: prev.rounds.length + 1,
+          roundNumber: 0,
           interviewerId: "",
           isHRRound: false,
           roundType: "TECHNICAL",
         },
-      ],
-    }));
+        ...prev.rounds.slice(insertAt),
+      ].map((r, idx) => ({ ...r, roundNumber: idx + 1 }));
+      return { ...prev, rounds: newRounds };
+    });
   };
 
   const getStatusText = (status: string) => {
@@ -317,8 +327,9 @@ export default function CandidatesPage() {
       );
 
       if (!response.ok) throw new Error("解析简历失败");
-      const data = await response.json();
-      setImportPreview(data);
+      const result = await response.json();
+      if (!result.success) throw new Error(result.error || "解析简历失败");
+      setImportPreview(result.data);
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -797,7 +808,7 @@ export default function CandidatesPage() {
                     </label>
                     <button
                       onClick={addRound}
-                      disabled={processConfig.rounds.length >= 5}
+                      disabled={processConfig.rounds.length >= 4}
                       className="text-sm text-[#4371FF] hover:text-[#3461E6] disabled:text-slate-400 font-medium"
                     >
                       + 添加轮次
@@ -845,7 +856,7 @@ export default function CandidatesPage() {
                             )}
                           </select>
                         </div>
-                        {index > 0 && (
+                        {index > 0 && round.roundType !== "FINAL" && (
                           <button
                             onClick={() => removeRound(round.roundNumber)}
                             className="text-slate-400 hover:text-red-500 flex-shrink-0 transition-colors"

@@ -11,6 +11,7 @@ interface User {
   name: string;
   email: string | null;
   role: "HR" | "INTERVIEWER";
+  isActive: boolean;
   createdAt: string;
 }
 
@@ -49,7 +50,7 @@ export default function UsersPage() {
   const fetchUsers = async () => {
     try {
       const token = localStorage.getItem("token");
-      const response = await apiFetch("/users", {
+      const response = await apiFetch("/users?includeInactive=true", {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -102,8 +103,8 @@ export default function UsersPage() {
     }
   };
 
-  const handleDelete = async (userId: string) => {
-    if (!confirm("确定要删除这个用户吗？")) return;
+  const handleDeactivate = async (userId: string) => {
+    if (!confirm("确定要停用这个用户吗？停用后不影响历史数据。")) return;
 
     try {
       const token = localStorage.getItem("token");
@@ -116,7 +117,28 @@ export default function UsersPage() {
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.message || "删除用户失败");
+        throw new Error(data.message || "停用用户失败");
+      }
+
+      fetchUsers();
+    } catch (err: any) {
+      setError(err.message);
+    }
+  };
+
+  const handleActivate = async (userId: string) => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await apiFetch(`/users/${userId}/activate`, {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.message || "启用用户失败");
       }
 
       fetchUsers();
@@ -188,6 +210,9 @@ export default function UsersPage() {
                       角色
                     </th>
                     <th className="text-left px-6 py-3.5 text-xs font-medium uppercase tracking-wider text-slate-500">
+                      状态
+                    </th>
+                    <th className="text-left px-6 py-3.5 text-xs font-medium uppercase tracking-wider text-slate-500">
                       操作
                     </th>
                   </tr>
@@ -196,7 +221,11 @@ export default function UsersPage() {
                   {users.map((user) => (
                     <tr
                       key={user.id}
-                      className="border-b border-slate-50 hover:bg-[#EFF3FF]/20"
+                      className={`border-b border-slate-50 ${
+                        user.isActive
+                          ? "hover:bg-[#EFF3FF]/20"
+                          : "bg-slate-50/60 opacity-60"
+                      }`}
                     >
                       <td className="px-6 py-4 text-sm font-medium text-slate-900">{user.name}</td>
                       <td className="px-6 py-4 text-sm text-slate-500">
@@ -217,13 +246,33 @@ export default function UsersPage() {
                         </span>
                       </td>
                       <td className="px-6 py-4">
+                        <span
+                          className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            user.isActive
+                              ? "bg-green-100 text-green-700"
+                              : "bg-slate-200 text-slate-500"
+                          }`}
+                        >
+                          {user.isActive ? "活跃" : "已停用"}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
                         {user.role !== "HR" && (
-                          <button
-                            onClick={() => handleDelete(user.id)}
-                            className="text-sm text-red-500 hover:text-red-600 font-medium"
-                          >
-                            删除
-                          </button>
+                          user.isActive ? (
+                            <button
+                              onClick={() => handleDeactivate(user.id)}
+                              className="text-sm text-red-500 hover:text-red-600 font-medium"
+                            >
+                              停用
+                            </button>
+                          ) : (
+                            <button
+                              onClick={() => handleActivate(user.id)}
+                              className="text-sm text-[#4371FF] hover:text-[#3461E6] font-medium"
+                            >
+                              启用
+                            </button>
+                          )
                         )}
                       </td>
                     </tr>

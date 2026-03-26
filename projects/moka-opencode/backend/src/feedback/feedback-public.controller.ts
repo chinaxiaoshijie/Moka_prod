@@ -14,6 +14,7 @@ import { EmailService } from "../email/email.service";
 import { ConfigService } from "@nestjs/config";
 import { randomBytes } from "crypto";
 import { CandidateStatusService } from "../candidates/candidate-status.service";
+import { InterviewProcessService } from "../interview-processes/interview-process.service";
 
 @Controller("feedback")
 export class FeedbackPublicController {
@@ -22,6 +23,7 @@ export class FeedbackPublicController {
     private emailService: EmailService,
     private configService: ConfigService,
     private candidateStatusService: CandidateStatusService,
+    private processService: InterviewProcessService,
   ) {}
 
   @Post("generate-token/:interviewId")
@@ -184,31 +186,49 @@ export class FeedbackPublicController {
       throw new HttpException("Token已过期", HttpStatus.BAD_REQUEST);
     }
 
-    const feedback = await this.prisma.interviewFeedback.create({
-      data: {
-        interviewId: feedbackToken.interviewId,
-        interviewerId: feedbackToken.interviewerId,
-        result: body.result,
-        strengths: body.strengths,
-        weaknesses: body.weaknesses,
-        overallRating: body.overallRating,
-        notes: body.notes,
-      },
-    });
-
-    await this.prisma.feedbackToken.update({
-      where: { token: body.token },
-      data: {
-        isUsed: true,
-        usedAt: new Date(),
-      },
-    });
-
-    await this.prisma.interview.update({
+    // 校验面试状态
+    const interview = await this.prisma.interview.findUnique({
       where: { id: feedbackToken.interviewId },
-      data: { status: "COMPLETED" },
     });
 
+    if (!interview) {
+      throw new HttpException("面试不存在", HttpStatus.NOT_FOUND);
+    }
+
+    if (interview.status === "CANCELLED") {
+      throw new HttpException("该面试已取消", HttpStatus.BAD_REQUEST);
+    }
+
+    // 事务保护：feedback + interview 状态更新原子化
+    const feedback = await this.prisma.$transaction(async (tx) => {
+      const fb = await tx.interviewFeedback.create({
+        data: {
+          interviewId: feedbackToken.interviewId,
+          interviewerId: feedbackToken.interviewerId,
+          result: body.result,
+          strengths: body.strengths,
+          weaknesses: body.weaknesses,
+          overallRating: body.overallRating,
+          notes: body.notes,
+        },
+      });
+
+      await tx.feedbackToken.update({
+        where: { token: body.token },
+        data: { isUsed: true, usedAt: new Date() },
+      });
+
+      if (body.result !== "PENDING") {
+        await tx.interview.update({
+          where: { id: feedbackToken.interviewId },
+          data: { status: "COMPLETED" },
+        });
+      }
+
+      return fb;
+    });
+
+    // 旁路操作：候选人状态更新 + 流程通知（事务外）
     let statusUpdate = null;
     try {
       const result = await this.candidateStatusService.handleInterviewFeedback(
@@ -220,6 +240,18 @@ export class FeedbackPublicController {
       }
     } catch (error) {
       console.error("Failed to update candidate status:", error);
+    }
+
+    // 触发流程状态更新（之前缺失的关键步骤）
+    if (body.result !== "PENDING" && interview.processId && interview.roundNumber) {
+      try {
+        await this.processService.onInterviewCompleted(
+          interview.processId,
+          interview.roundNumber,
+        );
+      } catch (error) {
+        console.error("流程状态更新通知失败:", error);
+      }
     }
 
     return {

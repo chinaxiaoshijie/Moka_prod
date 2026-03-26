@@ -3,7 +3,6 @@ import {
   Get,
   Post,
   Put,
-  Delete,
   Body,
   Param,
   Query,
@@ -14,11 +13,12 @@ import {
   UseGuards,
   Request,
 } from "@nestjs/common";
-import { ApiTags, ApiOperation, ApiResponse } from "@nestjs/swagger";
+import { ApiTags, ApiOperation } from "@nestjs/swagger";
 import { InterviewProcessService } from "./interview-process.service";
 import {
   CreateInterviewProcessDto,
   CreateRoundInterviewDto,
+  UpdateRoundConfigDto,
   ProcessResponseDto,
   ProcessListResponseDto,
 } from "./dto/interview-process.dto";
@@ -67,11 +67,32 @@ export class InterviewProcessController {
   async completeRoundAndProceed(
     @Param("id") processId: string,
     @Body("action") action: "next" | "complete" | "reject",
+    @Request() req: any,
   ): Promise<ProcessResponseDto> {
     try {
       return await this.processService.completeRoundAndProceed(
         processId,
         action,
+        req.user.sub,
+      );
+    } catch (error: any) {
+      throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
+    }
+  }
+
+  @Put(":id/rounds/:roundNumber/config")
+  @Roles("HR")
+  @ApiOperation({ summary: "更新未来轮次面试官配置" })
+  async updateRoundConfig(
+    @Param("id") processId: string,
+    @Param("roundNumber", ParseIntPipe) roundNumber: number,
+    @Body() updateDto: UpdateRoundConfigDto,
+  ): Promise<ProcessResponseDto> {
+    try {
+      return await this.processService.updateRoundConfig(
+        processId,
+        roundNumber,
+        updateDto,
       );
     } catch (error: any) {
       throw new HttpException(error.message, HttpStatus.BAD_REQUEST);

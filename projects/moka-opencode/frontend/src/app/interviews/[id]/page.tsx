@@ -50,12 +50,20 @@ export default function InterviewDetailPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [updating, setUpdating] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   useEffect(() => {
     if (interviewId) {
       fetchInterview();
       fetchFeedbacks();
     }
+    try {
+      const userData = localStorage.getItem("user");
+      if (userData) {
+        const user = JSON.parse(userData);
+        setCurrentUserId(user.id || null);
+      }
+    } catch {}
   }, [interviewId]);
 
   // Fetch process info when interview is loaded
@@ -264,6 +272,15 @@ export default function InterviewDetailPage() {
     });
   };
 
+  // Determine if current user can submit feedback
+  const currentUserHasFeedback = feedbacks.some(
+    (fb) => fb.interviewerId === currentUserId,
+  );
+  const canShowFeedbackButton =
+    interview &&
+    interview.status !== "CANCELLED" &&
+    !currentUserHasFeedback;
+
   if (loading) {
     return (
       <MainLayout>
@@ -360,7 +377,7 @@ export default function InterviewDetailPage() {
                   </button>
                 </>
               )}
-              {interview.status === "COMPLETED" && (
+              {canShowFeedbackButton && (
                 <button
                   onClick={() =>
                     router.push(
@@ -591,7 +608,7 @@ export default function InterviewDetailPage() {
             <div className="bg-white rounded-xl border border-[#E8EBF0] shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-6">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-base font-semibold text-[#1A1A1A]">面试反馈</h2>
-                {interview.status === "COMPLETED" &&
+                {canShowFeedbackButton &&
                   feedbacks.length === 0 && (
                     <button
                       onClick={() =>

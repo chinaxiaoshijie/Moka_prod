@@ -1,6 +1,7 @@
 import "multer";
 import { Injectable } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
+import { EmailService } from "../email/email.service";
 import {
   CreateCandidateDto,
   UpdateCandidateDto,
@@ -10,7 +11,10 @@ import {
 
 @Injectable()
 export class CandidateService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private emailService: EmailService,
+  ) {}
 
   async create(createDto: CreateCandidateDto): Promise<CandidateResponseDto> {
     const candidate = await this.prisma.candidate.create({
@@ -366,6 +370,22 @@ export class CandidateService {
         },
       },
     });
+
+    // 发送@通知邮件给面试官
+    if (mention.interviewer.email) {
+      try {
+        await this.emailService.sendMentionNotification({
+          interviewerName: mention.interviewer.name,
+          interviewerEmail: mention.interviewer.email,
+          candidateName: mention.candidate.name,
+          mentionedByName: mention.mentionedBy.name,
+          message,
+          candidateId,
+        });
+      } catch (error) {
+        console.error("@面试官邮件通知发送失败:", error);
+      }
+    }
 
     return mention;
   }

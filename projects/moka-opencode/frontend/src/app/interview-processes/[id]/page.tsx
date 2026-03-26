@@ -8,7 +8,7 @@ import MainLayout from "@/components/MainLayout";
 interface Feedback {
   id: string;
   interviewerId: string;
-  interviewer: { name: string };
+  interviewerName: string;
   result: string;
   strengths: string | null;
   weaknesses: string | null;
@@ -17,42 +17,58 @@ interface Feedback {
   createdAt: string;
 }
 
+interface ProcessRound {
+  roundNumber: number;
+  interviewerId: string;
+  interviewerName: string;
+  isHRRound: boolean;
+  roundType: string;
+}
+
+interface ProcessInterview {
+  id: string;
+  roundNumber: number;
+  interviewerId: string;
+  interviewerName: string;
+  type: string;
+  format: string;
+  startTime: string;
+  endTime: string | null;
+  status: string;
+  location: string | null;
+  meetingUrl: string | null;
+  meetingNumber: string | null;
+  hasFeedback: boolean;
+  feedbackResult?: string;
+  feedbacks: Feedback[];
+}
+
 interface Process {
   id: string;
+  candidateId: string;
   candidateName: string;
-  candidatePhone?: string;
-  candidateEmail?: string;
+  positionId: string;
   positionTitle: string;
   currentRound: number;
   totalRounds: number;
   status: string;
   hasHRRound: boolean;
-  rounds: {
-    roundNumber: number;
-    interviewerId: string;
-    interviewerName: string;
-    interviewerEmail?: string;
-    isHRRound: boolean;
-    roundType: string;
-  }[];
-  interviews: {
-    id: string;
-    roundNumber: number;
-    interviewerId: string;
-    interviewerName: string;
-    type: string;
-    format: string;
-    startTime: string;
-    endTime?: string;
-    status: string;
-    location?: string;
-    meetingUrl?: string;
-    meetingNumber?: string;
-    hasFeedback: boolean;
-    feedbackResult?: string;
-    feedbacks?: Feedback[];
-  }[];
+  createdById: string;
+  rounds: ProcessRound[];
+  interviews: ProcessInterview[];
   createdAt: string;
+}
+
+interface User {
+  id: string;
+  name: string;
+  role: string;
+}
+
+interface UserOption {
+  id: string;
+  name: string;
+  email: string;
 }
 
 export default function InterviewProcessDetailPage() {
@@ -63,11 +79,13 @@ export default function InterviewProcessDetailPage() {
   const [process, setProcess] = useState<Process | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
 
+  // Schedule modal state
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [schedulingRound, setSchedulingRound] = useState<number | null>(null);
   const [editingInterviewId, setEditingInterviewId] = useState<string | null>(null);
+  const [notifyCandidate, setNotifyCandidate] = useState(true);
   const [scheduleForm, setScheduleForm] = useState({
     startTime: "",
     endTime: "",
@@ -77,9 +95,25 @@ export default function InterviewProcessDetailPage() {
     meetingNumber: "",
   });
 
+  // Round config modal state
+  const [showConfigModal, setShowConfigModal] = useState(false);
+  const [configRound, setConfigRound] = useState<number | null>(null);
+  const [interviewerOptions, setInterviewerOptions] = useState<UserOption[]>([]);
+  const [selectedInterviewerId, setSelectedInterviewerId] = useState("");
+
+  // Feedback edit state
+  const [editingFeedbackId, setEditingFeedbackId] = useState<string | null>(null);
+  const [feedbackEditForm, setFeedbackEditForm] = useState({ notes: "", strengths: "", weaknesses: "" });
+
   useEffect(() => {
     const userData = localStorage.getItem("user");
-    if (userData) setUser(JSON.parse(userData));
+    if (userData) {
+      try {
+        setUser(JSON.parse(userData));
+      } catch {
+        // ignore
+      }
+    }
     fetchProcess();
   }, [processId]);
 
@@ -89,7 +123,6 @@ export default function InterviewProcessDetailPage() {
       const response = await apiFetch(`/interview-processes/${processId}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-
       if (!response.ok) throw new Error("获取流程详情失败");
       const data = await response.json();
       setProcess(data);
@@ -102,27 +135,30 @@ export default function InterviewProcessDetailPage() {
 
   const handleScheduleInterview = async () => {
     if (!schedulingRound) return;
-
+    if (!scheduleForm.startTime || !scheduleForm.endTime) {
+      setError("请填写开始时间和结束时间");
+      return;
+    }
     try {
       const token = localStorage.getItem("token");
-
-      // Use PUT for editing, POST for creating
       const isEditing = editingInterviewId !== null;
       const url = isEditing
         ? `/interviews/${editingInterviewId}`
         : `/interview-processes/${processId}/rounds/${schedulingRound}/interview`;
 
+      const body = isEditing
+        ? scheduleForm
+        : { ...scheduleForm, notifyCandidate };
+
       const response = await apiFetch(url, {
         method: isEditing ? "PUT" : "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(scheduleForm),
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify(body),
       });
-
-      if (!response.ok) throw new Error(isEditing ? "更新面试安排失败" : "安排面试失败");
-
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.message || (isEditing ? "更新面试安排失败" : "安排面试失败"));
+      }
       setShowScheduleModal(false);
       setEditingInterviewId(null);
       fetchProcess();
@@ -138,15 +174,57 @@ export default function InterviewProcessDetailPage() {
         `/interview-processes/${processId}/complete-round`,
         {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
           body: JSON.stringify({ action }),
         }
       );
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.message || "操作失败");
+      }
+      setError("");
+      fetchProcess();
+    } catch (err: any) {
+      setError(err.message);
+    }
+  };
 
-      if (!response.ok) throw new Error("操作失败");
+  const handleUpdateRoundConfig = async () => {
+    if (!configRound || !selectedInterviewerId) return;
+    try {
+      const token = localStorage.getItem("token");
+      const response = await apiFetch(
+        `/interview-processes/${processId}/rounds/${configRound}/config`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ interviewerId: selectedInterviewerId }),
+        }
+      );
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.message || "更新配置失败");
+      }
+      setShowConfigModal(false);
+      fetchProcess();
+    } catch (err: any) {
+      setError(err.message);
+    }
+  };
+
+  const handleUpdateFeedback = async (feedbackId: string) => {
+    try {
+      const token = localStorage.getItem("token");
+      const response = await apiFetch(`/feedback/${feedbackId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify(feedbackEditForm),
+      });
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.message || "更新反馈失败");
+      }
+      setEditingFeedbackId(null);
       fetchProcess();
     } catch (err: any) {
       setError(err.message);
@@ -155,34 +233,89 @@ export default function InterviewProcessDetailPage() {
 
   const openScheduleModal = (roundNumber: number) => {
     setSchedulingRound(roundNumber);
-
-    // Check if there's an existing interview for this round
+    setNotifyCandidate(true);
     const existingInterview = process?.interviews.find(i => i.roundNumber === roundNumber);
-
     if (existingInterview) {
-      // Edit existing interview - pre-fill form with existing data
       setEditingInterviewId(existingInterview.id);
       setScheduleForm({
         startTime: existingInterview.startTime ? new Date(existingInterview.startTime).toISOString().slice(0, 16) : "",
-        endTime: existingInterview.startTime ? new Date(new Date(existingInterview.startTime).getTime() + 60 * 60 * 1000).toISOString().slice(0, 16) : "",
+        endTime: existingInterview.endTime ? new Date(existingInterview.endTime).toISOString().slice(0, 16) :
+          existingInterview.startTime ? new Date(new Date(existingInterview.startTime).getTime() + 3600000).toISOString().slice(0, 16) : "",
         format: (existingInterview.format as "ONLINE" | "OFFLINE") || "ONLINE",
         location: existingInterview.location || "",
         meetingUrl: existingInterview.meetingUrl || "",
         meetingNumber: existingInterview.meetingNumber || "",
       });
     } else {
-      // New interview - reset form
       setEditingInterviewId(null);
-      setScheduleForm({
-        startTime: "",
-        endTime: "",
-        format: "ONLINE",
-        location: "",
-        meetingUrl: "",
-        meetingNumber: "",
-      });
+      setScheduleForm({ startTime: "", endTime: "", format: "ONLINE", location: "", meetingUrl: "", meetingNumber: "" });
     }
     setShowScheduleModal(true);
+  };
+
+  const openConfigModal = async (roundNumber: number) => {
+    setConfigRound(roundNumber);
+    const round = process?.rounds.find(r => r.roundNumber === roundNumber);
+    setSelectedInterviewerId(round?.interviewerId || "");
+
+    // Fetch interviewer list
+    try {
+      const token = localStorage.getItem("token");
+      const response = await apiFetch("/users?role=INTERVIEWER", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setInterviewerOptions(data.items || data || []);
+      }
+    } catch {
+      // ignore
+    }
+    setShowConfigModal(true);
+  };
+
+  const getStatusBanner = (): { text: string; color: string; bg: string } | null => {
+    if (!process) return null;
+    const currentInterview = process.interviews.find(i => i.roundNumber === process.currentRound);
+
+    switch (process.status) {
+      case "IN_PROGRESS":
+        if (!currentInterview) {
+          return { text: `第${process.currentRound}轮等待安排面试时间`, color: "text-[#d48806]", bg: "bg-[#fffbe6] border-[#ffe58f]" };
+        }
+        if (currentInterview.status === "SCHEDULED") {
+          return { text: `第${process.currentRound}轮面试已安排，等待面试官反馈`, color: "text-[#1890ff]", bg: "bg-[#e6f7ff] border-[#91d5ff]" };
+        }
+        return { text: `第${process.currentRound}轮面试进行中`, color: "text-[#1890ff]", bg: "bg-[#e6f7ff] border-[#91d5ff]" };
+      case "WAITING_HR":
+        return { text: `第${process.currentRound}轮已完成，请HR确认下一步`, color: "text-[#fa8c16]", bg: "bg-[#fff7e6] border-[#ffd591]" };
+      case "COMPLETED":
+        return { text: "面试流程已完成", color: "text-[#52c41a]", bg: "bg-[#f6ffed] border-[#b7eb8f]" };
+      case "CANCELLED":
+        return { text: "面试流程已取消", color: "text-[#ff4d4f]", bg: "bg-[#fff2f0] border-[#ffccc7]" };
+      default:
+        return null;
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    const map: Record<string, string> = {
+      IN_PROGRESS: "bg-[#e6f7ff] text-[#1890ff]",
+      WAITING_HR: "bg-[#fff7e6] text-[#fa8c16]",
+      COMPLETED: "bg-[#f6ffed] text-[#52c41a]",
+      CANCELLED: "bg-[#fff2f0] text-[#ff4d4f]",
+    };
+    return map[status] || "bg-[#fafafa] text-[#00000073]";
+  };
+
+  const getStatusText = (status: string) => {
+    const map: Record<string, string> = {
+      IN_PROGRESS: "进行中",
+      WAITING_HR: "等待HR确认",
+      COMPLETED: "已完成",
+      CANCELLED: "已取消",
+    };
+    return map[status] || status;
   };
 
   const getRoundStatus = (roundNumber: number) => {
@@ -194,31 +327,23 @@ export default function InterviewProcessDetailPage() {
     return "pending";
   };
 
-  const getStatusText = (status: string) => {
-    const map: { [key: string]: string } = {
-      IN_PROGRESS: "进行中",
-      WAITING_HR: "等待HR确认",
-      COMPLETED: "已完成",
-      CANCELLED: "已取消",
-    };
-    return map[status] || status;
+  // Permission check: can this user edit feedback result?
+  const canEditFeedbackResult = (feedback: Feedback, interview: ProcessInterview): boolean => {
+    if (!process || !user) return false;
+    if (feedback.interviewerId !== user.id) return false;
+    return process.currentRound === interview.roundNumber && process.status === "IN_PROGRESS";
   };
 
-  const getStatusColor = (status: string) => {
-    const map: { [key: string]: string } = {
-      IN_PROGRESS: "bg-[#EFF3FF] text-[#4371FF]",
-      WAITING_HR: "bg-blue-100 text-blue-700",
-      COMPLETED: "bg-emerald-100 text-emerald-700",
-      CANCELLED: "bg-red-100 text-red-700",
-    };
-    return map[status] || "bg-slate-100 text-slate-700";
+  const canEditFeedbackNotes = (feedback: Feedback): boolean => {
+    if (!user) return false;
+    return feedback.interviewerId === user.id;
   };
 
   if (loading) {
     return (
       <MainLayout>
-        <main className="flex-1 p-6 lg:p-8 flex items-center justify-center">
-          <div className="animate-spin rounded-full h-7 w-7 border-2 border-slate-200 border-t-[#4371FF]" />
+        <main className="flex-1 p-8 flex items-center justify-center">
+          <div className="animate-spin rounded-full h-7 w-7 border-2 border-[#f0f0f0] border-t-[#1890ff]" />
         </main>
       </MainLayout>
     );
@@ -227,76 +352,89 @@ export default function InterviewProcessDetailPage() {
   if (!process) {
     return (
       <MainLayout>
-        <main className="flex-1 p-6 lg:p-8">
+        <main className="flex-1 p-8">
           <div className="text-center py-20">
-            <p className="text-slate-500 text-sm">流程不存在</p>
+            <p className="text-[#00000073] text-sm">流程不存在</p>
           </div>
         </main>
       </MainLayout>
     );
   }
 
-  const currentInterview = process.interviews.find(i => i.roundNumber === process.currentRound);
+  const banner = getStatusBanner();
+  const isHR = user?.role === "HR";
   const isWaitingHR = process.status === "WAITING_HR";
 
   return (
     <MainLayout>
-      <main className="flex-1 p-6 lg:p-8">
+      <main className="flex-1">
         <div className="max-w-4xl mx-auto">
           {/* Page Header */}
-          <div className="mb-8">
-            <div className="flex items-center justify-between">
-              <div>
-                <h1 className="text-2xl font-bold text-slate-900 tracking-tight mb-1">面试流程详情</h1>
-                <p className="text-slate-500 text-sm">{process.candidateName} · {process.positionTitle}</p>
-              </div>
-              <span className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(process.status)}`}>
-                {getStatusText(process.status)}
-              </span>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h1 className="text-xl font-semibold text-[#000000d9] tracking-tight">面试流程详情</h1>
+              <p className="text-[13px] text-[#00000073] mt-0.5">{process.candidateName} · {process.positionTitle}</p>
             </div>
+            <span className={`inline-flex px-2.5 py-0.5 rounded text-[12px] font-medium ${getStatusColor(process.status)}`}>
+              {getStatusText(process.status)}
+            </span>
           </div>
 
+          {/* Status Banner */}
+          {banner && (
+            <div className={`rounded-lg border p-3 mb-4 ${banner.bg}`}>
+              <p className={`text-[13px] font-medium ${banner.color}`}>{banner.text}</p>
+            </div>
+          )}
+
           {error && (
-            <div className="mb-5 rounded-lg bg-red-50 border border-red-200 p-4 text-red-600 text-sm">
+            <div className="mb-4 rounded-lg bg-[#fff2f0] border border-[#ffccc7] p-3 text-[#ff4d4f] text-[13px]">
               {error}
+              <button onClick={() => setError("")} className="float-right text-[#ff4d4f] hover:text-[#ff7875]">×</button>
             </div>
           )}
 
           {/* HR Action Panel */}
-          {user?.role === "HR" && isWaitingHR && currentInterview && (
-            <div className="bg-white rounded-xl border border-[#E8EBF0] shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-6 mb-5">
-              <h3 className="text-base font-semibold text-slate-900 mb-4">
-                第{process.currentRound}轮面试已完成，请确认
+          {isHR && isWaitingHR && (
+            <div className="bg-white rounded-lg border border-[#f0f0f0] p-5 mb-4">
+              <h3 className="text-sm font-semibold text-[#000000d9] mb-3">
+                第{process.currentRound}轮面试已完成，请确认下一步
               </h3>
-              <div className="flex gap-3">
+              <div className="flex gap-2">
                 {process.currentRound < process.totalRounds ? (
                   <>
                     <button
                       onClick={() => handleCompleteRound("next")}
-                      className="bg-[#4371FF] hover:bg-[#3461E6] text-white rounded-lg px-4 py-2.5 text-sm font-medium shadow-sm"
+                      className="bg-[#1890ff] hover:bg-[#40a9ff] text-white rounded-md px-4 py-2 text-[13px] font-medium"
                     >
                       通过，安排下一轮
                     </button>
                     <button
-                      onClick={() => handleCompleteRound("reject")}
-                      className="bg-red-50 text-red-600 hover:bg-red-100 rounded-lg px-4 py-2.5 text-sm font-medium"
+                      onClick={() => handleCompleteRound("complete")}
+                      className="bg-[#52c41a] hover:bg-[#73d13d] text-white rounded-md px-4 py-2 text-[13px] font-medium"
                     >
-                      不通过，结束流程
+                      直接录用
+                    </button>
+                    <button
+                      onClick={() => handleCompleteRound("reject")}
+                      className="bg-[#fff2f0] text-[#ff4d4f] hover:bg-[#ffccc7] rounded-md px-4 py-2 text-[13px] font-medium border border-[#ffccc7]"
+                    >
+                      不通过
                     </button>
                   </>
                 ) : (
                   <>
                     <button
                       onClick={() => handleCompleteRound("complete")}
-                      className="bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg px-4 py-2.5 text-sm font-medium shadow-sm"
+                      className="bg-[#52c41a] hover:bg-[#73d13d] text-white rounded-md px-4 py-2 text-[13px] font-medium"
                     >
                       通过，录用候选人
                     </button>
                     <button
                       onClick={() => handleCompleteRound("reject")}
-                      className="bg-red-50 text-red-600 hover:bg-red-100 rounded-lg px-4 py-2.5 text-sm font-medium"
+                      className="bg-[#fff2f0] text-[#ff4d4f] hover:bg-[#ffccc7] rounded-md px-4 py-2 text-[13px] font-medium border border-[#ffccc7]"
                     >
-                      不通过，结束流程
+                      不通过
                     </button>
                   </>
                 )}
@@ -305,220 +443,284 @@ export default function InterviewProcessDetailPage() {
           )}
 
           {/* Candidate Info Card */}
-          <div className="bg-white rounded-xl border border-[#E8EBF0] shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-6 mb-5">
-            <h2 className="text-base font-semibold text-slate-900 mb-4">候选人信息</h2>
-            <div className="grid grid-cols-3 gap-4 text-sm">
+          <div className="bg-white rounded-lg border border-[#f0f0f0] p-5 mb-4">
+            <h2 className="text-sm font-semibold text-[#000000d9] mb-3">候选人信息</h2>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-[13px]">
               <div>
-                <span className="text-slate-500 text-xs">姓名</span>
-                <p className="text-slate-900 font-medium mt-0.5">{process.candidateName}</p>
-              </div>
-              {process.candidatePhone && (
-                <div>
-                  <span className="text-slate-500 text-xs">电话</span>
-                  <p className="text-slate-900 mt-0.5">{process.candidatePhone}</p>
-                </div>
-              )}
-              {process.candidateEmail && (
-                <div>
-                  <span className="text-slate-500 text-xs">邮箱</span>
-                  <p className="text-slate-900 mt-0.5">{process.candidateEmail}</p>
-                </div>
-              )}
-              <div>
-                <span className="text-slate-500 text-xs">应聘职位</span>
-                <p className="text-slate-900 mt-0.5">{process.positionTitle}</p>
+                <span className="text-[12px] text-[#00000073]">姓名</span>
+                <p className="text-[#000000d9] font-medium mt-0.5">{process.candidateName}</p>
               </div>
               <div>
-                <span className="text-slate-500 text-xs">流程状态</span>
-                <p className="mt-0.5">
-                  <span className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(process.status)}`}>
-                    {getStatusText(process.status)}
-                  </span>
-                </p>
+                <span className="text-[12px] text-[#00000073]">应聘职位</span>
+                <p className="text-[#000000d9] mt-0.5">{process.positionTitle}</p>
+              </div>
+              <div>
+                <span className="text-[12px] text-[#00000073]">当前轮次</span>
+                <p className="text-[#000000d9] mt-0.5">第{process.currentRound}轮 / 共{process.totalRounds}轮</p>
+              </div>
+              <div>
+                <span className="text-[12px] text-[#00000073]">创建时间</span>
+                <p className="text-[#000000d9] mt-0.5">{new Date(process.createdAt).toLocaleDateString("zh-CN")}</p>
               </div>
             </div>
           </div>
 
           {/* Interview Process Timeline */}
-          <div className="bg-white rounded-xl border border-[#E8EBF0] shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-6">
-            <h2 className="text-base font-semibold text-slate-900 mb-6">面试流程时间线</h2>
+          <div className="bg-white rounded-lg border border-[#f0f0f0] p-5">
+            <h2 className="text-sm font-semibold text-[#000000d9] mb-5">面试流程时间线</h2>
 
-            <div className="space-y-6">
+            <div className="space-y-5">
               {process.rounds.map((round, index) => {
                 const status = getRoundStatus(round.roundNumber);
                 const interview = process.interviews.find(i => i.roundNumber === round.roundNumber);
                 const isCurrentRound = process.currentRound === round.roundNumber;
-                const isPast = round.roundNumber < process.currentRound;
                 const isFuture = round.roundNumber > process.currentRound;
 
                 return (
-                  <div key={round.roundNumber} className="relative flex gap-4">
-                    {/* Timeline connector line */}
+                  <div key={round.roundNumber} className="relative flex gap-3">
+                    {/* Timeline connector */}
                     {index < process.rounds.length - 1 && (
-                      <div className={`absolute left-4 top-10 bottom-0 w-0.5 ${
-                        status === "completed" ? "bg-emerald-200" : "bg-slate-200"
+                      <div className={`absolute left-[15px] top-9 bottom-0 w-0.5 ${
+                        status === "completed" ? "bg-[#b7eb8f]" : "bg-[#f0f0f0]"
                       }`} />
                     )}
 
-                    {/* Status indicator */}
-                    <div className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold z-10 flex-shrink-0 ${
-                      status === "completed" ? "bg-emerald-500 text-white" :
-                      status === "scheduled" ? "bg-[#4371FF] text-white" :
-                      isCurrentRound ? "bg-blue-500 text-white" :
-                      "bg-slate-200 text-slate-500"
+                    {/* Status dot */}
+                    <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[11px] font-bold z-10 flex-shrink-0 ${
+                      status === "completed" ? "bg-[#52c41a] text-white" :
+                      status === "scheduled" ? "bg-[#1890ff] text-white" :
+                      isCurrentRound ? "bg-[#1890ff] text-white" :
+                      "bg-[#f0f0f0] text-[#00000073]"
                     }`}>
                       {status === "completed" ? (
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                         </svg>
                       ) : round.roundNumber}
                     </div>
 
-                    {/* Round details */}
-                    <div className="flex-1 pb-6">
-                      {/* Header */}
-                      <div className="flex items-center justify-between mb-3">
+                    {/* Content */}
+                    <div className="flex-1 pb-4">
+                      <div className="flex items-center justify-between mb-2">
                         <div>
-                          <h3 className="font-semibold text-slate-900 text-sm">
-                            第{round.roundNumber}轮 · {round.isHRRound ? "HR初面" : round.roundType === "TECHNICAL" ? "技术面试" : "终面"}
+                          <h3 className="text-[13px] font-semibold text-[#000000d9]">
+                            第{round.roundNumber}轮 · {round.isHRRound ? "HR面试" : round.roundType === "TECHNICAL" ? "技术面试" : round.roundType === "FINAL" ? "终面" : round.roundType}
                           </h3>
-                          <p className="text-xs text-slate-500 mt-0.5">
+                          <p className="text-[12px] text-[#00000073] mt-0.5">
                             面试官：{round.interviewerName}
-                            {round.interviewerEmail && <span className="ml-1.5">({round.interviewerEmail})</span>}
                           </p>
                         </div>
-                        <span className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          status === "completed" ? "bg-emerald-100 text-emerald-700" :
-                          status === "scheduled" ? "bg-[#EFF3FF] text-[#4371FF]" :
-                          isCurrentRound ? "bg-blue-100 text-blue-700" :
-                          "bg-slate-100 text-slate-500"
-                        }`}>
-                          {status === "completed" ? "已完成" :
-                           status === "scheduled" ? "已安排" :
-                           isCurrentRound ? "进行中" : "待安排"}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          {/* HR can change future round interviewer */}
+                          {isHR && isFuture && process.status !== "COMPLETED" && process.status !== "CANCELLED" && (
+                            <button
+                              onClick={() => openConfigModal(round.roundNumber)}
+                              className="text-[12px] text-[#1890ff] hover:text-[#40a9ff] font-medium"
+                            >
+                              更换面试官
+                            </button>
+                          )}
+                          <span className={`inline-flex px-2 py-0.5 rounded text-[11px] font-medium ${
+                            status === "completed" ? "bg-[#f6ffed] text-[#52c41a]" :
+                            status === "scheduled" ? "bg-[#e6f7ff] text-[#1890ff]" :
+                            isCurrentRound ? "bg-[#e6f7ff] text-[#1890ff]" :
+                            "bg-[#fafafa] text-[#00000073]"
+                          }`}>
+                            {status === "completed" ? "已完成" :
+                             status === "scheduled" ? "已安排" :
+                             isCurrentRound ? "进行中" : "待安排"}
+                          </span>
+                        </div>
                       </div>
 
                       {/* Interview details */}
                       {interview ? (
-                        <div className="bg-slate-50/80 rounded-lg border border-[#E8EBF0] p-4 space-y-3">
+                        <div className="bg-[#fafafa] rounded-lg border border-[#f0f0f0] p-4">
                           {/* Time and format */}
-                          <div className="grid grid-cols-2 gap-3 text-sm">
-                            <div className="flex items-center gap-2 text-slate-700">
-                              <svg className="w-4 h-4 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <div className="grid grid-cols-2 gap-2 text-[12px] text-[#000000a6] mb-3">
+                            <div className="flex items-center gap-1.5">
+                              <svg className="w-3.5 h-3.5 text-[#00000073]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                               </svg>
-                              <span className="text-xs">
-                                {new Date(interview.startTime).toLocaleString("zh-CN")}
-                              </span>
+                              {new Date(interview.startTime).toLocaleString("zh-CN")}
                             </div>
-                            <div className="flex items-center gap-2 text-slate-700">
-                              <svg className="w-4 h-4 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                {interview.format === "ONLINE" ? (
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                                ) : (
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                                )}
+                            <div className="flex items-center gap-1.5">
+                              <svg className="w-3.5 h-3.5 text-[#00000073]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                               </svg>
-                              <span className="text-xs">
-                                {interview.format === "ONLINE" ? "线上面试" : "线下面试"}
-                                {interview.location && ` · ${interview.location}`}
-                              </span>
+                              {interview.format === "ONLINE" ? "线上面试" : "线下面试"}
+                              {interview.location && ` · ${interview.location}`}
                             </div>
                             {interview.meetingUrl && (
-                              <div className="col-span-2 text-xs">
-                                <span className="text-slate-500">会议链接：</span>
+                              <div className="col-span-2">
+                                <span className="text-[#00000073]">会议链接：</span>
                                 <a href={interview.meetingUrl} target="_blank" rel="noopener noreferrer"
-                                   className="text-blue-600 hover:underline ml-1">
+                                   className="text-[#1890ff] hover:text-[#40a9ff]">
                                   {interview.meetingUrl}
                                 </a>
                               </div>
                             )}
                           </div>
 
-                          {/* Feedback section */}
+                          {/* Feedbacks */}
                           {interview.feedbacks && interview.feedbacks.length > 0 && (
-                            <div className="mt-3 pt-3 border-t border-slate-200">
-                              <div className="flex items-center justify-between mb-3">
-                                <h4 className="font-medium text-slate-900 text-sm">面试反馈</h4>
-                                <span className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                  interview.feedbackResult === "PASS" ? "bg-emerald-100 text-emerald-700" :
-                                  interview.feedbackResult === "FAIL" ? "bg-red-100 text-red-700" :
-                                  "bg-[#EFF3FF] text-[#4371FF]"
+                            <div className="border-t border-[#f0f0f0] pt-3">
+                              <div className="flex items-center justify-between mb-2">
+                                <h4 className="text-[12px] font-semibold text-[#000000d9]">面试反馈</h4>
+                                <span className={`inline-flex px-2 py-0.5 rounded text-[11px] font-medium ${
+                                  interview.feedbackResult === "PASS" ? "bg-[#f6ffed] text-[#52c41a]" :
+                                  interview.feedbackResult === "FAIL" ? "bg-[#fff2f0] text-[#ff4d4f]" :
+                                  "bg-[#e6f7ff] text-[#1890ff]"
                                 }`}>
                                   {interview.feedbackResult === "PASS" ? "通过" :
                                    interview.feedbackResult === "FAIL" ? "不通过" : "待定"}
                                 </span>
                               </div>
 
-                              {/* Rating stars */}
-                              {interview.feedbacks && interview.feedbacks[0]?.overallRating && (
-                                <div className="flex items-center gap-0.5 mb-3">
-                                  {[1, 2, 3, 4, 5].map((star) => (
-                                    <span key={star} className={`text-base ${
-                                      star <= (interview.feedbacks?.[0]?.overallRating ?? 0) ? "text-[#4371FF]" : "text-slate-200"
-                                    }`}>★</span>
-                                  ))}
-                                  <span className="ml-2 text-xs text-slate-500">
-                                    {interview.feedbacks[0].overallRating}分
-                                  </span>
-                                </div>
-                              )}
+                              {interview.feedbacks.map((fb) => {
+                                const isEditing = editingFeedbackId === fb.id;
+                                const canEditNotes = canEditFeedbackNotes(fb);
+                                const canEditResult = canEditFeedbackResult(fb, interview);
 
-                              {/* Feedback details */}
-                              <div className="grid grid-cols-2 gap-2 text-sm">
-                                {interview.feedbacks[0].strengths && (
-                                  <div className="bg-emerald-50 rounded-lg p-3">
-                                    <p className="text-emerald-700 font-medium text-xs mb-1">优势</p>
-                                    <p className="text-slate-700 text-xs">{interview.feedbacks[0].strengths}</p>
+                                return (
+                                  <div key={fb.id} className="mb-3 last:mb-0">
+                                    {/* Rating */}
+                                    {fb.overallRating && (
+                                      <div className="flex items-center gap-0.5 mb-2">
+                                        {[1, 2, 3, 4, 5].map((star) => (
+                                          <span key={star} className={`text-sm ${
+                                            star <= (fb.overallRating ?? 0) ? "text-[#faad14]" : "text-[#f0f0f0]"
+                                          }`}>★</span>
+                                        ))}
+                                        <span className="ml-1.5 text-[11px] text-[#00000073]">{fb.overallRating}分</span>
+                                      </div>
+                                    )}
+
+                                    {/* Result tag (read-only for past rounds) */}
+                                    {!canEditResult && fb.result && (
+                                      <div className="mb-2">
+                                        <span className={`inline-flex px-2 py-0.5 rounded text-[11px] font-medium ${
+                                          fb.result === "PASS" ? "bg-[#f6ffed] text-[#52c41a]" :
+                                          fb.result === "FAIL" ? "bg-[#fff2f0] text-[#ff4d4f]" :
+                                          "bg-[#fafafa] text-[#00000073]"
+                                        }`}>
+                                          结论：{fb.result === "PASS" ? "通过" : fb.result === "FAIL" ? "不通过" : "待定"}（不可修改）
+                                        </span>
+                                      </div>
+                                    )}
+
+                                    {isEditing ? (
+                                      <div className="space-y-2">
+                                        <div>
+                                          <label className="text-[11px] text-[#00000073]">优势</label>
+                                          <textarea
+                                            value={feedbackEditForm.strengths}
+                                            onChange={(e) => setFeedbackEditForm(prev => ({ ...prev, strengths: e.target.value }))}
+                                            className="w-full rounded border border-[#d9d9d9] px-2.5 py-1.5 text-[12px] focus:border-[#1890ff] focus:ring-1 focus:ring-[#1890ff]/20 outline-none mt-0.5"
+                                            rows={2}
+                                          />
+                                        </div>
+                                        <div>
+                                          <label className="text-[11px] text-[#00000073]">待改进</label>
+                                          <textarea
+                                            value={feedbackEditForm.weaknesses}
+                                            onChange={(e) => setFeedbackEditForm(prev => ({ ...prev, weaknesses: e.target.value }))}
+                                            className="w-full rounded border border-[#d9d9d9] px-2.5 py-1.5 text-[12px] focus:border-[#1890ff] focus:ring-1 focus:ring-[#1890ff]/20 outline-none mt-0.5"
+                                            rows={2}
+                                          />
+                                        </div>
+                                        <div>
+                                          <label className="text-[11px] text-[#00000073]">备注</label>
+                                          <textarea
+                                            value={feedbackEditForm.notes}
+                                            onChange={(e) => setFeedbackEditForm(prev => ({ ...prev, notes: e.target.value }))}
+                                            className="w-full rounded border border-[#d9d9d9] px-2.5 py-1.5 text-[12px] focus:border-[#1890ff] focus:ring-1 focus:ring-[#1890ff]/20 outline-none mt-0.5"
+                                            rows={2}
+                                          />
+                                        </div>
+                                        <div className="flex gap-2">
+                                          <button
+                                            onClick={() => handleUpdateFeedback(fb.id)}
+                                            className="bg-[#1890ff] hover:bg-[#40a9ff] text-white rounded px-3 py-1 text-[12px] font-medium"
+                                          >
+                                            保存
+                                          </button>
+                                          <button
+                                            onClick={() => setEditingFeedbackId(null)}
+                                            className="border border-[#d9d9d9] hover:border-[#1890ff] text-[#000000d9] rounded px-3 py-1 text-[12px]"
+                                          >
+                                            取消
+                                          </button>
+                                        </div>
+                                      </div>
+                                    ) : (
+                                      <>
+                                        <div className="grid grid-cols-2 gap-2">
+                                          {fb.strengths && (
+                                            <div className="bg-[#f6ffed] rounded p-2.5">
+                                              <p className="text-[#52c41a] font-medium text-[11px] mb-0.5">优势</p>
+                                              <p className="text-[#000000a6] text-[12px]">{fb.strengths}</p>
+                                            </div>
+                                          )}
+                                          {fb.weaknesses && (
+                                            <div className="bg-[#fff2f0] rounded p-2.5">
+                                              <p className="text-[#ff4d4f] font-medium text-[11px] mb-0.5">待改进</p>
+                                              <p className="text-[#000000a6] text-[12px]">{fb.weaknesses}</p>
+                                            </div>
+                                          )}
+                                        </div>
+                                        {fb.notes && (
+                                          <div className="mt-2 p-2.5 bg-[#fafafa] rounded">
+                                            <p className="text-[#00000073] text-[11px] mb-0.5">备注</p>
+                                            <p className="text-[#000000a6] text-[12px]">{fb.notes}</p>
+                                          </div>
+                                        )}
+                                        <div className="flex items-center justify-between mt-2">
+                                          <p className="text-[11px] text-[#00000045]">
+                                            {fb.interviewerName} · {new Date(fb.createdAt).toLocaleString("zh-CN")}
+                                          </p>
+                                          {canEditNotes && (
+                                            <button
+                                              onClick={() => {
+                                                setEditingFeedbackId(fb.id);
+                                                setFeedbackEditForm({
+                                                  notes: fb.notes || "",
+                                                  strengths: fb.strengths || "",
+                                                  weaknesses: fb.weaknesses || "",
+                                                });
+                                              }}
+                                              className="text-[11px] text-[#1890ff] hover:text-[#40a9ff] font-medium"
+                                            >
+                                              {canEditResult ? "编辑反馈" : "编辑评语"}
+                                            </button>
+                                          )}
+                                        </div>
+                                      </>
+                                    )}
                                   </div>
-                                )}
-                                {interview.feedbacks[0].weaknesses && (
-                                  <div className="bg-red-50 rounded-lg p-3">
-                                    <p className="text-red-700 font-medium text-xs mb-1">待改进</p>
-                                    <p className="text-slate-700 text-xs">{interview.feedbacks[0].weaknesses}</p>
-                                  </div>
-                                )}
-                              </div>
-
-                              {interview.feedbacks[0].notes && (
-                                <div className="mt-2 p-3 bg-slate-100 rounded-lg">
-                                  <p className="text-slate-500 text-xs mb-1">备注</p>
-                                  <p className="text-slate-700 text-xs">{interview.feedbacks[0].notes}</p>
-                                </div>
-                              )}
-
-                              <p className="text-xs text-slate-400 mt-2">
-                                反馈人：{interview.feedbacks[0].interviewer?.name || round.interviewerName} ·{" "}
-                                {new Date(interview.feedbacks[0].createdAt).toLocaleString("zh-CN")}
-                              </p>
+                                );
+                              })}
                             </div>
                           )}
 
-                          {/* Action buttons for HR on current round */}
-                          {isCurrentRound && user?.role === "HR" && (
-                            <div className="mt-3 pt-3 border-t border-slate-200 flex gap-2">
+                          {/* Action buttons */}
+                          {isCurrentRound && isHR && (
+                            <div className="mt-3 pt-3 border-t border-[#f0f0f0] flex gap-2">
                               <button
                                 onClick={() => openScheduleModal(round.roundNumber)}
-                                className="border border-[#E8EBF0] hover:bg-slate-50 text-slate-700 rounded-lg px-3 py-2 text-xs font-medium"
+                                className="border border-[#d9d9d9] hover:border-[#1890ff] hover:text-[#1890ff] text-[#000000d9] rounded px-3 py-1.5 text-[12px] font-medium transition-colors"
                               >
                                 修改安排
                               </button>
-                              <button
-                                onClick={() => router.push(`/interviews/${interview.id}`)}
-                                className="border border-[#E8EBF0] hover:bg-slate-50 text-slate-700 rounded-lg px-3 py-2 text-xs font-medium"
-                              >
-                                查看详情
-                              </button>
                             </div>
                           )}
 
-                          {/* Future rounds can be edited */}
-                          {isFuture && user?.role === "HR" && (
-                            <div className="mt-3 pt-3 border-t border-slate-200">
+                          {isFuture && isHR && (
+                            <div className="mt-3 pt-3 border-t border-[#f0f0f0]">
                               <button
                                 onClick={() => openScheduleModal(round.roundNumber)}
-                                className="border border-[#E8EBF0] hover:bg-slate-50 text-slate-700 rounded-lg px-3 py-2 text-xs font-medium"
+                                className="border border-[#d9d9d9] hover:border-[#1890ff] hover:text-[#1890ff] text-[#000000d9] rounded px-3 py-1.5 text-[12px] font-medium transition-colors"
                               >
                                 {interview ? "修改" : "安排"}面试
                               </button>
@@ -527,16 +729,16 @@ export default function InterviewProcessDetailPage() {
                         </div>
                       ) : (
                         /* No interview scheduled */
-                        <div className="text-sm">
-                          {isCurrentRound && user?.role === "HR" ? (
+                        <div>
+                          {isCurrentRound && isHR ? (
                             <button
                               onClick={() => openScheduleModal(round.roundNumber)}
-                              className="mt-1 bg-[#4371FF] hover:bg-[#3461E6] text-white rounded-lg px-4 py-2 text-xs font-medium shadow-sm"
+                              className="bg-[#1890ff] hover:bg-[#40a9ff] text-white rounded px-4 py-1.5 text-[12px] font-medium"
                             >
                               安排第{round.roundNumber}轮面试
                             </button>
                           ) : (
-                            <p className="text-slate-400 text-xs py-2">等待安排</p>
+                            <p className="text-[#00000045] text-[12px] py-1">等待安排</p>
                           )}
                         </div>
                       )}
@@ -549,42 +751,43 @@ export default function InterviewProcessDetailPage() {
 
           {/* Schedule Modal */}
           {showScheduleModal && schedulingRound && (
-            <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-              <div className="bg-white rounded-xl shadow-xl max-w-lg w-full">
-                <div className="p-6 border-b border-[#E8EBF0]">
-                  <h2 className="text-lg font-semibold text-slate-900">
+            <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+              <div className="bg-white rounded-lg shadow-lg max-w-lg w-full">
+                <div className="px-5 py-3.5 border-b border-[#f0f0f0]">
+                  <h2 className="text-sm font-semibold text-[#000000d9]">
                     {editingInterviewId ? "修改" : "安排"}第{schedulingRound}轮面试
                   </h2>
                 </div>
-
-                <div className="p-6 space-y-4">
+                <div className="p-5 space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1.5">开始时间</label>
+                      <label className="block text-[12px] font-medium text-[#000000d9] mb-1">开始时间 <span className="text-red-500">*</span></label>
                       <input
                         type="datetime-local"
                         value={scheduleForm.startTime}
                         onChange={(e) => setScheduleForm(prev => ({ ...prev, startTime: e.target.value }))}
-                        className="w-full rounded-lg border border-[#E8EBF0] px-3.5 py-2.5 text-sm focus:border-[#4371FF] focus:ring-2 focus:ring-[#4371FF]/10 outline-none"
+                        className="w-full rounded border border-[#d9d9d9] px-3 py-1.5 text-[13px] focus:border-[#1890ff] focus:ring-1 focus:ring-[#1890ff]/20 outline-none"
+                        required
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1.5">结束时间</label>
+                      <label className="block text-[12px] font-medium text-[#000000d9] mb-1">结束时间 <span className="text-red-500">*</span></label>
                       <input
                         type="datetime-local"
                         value={scheduleForm.endTime}
                         onChange={(e) => setScheduleForm(prev => ({ ...prev, endTime: e.target.value }))}
-                        className="w-full rounded-lg border border-[#E8EBF0] px-3.5 py-2.5 text-sm focus:border-[#4371FF] focus:ring-2 focus:ring-[#4371FF]/10 outline-none"
+                        className="w-full rounded border border-[#d9d9d9] px-3 py-1.5 text-[13px] focus:border-[#1890ff] focus:ring-1 focus:ring-[#1890ff]/20 outline-none"
+                        required
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-1.5">面试形式</label>
+                    <label className="block text-[12px] font-medium text-[#000000d9] mb-1">面试形式</label>
                     <select
                       value={scheduleForm.format}
                       onChange={(e) => setScheduleForm(prev => ({ ...prev, format: e.target.value as any }))}
-                      className="w-full rounded-lg border border-[#E8EBF0] px-3.5 py-2.5 text-sm focus:border-[#4371FF] focus:ring-2 focus:ring-[#4371FF]/10 outline-none"
+                      className="w-full rounded border border-[#d9d9d9] px-3 py-1.5 text-[13px] focus:border-[#1890ff] focus:ring-1 focus:ring-[#1890ff]/20 outline-none bg-white"
                     >
                       <option value="ONLINE">线上</option>
                       <option value="OFFLINE">线下</option>
@@ -594,51 +797,109 @@ export default function InterviewProcessDetailPage() {
                   {scheduleForm.format === "ONLINE" ? (
                     <>
                       <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1.5">会议链接</label>
+                        <label className="block text-[12px] font-medium text-[#000000d9] mb-1">会议链接</label>
                         <input
                           type="text"
                           value={scheduleForm.meetingUrl}
                           onChange={(e) => setScheduleForm(prev => ({ ...prev, meetingUrl: e.target.value }))}
-                          className="w-full rounded-lg border border-[#E8EBF0] px-3.5 py-2.5 text-sm focus:border-[#4371FF] focus:ring-2 focus:ring-[#4371FF]/10 outline-none"
-                          placeholder="腾讯会议链接"
+                          className="w-full rounded border border-[#d9d9d9] px-3 py-1.5 text-[13px] focus:border-[#1890ff] focus:ring-1 focus:ring-[#1890ff]/20 outline-none"
+                          placeholder="腾讯会议/ZOOM 链接"
                         />
                       </div>
                       <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-1.5">会议号</label>
+                        <label className="block text-[12px] font-medium text-[#000000d9] mb-1">会议号</label>
                         <input
                           type="text"
                           value={scheduleForm.meetingNumber}
                           onChange={(e) => setScheduleForm(prev => ({ ...prev, meetingNumber: e.target.value }))}
-                          className="w-full rounded-lg border border-[#E8EBF0] px-3.5 py-2.5 text-sm focus:border-[#4371FF] focus:ring-2 focus:ring-[#4371FF]/10 outline-none"
+                          className="w-full rounded border border-[#d9d9d9] px-3 py-1.5 text-[13px] focus:border-[#1890ff] focus:ring-1 focus:ring-[#1890ff]/20 outline-none"
                           placeholder="会议号"
                         />
                       </div>
                     </>
                   ) : (
                     <div>
-                      <label className="block text-sm font-medium text-slate-700 mb-1.5">面试地点</label>
+                      <label className="block text-[12px] font-medium text-[#000000d9] mb-1">面试地点</label>
                       <input
                         type="text"
                         value={scheduleForm.location}
                         onChange={(e) => setScheduleForm(prev => ({ ...prev, location: e.target.value }))}
-                        className="w-full rounded-lg border border-[#E8EBF0] px-3.5 py-2.5 text-sm focus:border-[#4371FF] focus:ring-2 focus:ring-[#4371FF]/10 outline-none"
+                        className="w-full rounded border border-[#d9d9d9] px-3 py-1.5 text-[13px] focus:border-[#1890ff] focus:ring-1 focus:ring-[#1890ff]/20 outline-none"
                         placeholder="具体地址"
                       />
                     </div>
                   )}
 
-                  <div className="flex gap-3 pt-2">
+                  {/* Notify candidate checkbox */}
+                  {!editingInterviewId && (
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={notifyCandidate}
+                        onChange={(e) => setNotifyCandidate(e.target.checked)}
+                        className="rounded border-[#d9d9d9] text-[#1890ff] focus:ring-[#1890ff]/20"
+                      />
+                      <span className="text-[13px] text-[#000000d9]">通知候选人（发送邮件）</span>
+                    </label>
+                  )}
+
+                  <div className="flex gap-2 pt-1">
                     <button
-                      onClick={() => setShowScheduleModal(false)}
-                      className="flex-1 border border-[#E8EBF0] hover:bg-slate-50 text-slate-700 rounded-lg px-4 py-2.5 text-sm font-medium"
+                      onClick={() => { setShowScheduleModal(false); setEditingInterviewId(null); }}
+                      className="flex-1 border border-[#d9d9d9] hover:border-[#1890ff] text-[#000000d9] rounded px-4 py-2 text-[13px] font-medium transition-colors"
                     >
                       取消
                     </button>
                     <button
                       onClick={handleScheduleInterview}
-                      className="flex-1 bg-[#4371FF] hover:bg-[#3461E6] text-white rounded-lg px-4 py-2.5 text-sm font-medium shadow-sm"
+                      className="flex-1 bg-[#1890ff] hover:bg-[#40a9ff] text-white rounded px-4 py-2 text-[13px] font-medium"
                     >
-                      确认安排
+                      确认
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Round Config Modal */}
+          {showConfigModal && configRound && (
+            <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+              <div className="bg-white rounded-lg shadow-lg max-w-md w-full">
+                <div className="px-5 py-3.5 border-b border-[#f0f0f0]">
+                  <h2 className="text-sm font-semibold text-[#000000d9]">
+                    更换第{configRound}轮面试官
+                  </h2>
+                </div>
+                <div className="p-5 space-y-4">
+                  <div>
+                    <label className="block text-[12px] font-medium text-[#000000d9] mb-1">选择面试官</label>
+                    <select
+                      value={selectedInterviewerId}
+                      onChange={(e) => setSelectedInterviewerId(e.target.value)}
+                      className="w-full rounded border border-[#d9d9d9] px-3 py-1.5 text-[13px] focus:border-[#1890ff] focus:ring-1 focus:ring-[#1890ff]/20 outline-none bg-white"
+                    >
+                      <option value="">请选择</option>
+                      {interviewerOptions.map((opt) => (
+                        <option key={opt.id} value={opt.id}>
+                          {opt.name} ({opt.email})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setShowConfigModal(false)}
+                      className="flex-1 border border-[#d9d9d9] hover:border-[#1890ff] text-[#000000d9] rounded px-4 py-2 text-[13px] font-medium transition-colors"
+                    >
+                      取消
+                    </button>
+                    <button
+                      onClick={handleUpdateRoundConfig}
+                      disabled={!selectedInterviewerId}
+                      className="flex-1 bg-[#1890ff] hover:bg-[#40a9ff] text-white rounded px-4 py-2 text-[13px] font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      确认更换
                     </button>
                   </div>
                 </div>

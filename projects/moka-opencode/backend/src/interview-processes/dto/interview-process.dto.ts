@@ -57,6 +57,20 @@ export class CreateRoundInterviewDto {
   @IsString()
   @IsOptional()
   meetingNumber?: string;
+
+  @IsBoolean()
+  @IsOptional()
+  notifyCandidate?: boolean;
+}
+
+export class UpdateRoundConfigDto {
+  @IsString()
+  @IsOptional()
+  interviewerId?: string;
+
+  @IsString()
+  @IsOptional()
+  roundType?: string;
 }
 
 export interface ProcessRoundConfig {
@@ -67,16 +81,34 @@ export interface ProcessRoundConfig {
   roundType: string;
 }
 
+export interface ProcessFeedbackDto {
+  id: string;
+  interviewerId: string;
+  interviewerName: string;
+  result: string;
+  notes: string | null;
+  strengths: string | null;
+  weaknesses: string | null;
+  overallRating: number | null;
+  createdAt: string;
+}
+
 export interface ProcessInterviewDto {
   id: string;
   roundNumber: number;
+  interviewerId: string;
   interviewerName: string;
   type: string;
   format: string;
   startTime: string;
+  endTime: string | null;
   status: string;
+  location: string | null;
+  meetingUrl: string | null;
+  meetingNumber: string | null;
   hasFeedback: boolean;
   feedbackResult?: string;
+  feedbacks: ProcessFeedbackDto[];
 }
 
 export interface ProcessResponseDto {
@@ -89,6 +121,7 @@ export interface ProcessResponseDto {
   totalRounds: number;
   status: string;
   hasHRRound: boolean;
+  createdById: string;
   rounds: ProcessRoundConfig[];
   interviews: ProcessInterviewDto[];
   createdAt: string;

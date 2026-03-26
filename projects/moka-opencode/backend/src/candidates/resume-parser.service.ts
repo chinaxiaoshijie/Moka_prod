@@ -1,5 +1,6 @@
 import { Injectable } from "@nestjs/common";
-// import pdfParse from "pdf-parse";
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const pdfParse = require("pdf-parse");
 
 export interface ExtractedCandidateInfo {
   name: string | null;
@@ -12,10 +13,15 @@ export interface ExtractedCandidateInfo {
 export class ResumeParserService {
   async parsePdf(buffer: Buffer): Promise<string> {
     try {
-      // const data = await pdfParse(buffer);
-      // return data.text;
-      return "PDF parsing disabled";
+      const data = await pdfParse(buffer);
+      if (!data.text || data.text.trim().length === 0) {
+        throw new Error("PDF内容为空，无法解析");
+      }
+      return data.text;
     } catch (error: any) {
+      if (error.message?.includes("PDF内容为空")) {
+        throw error;
+      }
       throw new Error(`PDF解析失败: ${error.message}`);
     }
   }
@@ -60,6 +66,7 @@ export class ResumeParserService {
       .map((l) => l.trim())
       .filter((l) => l.length > 0);
 
+    // Pattern 1: "姓名：张三"
     for (const line of lines) {
       const nameMatch = line.match(/姓名[：:]\s*([^\s]{2,4})/);
       if (nameMatch) {
@@ -67,6 +74,7 @@ export class ResumeParserService {
       }
     }
 
+    // Pattern 2: "张三 / 男" or "张三 男"
     for (const line of lines) {
       const match = line.match(/^([\u4e00-\u9fa5]{2,4})\s*[\/|\s]\s*[男女]/);
       if (match) {
@@ -74,11 +82,25 @@ export class ResumeParserService {
       }
     }
 
+    // Pattern 3: standalone Chinese name in first 5 lines
     for (let i = 0; i < Math.min(5, lines.length); i++) {
       const line = lines[i];
       const nameMatch = line.match(/^[\u4e00-\u9fa5]{2,4}$/);
       if (nameMatch && !this.isCommonFalsePositive(line)) {
         return nameMatch[0];
+      }
+    }
+
+    // Pattern 4: "Name: Zhang San" or first Chinese name in first 10 lines
+    for (let i = 0; i < Math.min(10, lines.length); i++) {
+      const line = lines[i];
+      // Match a Chinese name at the start of a line that also contains phone/email-like content
+      const match = line.match(/([\u4e00-\u9fa5]{2,4})/);
+      if (match && !this.isCommonFalsePositive(match[1]) && line.length < 30) {
+        // Short line with a Chinese name is likely a name line
+        if (/1[3-9]\d/.test(line) || /@/.test(line) || /[男女]/.test(line)) {
+          return match[1];
+        }
       }
     }
 
@@ -99,6 +121,9 @@ export class ResumeParserService {
       "培训经历",
       "获奖情况",
       "附加信息",
+      "基本信息",
+      "个人简历",
+      "工作经历",
     ];
     return falsePositives.includes(text);
   }

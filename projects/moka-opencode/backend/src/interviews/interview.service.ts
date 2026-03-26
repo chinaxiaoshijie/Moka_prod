@@ -76,7 +76,7 @@ export class InterviewService {
 
   async findAll(
     page: number = 1,
-    pageSize: number = 10,
+    pageSize: number = 100,
   ): Promise<InterviewListResponseDto> {
     const skip = (page - 1) * pageSize;
     const [items, total] = await Promise.all([
@@ -88,6 +88,12 @@ export class InterviewService {
           candidate: true,
           position: true,
           interviewer: true,
+          process: {
+            include: {
+              rounds: true,
+            },
+          },
+          feedbacks: true,
         },
       }),
       this.prisma.interview.count(),

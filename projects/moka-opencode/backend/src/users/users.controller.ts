@@ -6,6 +6,7 @@ import {
   Delete,
   Body,
   Param,
+  Query,
   UseGuards,
   Request,
   ParseUUIDPipe,
@@ -39,8 +40,11 @@ export class UsersController {
   @Get()
   @ApiOperation({ summary: "获取用户列表" })
   @ApiResponse({ status: 200, description: "用户列表" })
-  async findAll() {
-    return this.usersService.findAll();
+  async findAll(
+    @Query("role") role?: string,
+    @Query("includeInactive") includeInactive?: string,
+  ) {
+    return this.usersService.findAll(role, includeInactive === "true");
   }
 
   @Get(":id")
@@ -49,6 +53,15 @@ export class UsersController {
   @ApiResponse({ status: 404, description: "用户不存在" })
   async findOne(@Param("id", ParseUUIDPipe) id: string) {
     return this.usersService.findOne(id);
+  }
+
+  @Put(":id/activate")
+  @ApiOperation({ summary: "启用用户 (HR权限)" })
+  @ApiResponse({ status: 200, description: "用户已启用" })
+  @ApiResponse({ status: 403, description: "无权限" })
+  @ApiResponse({ status: 404, description: "用户不存在" })
+  async activate(@Param("id", ParseUUIDPipe) id: string, @Request() req: any) {
+    return this.usersService.activate(id, req.user.sub);
   }
 
   @Put(":id")
@@ -66,9 +79,9 @@ export class UsersController {
   }
 
   @Delete(":id")
-  @ApiOperation({ summary: "删除用户 (HR权限)" })
-  @ApiResponse({ status: 200, description: "用户删除成功" })
-  @ApiResponse({ status: 400, description: "不能删除自己的账户" })
+  @ApiOperation({ summary: "停用用户 (HR权限)" })
+  @ApiResponse({ status: 200, description: "用户已停用" })
+  @ApiResponse({ status: 400, description: "不能停用自己的账户" })
   @ApiResponse({ status: 403, description: "无权限" })
   @ApiResponse({ status: 404, description: "用户不存在" })
   async remove(@Param("id", ParseUUIDPipe) id: string, @Request() req: any) {

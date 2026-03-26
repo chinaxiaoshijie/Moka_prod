@@ -6,12 +6,16 @@ import { InterviewProcessService } from "./interview-process.service";
 import { PrismaModule } from "../prisma/prisma.module";
 import { AuthModule } from "../auth/auth.module";
 import { EmailModule } from "../email/email.module";
+import { CandidatesModule } from "../candidates/candidates.module";
+import { NotificationModule } from "../notifications/notification.module";
 
 @Module({
   imports: [
     PrismaModule,
     AuthModule,
     EmailModule,
+    CandidatesModule,
+    NotificationModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({

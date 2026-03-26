@@ -69,6 +69,7 @@ const navItems = [
   { path: "/positions", label: "职位管理", iconKey: "positions" },
   { path: "/candidates", label: "候选人", iconKey: "candidates" },
   { path: "/interviews", label: "面试安排", iconKey: "interviews" },
+  { path: "/my-interviews", label: "我的面试", iconKey: "myInterviews" },
   { path: "/users", label: "用户管理", iconKey: "users" },
 ];
 
