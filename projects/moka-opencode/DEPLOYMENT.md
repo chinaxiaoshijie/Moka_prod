@@ -374,3 +374,40 @@ docker-compose logs backend | grep -i "email\|smtp"
 | Web 服务器 | Nginx |
 | 容器 | Docker, Docker Compose |
 | 邮件 | Nodemailer + 飞书 SMTP |
+
+## 镜像源优化（国内部署）
+
+### 已配置的国内镜像源
+
+| 组件 | 镜像源 | 配置位置 |
+|------|--------|----------|
+| NPM | `registry.npmmirror.com` | `.npmrc` |
+| Debian (Backend) | `mirrors.tuna.tsinghua.edu.cn` | `backend/Dockerfile` |
+| Alpine (Frontend) | `mirrors.tuna.tsinghua.edu.cn` | `frontend/Dockerfile` |
+
+### 镜像源说明
+
+- **npm**: 使用淘宝 NPM 镜像 (npmmirror.com)，加速 node_modules 安装
+- **Debian**: 清华大学镜像站，加速 Debian 包管理
+- **Alpine**: 清华大学镜像站，加速 Alpine 包管理
+
+### 如需切换镜像源
+
+**修改 .npmrc:**
+
+```bash
+# .npmrc
+registry=https://registry.npmmirror.com/  # 淘宝
+# registry=https://registry.yarnpkg.com/  # Yarn
+# registry=https://r.cnpmjs.org/          # CNPM
+```
+
+**修改 Dockerfile 中的 apt/apk 源:**
+
+```dockerfile
+# Debian
+RUN sed -i 's/deb.debian.org/mirrors.163.com/g' /etc/apt/sources.list
+
+# Alpine  
+RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories
+```

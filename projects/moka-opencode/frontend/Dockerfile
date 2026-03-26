@@ -7,8 +7,15 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
+# Use domestic Alpine mirror (Tsinghua University)
+RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.tuna.tsinghua.edu.cn/g' /etc/apk/repositories && \
+    apk update
+
+# Configure npm to use domestic registry
+RUN npm config set registry https://registry.npmmirror.com/
+
 # Install dependencies
-COPY package.json package-lock.json* ./
+COPY .npmrc package.json package-lock.json* ./
 RUN npm install --legacy-peer-deps
 
 # Copy source files
