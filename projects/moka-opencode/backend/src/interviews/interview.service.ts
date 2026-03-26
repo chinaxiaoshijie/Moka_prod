@@ -28,6 +28,8 @@ export class InterviewService {
         location: createDto.location,
         meetingUrl: createDto.meetingUrl,
         meetingNumber: createDto.meetingNumber,
+        processId: createDto.processId,
+        roundNumber: createDto.roundNumber,
         status: "SCHEDULED",
       },
       include: {

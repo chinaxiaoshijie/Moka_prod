@@ -92,7 +92,23 @@ export default function SettingsPage() {
     setLoading(true);
 
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      const token = localStorage.getItem("token");
+      const res = await apiFetch("/auth/change-password", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          currentPassword: formData.currentPassword,
+          newPassword: formData.newPassword,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setMessage(data.message || "密码修改失败");
+        return;
+      }
       setMessage("密码修改成功");
       setFormData((prev) => ({
         ...prev,

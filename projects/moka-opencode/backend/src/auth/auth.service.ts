@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from "@nestjs/common";
+import { Injectable, UnauthorizedException, BadRequestException } from "@nestjs/common";
 import { JwtService } from "@nestjs/jwt";
 import { PrismaService } from "../prisma/prisma.service";
 import { LoginDto, AuthResponseDto } from "./dto/login.dto";
@@ -84,6 +84,54 @@ export class AuthService {
         avatarUrl: true,
       },
       orderBy: { name: "asc" },
+    });
+  }
+
+  async changePassword(
+    userId: string,
+    currentPassword: string,
+    newPassword: string,
+  ): Promise<{ message: string }> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException("用户不存在");
+    }
+
+    const isValid = await bcrypt.compare(currentPassword, user.password);
+    if (!isValid) {
+      throw new BadRequestException("当前密码不正确");
+    }
+
+    if (newPassword.length < 6) {
+      throw new BadRequestException("新密码长度至少为6位");
+    }
+
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { password: hashedPassword },
+    });
+
+    return { message: "密码修改成功" };
+  }
+
+  async updateProfile(
+    userId: string,
+    data: { name?: string; email?: string },
+  ): Promise<any> {
+    return this.prisma.user.update({
+      where: { id: userId },
+      data,
+      select: {
+        id: true,
+        username: true,
+        name: true,
+        email: true,
+        role: true,
+      },
     });
   }
 }

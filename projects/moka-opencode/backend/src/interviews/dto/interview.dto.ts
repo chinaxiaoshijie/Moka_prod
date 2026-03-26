@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsEnum, IsDateString } from "class-validator";
+import { IsString, IsOptional, IsEnum, IsDateString, IsInt } from "class-validator";
 
 // 使用字符串字面量而非 Prisma 枚举
 export type InterviewType = "INTERVIEW_1" | "INTERVIEW_2" | "INTERVIEW_3";
@@ -47,6 +47,14 @@ export class CreateInterviewDto {
   @IsOptional()
   @IsString()
   meetingNumber?: string;
+
+  @IsOptional()
+  @IsString()
+  processId?: string;
+
+  @IsOptional()
+  @IsInt()
+  roundNumber?: number;
 }
 
 export class UpdateInterviewDto {

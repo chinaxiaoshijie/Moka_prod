@@ -89,7 +89,7 @@ export default function PositionsPage() {
             : undefined,
           headcount: Number(formData.headcount) || 1,
           location: formData.location || undefined,
-          status: formData.status,
+          ...(editingId && { status: formData.status }),
         }),
       });
 

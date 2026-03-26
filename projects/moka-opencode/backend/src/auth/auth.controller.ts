@@ -1,6 +1,7 @@
 import {
   Controller,
   Post,
+  Put,
   Body,
   Get,
   UseGuards,
@@ -54,5 +55,31 @@ export class AuthController {
   @ApiOperation({ summary: "获取用户列表" })
   async getUsers(@Query("role") role?: string) {
     return this.authService.findUsers(role);
+  }
+
+  @Put("profile")
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "更新个人信息" })
+  async updateProfile(
+    @Request() req: any,
+    @Body() body: { name?: string; email?: string },
+  ) {
+    return this.authService.updateProfile(req.user.sub, body);
+  }
+
+  @Post("change-password")
+  @UseGuards(JwtAuthGuard)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: "修改密码" })
+  async changePassword(
+    @Request() req: any,
+    @Body() body: { currentPassword: string; newPassword: string },
+  ) {
+    return this.authService.changePassword(
+      req.user.sub,
+      body.currentPassword,
+      body.newPassword,
+    );
   }
 }
