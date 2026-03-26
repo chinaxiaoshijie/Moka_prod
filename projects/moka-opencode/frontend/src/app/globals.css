@@ -1,38 +1,36 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+SC:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
 
 /* ========================================
-   Design System: Moka 官方蓝色主题
+   Design System: Moka AntD Pro 主题
    ======================================== */
 
 @layer base {
   :root {
-    --brand: #4371FF;
-    --brand-hover: #3461E6;
-    --brand-soft: #EFF3FF;
-    --brand-ring: rgba(67, 113, 255, 0.1);
+    --brand: #1890ff;
+    --brand-hover: #40a9ff;
+    --brand-soft: #e6f7ff;
+    --brand-ring: rgba(24, 144, 255, 0.1);
     --surface: #ffffff;
     --surface-secondary: #F5F7FA;
     --surface-elevated: #ffffff;
     --sidebar-bg: #001529;
     --sidebar-hover: rgba(255, 255, 255, 0.06);
     --sidebar-active: #1890ff;
-    --text-primary: #1A1A1A;
-    --text-secondary: #666666;
-    --text-muted: #999999;
-    --success: #059669;
-    --success-soft: #ecfdf5;
-    --danger: #dc2626;
-    --danger-soft: #fef2f2;
-    --warning-soft: #fffbeb;
-    --border: #E8EBF0;
-    --border-light: #F0F2F5;
-    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.04);
-    --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.06);
-    --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.08);
+    --text-primary: #000000d9;
+    --text-secondary: #00000073;
+    --text-muted: #00000045;
+    --success: #52c41a;
+    --success-soft: #f6ffed;
+    --danger: #ff4d4f;
+    --danger-soft: #fff2f0;
+    --warning-soft: #fffbe6;
+    --border: #f0f0f0;
+    --border-light: #f0f0f0;
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.03), 0 1px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px rgba(0, 0, 0, 0.02);
+    --shadow-md: 0 3px 6px -4px rgba(0, 0, 0, 0.12), 0 6px 16px rgba(0, 0, 0, 0.08), 0 9px 28px 8px rgba(0, 0, 0, 0.05);
+    --shadow-lg: 0 6px 16px -8px rgba(0, 0, 0, 0.08), 0 9px 28px rgba(0, 0, 0, 0.05), 0 12px 48px 16px rgba(0, 0, 0, 0.03);
   }
 
   html {
