@@ -17,9 +17,9 @@
     --surface: #ffffff;
     --surface-secondary: #F5F7FA;
     --surface-elevated: #ffffff;
-    --sidebar-bg: #FFFFFF;
-    --sidebar-hover: #F5F7FA;
-    --sidebar-active: #4371FF;
+    --sidebar-bg: #001529;
+    --sidebar-hover: rgba(255, 255, 255, 0.06);
+    --sidebar-active: #1890ff;
     --text-primary: #1A1A1A;
     --text-secondary: #666666;
     --text-muted: #999999;

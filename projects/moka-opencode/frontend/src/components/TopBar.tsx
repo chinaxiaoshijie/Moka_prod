@@ -40,7 +40,7 @@ export default function TopBar() {
   const pageTitle = pageTitles[pathname] || "Moka招聘";
 
   return (
-    <header className="fixed top-0 left-0 lg:left-[190px] right-0 h-14 bg-white border-b border-[#E8EBF0] z-40 flex items-center px-4 lg:px-6 gap-4">
+    <header className="fixed top-0 left-0 lg:left-[208px] right-0 h-14 bg-white border-b border-[#E8EBF0] z-40 flex items-center px-4 lg:px-6 gap-4">
       {/* Page title */}
       <h1 className="text-[15px] font-semibold text-[#1A1A1A] flex-shrink-0">
         {pageTitle}

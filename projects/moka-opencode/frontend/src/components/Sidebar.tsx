@@ -77,10 +77,10 @@ const interviewerNavItems = [
   { path: "/my-interviews", label: "我的面试", iconKey: "myInterviews" },
 ];
 
-/* Moka mountain logo — stylized "M" mountain shape in blue */
+/* Moka mountain logo — white on dark bg */
 const MokaLogo = () => (
   <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <rect width="32" height="32" rx="8" fill="#4371FF" />
+    <rect width="32" height="32" rx="8" fill="#1890ff" />
     <path
       d="M6 23L11 13L16 19L21 11L26 23H6Z"
       fill="white"
@@ -121,20 +121,20 @@ export default function Sidebar() {
   const items = user?.role === "INTERVIEWER" ? interviewerNavItems : navItems;
 
   return (
-    <aside className="hidden lg:flex fixed left-0 top-0 h-full w-[190px] bg-white border-r border-[#E8EBF0] flex-col z-50">
+    <aside className="hidden lg:flex fixed left-0 top-0 h-full w-[208px] bg-[#001529] flex-col z-50">
       {/* Logo */}
-      <div className="px-4 pt-5 pb-4">
+      <div className="px-5 pt-5 pb-4">
         <div className="flex items-center gap-2.5">
           <MokaLogo />
           <div>
-            <p className="text-[14px] font-bold text-[#1A1A1A] leading-tight">Moka招聘</p>
-            <p className="text-[11px] text-[#999] leading-tight mt-0.5">用人经理端</p>
+            <p className="text-[14px] font-bold text-white leading-tight">Moka招聘</p>
+            <p className="text-[11px] text-[#ffffff66] leading-tight mt-0.5">用人经理端</p>
           </div>
         </div>
       </div>
 
       {/* Divider */}
-      <div className="mx-4 h-px bg-[#F0F2F5]" />
+      <div className="mx-5 h-px bg-[#ffffff1a]" />
 
       {/* Navigation */}
       <nav className="flex-1 py-3 px-3 overflow-y-auto">
@@ -145,13 +145,13 @@ export default function Sidebar() {
               <button
                 key={item.path}
                 onClick={() => router.push(item.path)}
-                className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-colors duration-150 ${
+                className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-md text-[13px] font-medium transition-colors duration-150 ${
                   isActive
-                    ? "bg-[#4371FF] text-white"
-                    : "text-[#666] hover:bg-[#F5F7FA] hover:text-[#1A1A1A]"
+                    ? "bg-[#1890ff] text-white"
+                    : "text-[#ffffffa6] hover:bg-[#ffffff0f] hover:text-white"
                 }`}
               >
-                <span className={isActive ? "text-white" : "text-[#999]"}>
+                <span className={isActive ? "text-white" : "text-[#ffffff66]"}>
                   {icons[item.iconKey]}
                 </span>
                 <span>{item.label}</span>
@@ -166,31 +166,31 @@ export default function Sidebar() {
         {/* Settings link */}
         <button
           onClick={() => router.push("/settings")}
-          className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[13px] font-medium transition-colors duration-150 mb-1 ${
+          className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-md text-[13px] font-medium transition-colors duration-150 mb-1 ${
             pathname === "/settings"
-              ? "bg-[#4371FF] text-white"
-              : "text-[#666] hover:bg-[#F5F7FA] hover:text-[#1A1A1A]"
+              ? "bg-[#1890ff] text-white"
+              : "text-[#ffffffa6] hover:bg-[#ffffff0f] hover:text-white"
           }`}
         >
-          <span className={pathname === "/settings" ? "text-white" : "text-[#999]"}>
+          <span className={pathname === "/settings" ? "text-white" : "text-[#ffffff66]"}>
             {icons.settings}
           </span>
           <span>设置</span>
         </button>
 
         {/* Divider */}
-        <div className="h-px bg-[#F0F2F5] my-2" />
+        <div className="h-px bg-[#ffffff1a] my-2" />
 
         {/* User info */}
         <div className="flex items-center gap-2 px-3 py-2 mb-1">
-          <div className="w-7 h-7 rounded-full bg-[#1A2B5F] flex items-center justify-center text-[11px] font-bold text-white flex-shrink-0">
+          <div className="w-7 h-7 rounded-full bg-[#1890ff] flex items-center justify-center text-[11px] font-bold text-white flex-shrink-0">
             {user?.name?.charAt(0) || "U"}
           </div>
           <div className="flex-1 min-w-0">
-            <p className="text-[12px] font-medium text-[#1A1A1A] truncate leading-tight">
+            <p className="text-[12px] font-medium text-white truncate leading-tight">
               {user?.name}
             </p>
-            <p className="text-[11px] text-[#999] leading-tight">
+            <p className="text-[11px] text-[#ffffff66] leading-tight">
               {user?.role === "HR" ? "HR 管理员" : "面试官"}
             </p>
           </div>
@@ -199,7 +199,7 @@ export default function Sidebar() {
         {/* Logout */}
         <button
           onClick={handleLogout}
-          className="w-full flex items-center gap-2.5 px-3 py-2 text-[#999] hover:text-[#666] hover:bg-[#F5F7FA] rounded-lg transition-colors text-[13px]"
+          className="w-full flex items-center gap-2.5 px-3 py-2 text-[#ffffff66] hover:text-white hover:bg-[#ffffff0f] rounded-md transition-colors text-[13px]"
         >
           {icons.logout}
           <span>退出登录</span>
