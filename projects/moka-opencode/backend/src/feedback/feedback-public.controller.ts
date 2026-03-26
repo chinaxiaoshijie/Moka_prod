@@ -8,6 +8,7 @@ import {
   HttpException,
   HttpStatus,
   Req,
+  UseGuards,
 } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { EmailService } from "../email/email.service";
@@ -15,6 +16,7 @@ import { ConfigService } from "@nestjs/config";
 import { randomBytes } from "crypto";
 import { CandidateStatusService } from "../candidates/candidate-status.service";
 import { InterviewProcessService } from "../interview-processes/interview-process.service";
+import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 
 @Controller("feedback")
 export class FeedbackPublicController {
@@ -27,6 +29,7 @@ export class FeedbackPublicController {
   ) {}
 
   @Post("generate-token/:interviewId")
+  @UseGuards(JwtAuthGuard)
   async generateFeedbackToken(
     @Param("interviewId") interviewId: string,
     @Req() req: any,

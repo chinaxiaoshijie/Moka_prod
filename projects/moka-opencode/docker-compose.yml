@@ -48,11 +48,11 @@ services:
       - JWT_EXPIRES_IN=${JWT_EXPIRES_IN:-7d}
       - PORT=3001
       - FRONTEND_URL=${FRONTEND_URL:-http://localhost:13000}
-      - SMTP_HOST=${SMTP_HOST:-smtp.feishu.cn}
-      - SMTP_PORT=${SMTP_PORT:-465}
-      - SMTP_USER=${SMTP_USER:-hrgroup@malong.com}
-      - SMTP_PASS=${SMTP_PASS:-vdOvXf14hB9sw698}
-      - SMTP_FROM=${SMTP_FROM:-hrgroup@malong.com}
+      - SMTP_HOST=${SMTP_HOST}
+      - SMTP_PORT=${SMTP_PORT}
+      - SMTP_USER=${SMTP_USER}
+      - SMTP_PASS=${SMTP_PASS}
+      - SMTP_FROM=${SMTP_FROM}
     depends_on:
       postgres:
         condition: service_healthy

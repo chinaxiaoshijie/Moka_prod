@@ -11,11 +11,13 @@ import {
   DefaultValuePipe,
   HttpException,
   HttpStatus,
+  UseGuards,
 } from "@nestjs/common";
 import {
   ApiTags,
   ApiOperation,
   ApiResponse,
+  ApiBearerAuth,
 } from "@nestjs/swagger";
 import { InterviewService } from "./interview.service";
 import {
@@ -24,8 +26,11 @@ import {
   InterviewResponseDto,
   InterviewListResponseDto,
 } from "./dto/interview.dto";
+import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 
 @ApiTags("interviews")
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard)
 @Controller("interviews")
 export class InterviewController {
   constructor(private interviewService: InterviewService) {}

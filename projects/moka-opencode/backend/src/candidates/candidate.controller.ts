@@ -48,6 +48,8 @@ export interface ParseResumeResponse {
 }
 
 @ApiTags("candidates")
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard)
 @Controller("candidates")
 export class CandidateController {
   constructor(

@@ -1,10 +1,14 @@
 import { NestFactory } from "@nestjs/core";
 import { ValidationPipe, Logger } from "@nestjs/common";
 import { AppModule } from "./app.module";
+import helmet from "helmet";
 
 async function bootstrap() {
   const logger = new Logger("Bootstrap");
   const app = await NestFactory.create(AppModule);
+
+  // 安全头
+  app.use(helmet());
 
   // 全局验证管道
   app.useGlobalPipes(
