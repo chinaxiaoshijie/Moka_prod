@@ -3,8 +3,7 @@ import { apiFetch } from "@/lib/api";
 
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import Sidebar from "@/components/Sidebar";
-import MobileNav from "@/components/MobileNav";
+import MainLayout from "@/components/MainLayout";
 
 interface Feedback {
   id: string;
@@ -230,7 +229,7 @@ function FeedbackContent() {
       case "FAIL":
         return "bg-red-100 text-red-700 border-red-200";
       case "PENDING":
-        return "bg-amber-100 text-amber-700 border-amber-200";
+        return "bg-[#EFF3FF] text-[#4371FF] border-[#4371FF]/30";
       default:
         return "bg-slate-100 text-slate-700 border-slate-200";
     }
@@ -242,10 +241,8 @@ function FeedbackContent() {
 
   if (!interviewId) {
     return (
-      <div className="flex min-h-screen bg-[#f8fafc]">
-        <Sidebar />
-        <MobileNav />
-        <main className="flex-1 lg:ml-60 p-8">
+      <MainLayout>
+        <main className="flex-1 p-8">
           <div className="max-w-2xl mx-auto text-center py-20">
             <div className="w-14 h-14 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
               <svg className="w-7 h-7 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -256,21 +253,19 @@ function FeedbackContent() {
             <p className="text-slate-500 mb-6 text-sm">请选择要查看反馈的面试</p>
             <button
               onClick={() => router.push("/interviews")}
-              className="bg-amber-600 hover:bg-amber-700 text-white rounded-lg px-4 py-2.5 text-sm font-medium shadow-sm"
+              className="bg-[#4371FF] hover:bg-[#3461E6] text-white rounded-lg px-4 py-2.5 text-sm font-medium shadow-sm"
             >
               查看面试列表
             </button>
           </div>
         </main>
-      </div>
+      </MainLayout>
     );
   }
 
   return (
-    <div className="flex min-h-screen bg-[#f8fafc]">
-      <Sidebar />
-      <MobileNav />
-      <main className="flex-1 lg:ml-60 p-8">
+    <MainLayout>
+      <main className="flex-1 p-8">
         <div className="max-w-4xl mx-auto">
           {error && (
             <div className="mb-6 rounded-xl bg-red-50 border border-red-200 p-4 text-red-600 flex items-center gap-2 text-sm">
@@ -283,7 +278,7 @@ function FeedbackContent() {
 
           {loading ? (
             <div className="flex items-center justify-center py-20">
-              <div className="animate-spin rounded-full h-7 w-7 border-2 border-slate-200 border-t-amber-600" />
+              <div className="animate-spin rounded-full h-7 w-7 border-2 border-slate-200 border-t-[#4371FF]" />
             </div>
           ) : summary ? (
             <div className="space-y-5">
@@ -291,13 +286,13 @@ function FeedbackContent() {
                 <h1 className="text-2xl font-bold text-slate-900 tracking-tight">面试反馈</h1>
                 <button
                   onClick={() => router.push("/interviews")}
-                  className="border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-lg px-4 py-2.5 text-sm font-medium"
+                  className="border border-[#E8EBF0] hover:bg-slate-50 text-slate-700 rounded-lg px-4 py-2.5 text-sm font-medium"
                 >
                   返回
                 </button>
               </div>
 
-              <div className="bg-white rounded-xl border border-slate-100 shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-6">
+              <div className="bg-white rounded-xl border border-[#E8EBF0] shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-6">
                 <h2 className="text-sm font-semibold text-slate-700 mb-4">
                   面试信息
                 </h2>
@@ -345,7 +340,7 @@ function FeedbackContent() {
                   <div className="mt-5 pt-5 border-t border-slate-100">
                     <p className="text-xs text-slate-400 mb-2 uppercase tracking-wider">平均评分</p>
                     <div className="flex items-center gap-3">
-                      <span className="text-2xl text-amber-500">
+                      <span className="text-2xl text-[#4371FF]">
                         {renderStars(Math.round(summary.averageRating))}
                       </span>
                       <span className="text-sm text-slate-500">
@@ -356,8 +351,8 @@ function FeedbackContent() {
                 )}
               </div>
 
-              <div className="bg-white rounded-xl border border-slate-100 shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
-                <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+              <div className="bg-white rounded-xl border border-[#E8EBF0] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+                <div className="px-6 py-4 border-b border-[#E8EBF0] flex items-center justify-between">
                   <h2 className="text-sm font-semibold text-slate-700">
                     面试官反馈 ({summary.feedbacks.length})
                   </h2>
@@ -368,7 +363,7 @@ function FeedbackContent() {
                           setIsEditing(true);
                           setShowForm(true);
                         }}
-                        className="bg-amber-600 hover:bg-amber-700 text-white rounded-lg px-4 py-2.5 text-sm font-medium shadow-sm"
+                        className="bg-[#4371FF] hover:bg-[#3461E6] text-white rounded-lg px-4 py-2.5 text-sm font-medium shadow-sm"
                       >
                         修改我的反馈
                       </button>
@@ -379,7 +374,7 @@ function FeedbackContent() {
                           setIsEditing(false);
                           setShowForm(!showForm);
                         }}
-                        className="bg-amber-600 hover:bg-amber-700 text-white rounded-lg px-4 py-2.5 text-sm font-medium shadow-sm"
+                        className="bg-[#4371FF] hover:bg-[#3461E6] text-white rounded-lg px-4 py-2.5 text-sm font-medium shadow-sm"
                       >
                         {showForm ? "取消" : "添加反馈"}
                       </button>
@@ -388,7 +383,7 @@ function FeedbackContent() {
                 </div>
 
                 {showForm && (
-                  <div className="p-6 border-b border-slate-100 bg-slate-50/50">
+                  <div className="p-6 border-b border-[#E8EBF0] bg-slate-50/50">
                     <form onSubmit={handleSubmit} className="space-y-5">
                       <div>
                         <label className="block text-sm font-medium text-slate-700 mb-2">
@@ -408,7 +403,7 @@ function FeedbackContent() {
                                     ? "border-emerald-500 bg-emerald-50 text-emerald-700"
                                     : r === "FAIL"
                                       ? "border-red-500 bg-red-50 text-red-700"
-                                      : "border-amber-500 bg-amber-50 text-amber-700"
+                                      : "border-[#4371FF] bg-[#EFF3FF] text-[#4371FF]"
                                   : "border-slate-200 text-slate-600 hover:border-slate-300"
                               }`}
                             >
@@ -426,7 +421,7 @@ function FeedbackContent() {
                           <textarea
                             value={strengths}
                             onChange={(e) => setStrengths(e.target.value)}
-                            className="w-full rounded-lg border border-slate-200 px-3.5 py-2.5 text-sm focus:border-amber-500 focus:ring-2 focus:ring-amber-500/10 outline-none"
+                            className="w-full rounded-lg border border-[#E8EBF0] px-3.5 py-2.5 text-sm focus:border-[#4371FF] focus:ring-2 focus:ring-[#4371FF]/10 outline-none"
                             rows={3}
                             placeholder="候选人的优势..."
                           />
@@ -438,7 +433,7 @@ function FeedbackContent() {
                           <textarea
                             value={weaknesses}
                             onChange={(e) => setWeaknesses(e.target.value)}
-                            className="w-full rounded-lg border border-slate-200 px-3.5 py-2.5 text-sm focus:border-amber-500 focus:ring-2 focus:ring-amber-500/10 outline-none"
+                            className="w-full rounded-lg border border-[#E8EBF0] px-3.5 py-2.5 text-sm focus:border-[#4371FF] focus:ring-2 focus:ring-[#4371FF]/10 outline-none"
                             rows={3}
                             placeholder="需要改进的地方..."
                           />
@@ -458,9 +453,9 @@ function FeedbackContent() {
                             onChange={(e) =>
                               setOverallRating(Number(e.target.value))
                             }
-                            className="flex-1 h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-amber-500"
+                            className="flex-1 h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-[#4371FF]"
                           />
-                          <span className="text-xl text-amber-500">
+                          <span className="text-xl text-[#4371FF]">
                             {renderStars(overallRating)}
                           </span>
                         </div>
@@ -473,7 +468,7 @@ function FeedbackContent() {
                         <textarea
                           value={notes}
                           onChange={(e) => setNotes(e.target.value)}
-                          className="w-full rounded-lg border border-slate-200 px-3.5 py-2.5 text-sm focus:border-amber-500 focus:ring-2 focus:ring-amber-500/10 outline-none"
+                          className="w-full rounded-lg border border-[#E8EBF0] px-3.5 py-2.5 text-sm focus:border-[#4371FF] focus:ring-2 focus:ring-[#4371FF]/10 outline-none"
                           rows={2}
                           placeholder="其他补充说明..."
                         />
@@ -481,7 +476,7 @@ function FeedbackContent() {
 
                       <button
                         type="submit"
-                        className="w-full py-2.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-sm font-medium shadow-sm"
+                        className="w-full py-2.5 bg-[#4371FF] hover:bg-[#3461E6] text-white rounded-lg text-sm font-medium shadow-sm"
                       >
                         {isEditing ? "更新反馈" : "提交反馈"}
                       </button>
@@ -512,7 +507,7 @@ function FeedbackContent() {
                             {getResultText(feedback.result)}
                           </span>
                           {feedback.overallRating && (
-                            <span className="text-amber-500 text-base">
+                            <span className="text-[#4371FF] text-base">
                               {renderStars(feedback.overallRating)}
                             </span>
                           )}
@@ -575,7 +570,7 @@ function FeedbackContent() {
           ) : null}
         </div>
       </main>
-    </div>
+    </MainLayout>
   );
 }
 
@@ -583,12 +578,11 @@ export default function FeedbackPage() {
   return (
     <Suspense
       fallback={
-        <div className="flex min-h-screen bg-[#f8fafc]">
-          <Sidebar />
-          <main className="flex-1 lg:ml-60 p-8 flex items-center justify-center">
-            <div className="animate-spin rounded-full h-7 w-7 border-2 border-slate-200 border-t-amber-600" />
+        <MainLayout>
+          <main className="flex-1 p-8 flex items-center justify-center">
+            <div className="animate-spin rounded-full h-7 w-7 border-2 border-slate-200 border-t-[#4371FF]" />
           </main>
-        </div>
+        </MainLayout>
       }
     >
       <FeedbackContent />

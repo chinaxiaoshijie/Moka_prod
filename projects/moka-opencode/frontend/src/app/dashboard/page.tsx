@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import Sidebar from "@/components/Sidebar";
-import MobileNav from "@/components/MobileNav";
+import MainLayout from "@/components/MainLayout";
 import { apiFetch } from "@/lib/api";
 
 interface User {
@@ -87,8 +86,8 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#f8fafc]">
-        <div className="animate-spin rounded-full h-7 w-7 border-2 border-slate-200 border-t-amber-600" />
+      <div className="min-h-screen flex items-center justify-center bg-[#F5F7FA]">
+        <div className="animate-spin rounded-full h-7 w-7 border-2 border-[#E8EBF0] border-t-[#4371FF]" />
       </div>
     );
   }
@@ -97,7 +96,7 @@ export default function DashboardPage() {
     { label: "在招职位", value: stats.positions, color: "text-blue-600", bg: "bg-blue-50" },
     { label: "总候选人", value: stats.candidates, color: "text-emerald-600", bg: "bg-emerald-50" },
     { label: "面试安排", value: stats.interviews, color: "text-violet-600", bg: "bg-violet-50" },
-    { label: "待处理", value: stats.pending, color: "text-amber-600", bg: "bg-amber-50" },
+    { label: "待处理", value: stats.pending, color: "text-[#4371FF]", bg: "bg-[#EFF3FF]" },
   ];
 
   const hrModules = [
@@ -147,9 +146,9 @@ export default function DashboardPage() {
       title: "我的面试",
       desc: "查看待完成的面试任务",
       path: "/my-interviews",
-      color: "border-amber-100 hover:border-amber-200",
-      iconBg: "bg-amber-50",
-      iconColor: "text-amber-600",
+      color: "border-[#E8EBF0] hover:border-[#4371FF]/30",
+      iconBg: "bg-[#EFF3FF]",
+      iconColor: "text-[#4371FF]",
       icon: (
         <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
           <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2" /><rect x="9" y="3" width="6" height="4" rx="1" /><path d="M9 14l2 2 4-4" />
@@ -161,78 +160,74 @@ export default function DashboardPage() {
   const modules = user?.role === "HR" ? hrModules : interviewerModules;
 
   return (
-    <div className="flex min-h-screen bg-[#f8fafc]">
-      <Sidebar />
-      <MobileNav />
-      <main className="flex-1 lg:ml-60 p-5 lg:p-8 pb-20 lg:pb-8">
-        <div className="max-w-5xl mx-auto">
-          {/* Header */}
-          <div className="mb-8">
-            <h1 className="text-2xl font-bold text-slate-900 tracking-tight mb-1">
-              欢迎回来，{user?.name}
-            </h1>
-            <p className="text-sm text-slate-500">
-              {user?.role === "HR" ? "HR 管理员" : "面试官"} &middot;{" "}
-              {new Date().toLocaleDateString("zh-CN", {
-                weekday: "long",
-                year: "numeric",
-                month: "long",
-                day: "numeric",
-              })}
-            </p>
-          </div>
+    <MainLayout>
+      <div className="max-w-5xl mx-auto">
+        {/* Header */}
+        <div className="mb-8">
+          <h1 className="text-2xl font-bold text-[#1A1A1A] tracking-tight mb-1">
+            欢迎回来，{user?.name}
+          </h1>
+          <p className="text-sm text-[#666]">
+            {user?.role === "HR" ? "HR 管理员" : "面试官"} &middot;{" "}
+            {new Date().toLocaleDateString("zh-CN", {
+              weekday: "long",
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+            })}
+          </p>
+        </div>
 
-          {/* Stats */}
-          {user?.role === "HR" && (
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4 mb-8">
-              {statCards.map((card) => (
-                <div
-                  key={card.label}
-                  className="bg-white rounded-xl border border-slate-100 p-5 shadow-[0_1px_3px_rgba(0,0,0,0.04)]"
-                >
-                  <div className="flex items-center justify-between mb-3">
-                    <div className={`w-9 h-9 rounded-lg ${card.bg} flex items-center justify-center`}>
-                      <span className={`text-lg font-bold font-mono ${card.color}`}>
-                        {card.value}
-                      </span>
-                    </div>
+        {/* Stats */}
+        {user?.role === "HR" && (
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 lg:gap-4 mb-8">
+            {statCards.map((card) => (
+              <div
+                key={card.label}
+                className="bg-white rounded-xl border border-[#E8EBF0] p-5 shadow-[0_1px_3px_rgba(0,0,0,0.04)]"
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <div className={`w-9 h-9 rounded-lg ${card.bg} flex items-center justify-center`}>
+                    <span className={`text-lg font-bold font-mono ${card.color}`}>
+                      {card.value}
+                    </span>
                   </div>
-                  <p className="text-sm font-medium text-slate-900">
-                    {card.value}
-                  </p>
-                  <p className="text-xs text-slate-400 mt-0.5">{card.label}</p>
                 </div>
-              ))}
-            </div>
-          )}
+                <p className="text-sm font-medium text-[#1A1A1A]">
+                  {card.value}
+                </p>
+                <p className="text-xs text-[#666] mt-0.5">{card.label}</p>
+              </div>
+            ))}
+          </div>
+        )}
 
-          {/* Modules */}
-          <div>
-            <h2 className="text-base font-semibold text-slate-900 mb-4">
-              功能模块
-            </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4">
-              {modules.map((m) => (
-                <button
-                  key={m.path}
-                  onClick={() => router.push(m.path)}
-                  className={`group bg-white rounded-xl border p-5 text-left shadow-[0_1px_3px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.06)] transition-all duration-200 ${m.color}`}
+        {/* Modules */}
+        <div>
+          <h2 className="text-base font-semibold text-[#1A1A1A] mb-4">
+            功能模块
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 lg:gap-4">
+            {modules.map((m) => (
+              <button
+                key={m.path}
+                onClick={() => router.push(m.path)}
+                className={`group bg-white rounded-xl border p-5 text-left shadow-[0_1px_3px_rgba(0,0,0,0.04)] hover:shadow-[0_4px_12px_rgba(0,0,0,0.06)] transition-all duration-200 ${m.color}`}
+              >
+                <div
+                  className={`w-10 h-10 rounded-lg ${m.iconBg} ${m.iconColor} flex items-center justify-center mb-4`}
                 >
-                  <div
-                    className={`w-10 h-10 rounded-lg ${m.iconBg} ${m.iconColor} flex items-center justify-center mb-4`}
-                  >
-                    {m.icon}
-                  </div>
-                  <h3 className="text-sm font-semibold text-slate-900 mb-1">
-                    {m.title}
-                  </h3>
-                  <p className="text-xs text-slate-500">{m.desc}</p>
-                </button>
-              ))}
-            </div>
+                  {m.icon}
+                </div>
+                <h3 className="text-sm font-semibold text-[#1A1A1A] mb-1">
+                  {m.title}
+                </h3>
+                <p className="text-xs text-[#666]">{m.desc}</p>
+              </button>
+            ))}
           </div>
         </div>
-      </main>
-    </div>
+      </div>
+    </MainLayout>
   );
 }

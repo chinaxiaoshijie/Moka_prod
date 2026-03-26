@@ -3,8 +3,7 @@ import { apiFetch } from "@/lib/api";
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import Sidebar from "@/components/Sidebar";
-import MobileNav from "@/components/MobileNav";
+import MainLayout from "@/components/MainLayout";
 
 interface Interview {
   id: string;
@@ -130,24 +129,20 @@ export default function SubmitFeedbackPage() {
 
   if (fetchLoading) {
     return (
-      <div className="flex min-h-screen bg-[#f8fafc]">
-        <Sidebar />
-        <MobileNav />
-        <main className="flex-1 lg:ml-60 p-8">
+      <MainLayout>
+        <main className="flex-1 p-8">
           <div className="flex items-center justify-center h-full">
-            <div className="animate-spin rounded-full h-7 w-7 border-2 border-slate-200 border-t-amber-600" />
+            <div className="animate-spin rounded-full h-7 w-7 border-2 border-slate-200 border-t-[#4371FF]" />
           </div>
         </main>
-      </div>
+      </MainLayout>
     );
   }
 
   if (!interview) {
     return (
-      <div className="flex min-h-screen bg-[#f8fafc]">
-        <Sidebar />
-        <MobileNav />
-        <main className="flex-1 lg:ml-60 p-8">
+      <MainLayout>
+        <main className="flex-1 p-8">
           <div className="max-w-2xl mx-auto text-center py-20">
             <div className="w-14 h-14 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
               <svg className="w-7 h-7 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -159,21 +154,19 @@ export default function SubmitFeedbackPage() {
             </h2>
             <button
               onClick={() => router.push("/interviews")}
-              className="bg-amber-600 hover:bg-amber-700 text-white rounded-lg px-4 py-2.5 text-sm font-medium shadow-sm"
+              className="bg-[#4371FF] hover:bg-[#3461E6] text-white rounded-lg px-4 py-2.5 text-sm font-medium shadow-sm"
             >
               返回面试列表
             </button>
           </div>
         </main>
-      </div>
+      </MainLayout>
     );
   }
 
   return (
-    <div className="flex min-h-screen bg-[#f8fafc]">
-      <Sidebar />
-      <MobileNav />
-      <main className="flex-1 lg:ml-60 p-8">
+    <MainLayout>
+      <main className="flex-1 p-8">
         <div className="max-w-2xl mx-auto">
           <div className="mb-8">
             <button
@@ -199,7 +192,7 @@ export default function SubmitFeedbackPage() {
             </div>
           )}
 
-          <div className="bg-white rounded-xl border border-slate-100 shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-8">
+          <div className="bg-white rounded-xl border border-[#E8EBF0] shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-8">
             <form onSubmit={handleSubmit} className="space-y-6">
               {/* 面试信息摘要 */}
               <div className="bg-slate-50 rounded-lg p-4 mb-6">
@@ -246,7 +239,7 @@ export default function SubmitFeedbackPage() {
                             ? "border-emerald-500 bg-emerald-50"
                             : result === "FAIL"
                               ? "border-red-500 bg-red-50"
-                              : "border-amber-500 bg-amber-50"
+                              : "border-[#4371FF] bg-[#EFF3FF]"
                           : "border-slate-200 hover:border-slate-300"
                       }`}
                     >
@@ -269,7 +262,7 @@ export default function SubmitFeedbackPage() {
                               ? "text-emerald-700"
                               : result === "FAIL"
                                 ? "text-red-700"
-                                : "text-amber-700"
+                                : "text-[#4371FF]"
                             : "text-slate-600"
                         }`}
                       >
@@ -298,7 +291,7 @@ export default function SubmitFeedbackPage() {
                       }
                       className={`text-3xl transition-all ${
                         star <= formData.overallRating
-                          ? "text-amber-400 scale-110"
+                          ? "text-[#4371FF] scale-110"
                           : "text-slate-200 hover:text-slate-300"
                       }`}
                     >
@@ -328,7 +321,7 @@ export default function SubmitFeedbackPage() {
                   }
                   rows={3}
                   placeholder="请描述候选人的优势和亮点..."
-                  className="w-full rounded-lg border border-slate-200 px-3.5 py-2.5 text-sm focus:border-amber-500 focus:ring-2 focus:ring-amber-500/10 outline-none resize-none"
+                  className="w-full rounded-lg border border-[#E8EBF0] px-3.5 py-2.5 text-sm focus:border-[#4371FF] focus:ring-2 focus:ring-[#4371FF]/10 outline-none resize-none"
                 />
               </div>
 
@@ -347,7 +340,7 @@ export default function SubmitFeedbackPage() {
                   }
                   rows={3}
                   placeholder="请描述候选人需要提升的方面..."
-                  className="w-full rounded-lg border border-slate-200 px-3.5 py-2.5 text-sm focus:border-amber-500 focus:ring-2 focus:ring-amber-500/10 outline-none resize-none"
+                  className="w-full rounded-lg border border-[#E8EBF0] px-3.5 py-2.5 text-sm focus:border-[#4371FF] focus:ring-2 focus:ring-[#4371FF]/10 outline-none resize-none"
                 />
               </div>
 
@@ -363,7 +356,7 @@ export default function SubmitFeedbackPage() {
                   }
                   rows={3}
                   placeholder="其他需要记录的信息..."
-                  className="w-full rounded-lg border border-slate-200 px-3.5 py-2.5 text-sm focus:border-amber-500 focus:ring-2 focus:ring-amber-500/10 outline-none resize-none"
+                  className="w-full rounded-lg border border-[#E8EBF0] px-3.5 py-2.5 text-sm focus:border-[#4371FF] focus:ring-2 focus:ring-[#4371FF]/10 outline-none resize-none"
                 />
               </div>
 
@@ -372,14 +365,14 @@ export default function SubmitFeedbackPage() {
                 <button
                   type="button"
                   onClick={() => router.push(`/interviews/${interviewId}`)}
-                  className="flex-1 border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-lg px-4 py-2.5 text-sm font-medium"
+                  className="flex-1 border border-[#E8EBF0] hover:bg-slate-50 text-slate-700 rounded-lg px-4 py-2.5 text-sm font-medium"
                 >
                   取消
                 </button>
                 <button
                   type="submit"
                   disabled={loading}
-                  className="flex-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg px-4 py-2.5 text-sm font-medium shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 bg-[#4371FF] hover:bg-[#3461E6] text-white rounded-lg px-4 py-2.5 text-sm font-medium shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {loading ? (
                     <span className="flex items-center justify-center gap-2">
@@ -395,6 +388,6 @@ export default function SubmitFeedbackPage() {
           </div>
         </div>
       </main>
-    </div>
+    </MainLayout>
   );
 }

@@ -101,13 +101,13 @@ export default function DataImport({
       <div className="flex items-center justify-between">
         <button
           onClick={downloadTemplate}
-          className="text-sm text-amber-600 hover:text-amber-700 font-medium"
+          className="text-sm text-[#4371FF] hover:text-[#3461E6] font-medium"
         >
           下载导入模板
         </button>
       </div>
 
-      <div className="border-2 border-dashed border-slate-200 rounded-xl p-8 text-center hover:border-amber-400 transition-colors">
+      <div className="border-2 border-dashed border-slate-200 rounded-xl p-8 text-center hover:border-[#4371FF] transition-colors">
         <input
           type="file"
           accept=".xlsx,.xls"
@@ -189,11 +189,11 @@ export default function DataImport({
           <button
             onClick={handleImport}
             disabled={loading}
-            className="w-full mt-4 bg-amber-600 hover:bg-amber-700 text-white rounded-lg px-4 py-2.5 text-sm font-medium shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="w-full mt-4 bg-[#4371FF] hover:bg-[#3461E6] text-white rounded-lg px-4 py-2.5 text-sm font-medium shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
             {loading ? (
               <span className="flex items-center justify-center gap-2">
-                <span className="animate-spin rounded-full h-4 w-4 border-2 border-slate-200 border-t-amber-600 inline-block" />
+                <span className="animate-spin rounded-full h-4 w-4 border-2 border-slate-200 border-t-[#4371FF] inline-block" />
                 导入中...
               </span>
             ) : (

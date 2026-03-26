@@ -175,7 +175,7 @@ export default function MentionButton({
                       );
                       setSelectedInterviewer(interviewer || null);
                     }}
-                    className="w-full rounded-lg border border-slate-200 px-3.5 py-2.5 text-sm focus:border-amber-500 focus:ring-2 focus:ring-amber-500/10 outline-none transition-colors"
+                    className="w-full rounded-lg border border-slate-200 px-3.5 py-2.5 text-sm focus:border-[#4371FF] focus:ring-2 focus:ring-[#4371FF]/10 outline-none transition-colors"
                   >
                     <option value="">请选择面试官</option>
                     {interviewers.map((interviewer) => (
@@ -195,18 +195,18 @@ export default function MentionButton({
                     onChange={(e) => setMessage(e.target.value)}
                     placeholder="请输入想对面试官说的话..."
                     rows={2}
-                    className="w-full rounded-lg border border-slate-200 px-3.5 py-2.5 text-sm focus:border-amber-500 focus:ring-2 focus:ring-amber-500/10 outline-none resize-none transition-colors"
+                    className="w-full rounded-lg border border-slate-200 px-3.5 py-2.5 text-sm focus:border-[#4371FF] focus:ring-2 focus:ring-[#4371FF]/10 outline-none resize-none transition-colors"
                   />
                 </div>
 
                 <button
                   onClick={handleMention}
                   disabled={!selectedInterviewer || loading}
-                  className="w-full bg-amber-600 hover:bg-amber-700 text-white rounded-lg px-4 py-2.5 text-sm font-medium shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+                  className="w-full bg-[#4371FF] hover:bg-[#3461E6] text-white rounded-lg px-4 py-2.5 text-sm font-medium shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
                 >
                   {loading ? (
                     <>
-                      <span className="animate-spin rounded-full h-4 w-4 border-2 border-slate-200 border-t-amber-600" />
+                      <span className="animate-spin rounded-full h-4 w-4 border-2 border-slate-200 border-t-[#4371FF]" />
                       发送中...
                     </>
                   ) : (

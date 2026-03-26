@@ -3,8 +3,7 @@ import { apiFetch } from "@/lib/api";
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import Sidebar from "@/components/Sidebar";
-import MobileNav from "@/components/MobileNav";
+import MainLayout from "@/components/MainLayout";
 
 interface Interview {
   id: string;
@@ -80,7 +79,7 @@ export default function MyInterviewsPage() {
 
   const getStatusColor = (status: string) => {
     const colorMap: { [key: string]: string } = {
-      SCHEDULED: "bg-amber-100 text-amber-700 border-amber-200",
+      SCHEDULED: "bg-[#EFF3FF] text-[#4371FF] border-[#4371FF]/30",
       COMPLETED: "bg-emerald-100 text-emerald-700 border-emerald-200",
       CANCELLED: "bg-red-100 text-red-700 border-red-200",
     };
@@ -105,10 +104,8 @@ export default function MyInterviewsPage() {
   ).length;
 
   return (
-    <div className="flex min-h-screen bg-[#f8fafc]">
-      <Sidebar />
-      <MobileNav />
-      <main className="flex-1 lg:ml-60 p-8">
+    <MainLayout>
+      <main className="flex-1 p-8">
         <div className="max-w-6xl mx-auto">
           <div className="mb-8">
             <h1 className="text-2xl font-bold text-slate-900 tracking-tight">我的面试</h1>
@@ -116,10 +113,10 @@ export default function MyInterviewsPage() {
           </div>
 
           <div className="grid grid-cols-3 gap-5 mb-8">
-            <div className="bg-white rounded-xl border border-slate-100 shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-6">
+            <div className="bg-white rounded-xl border border-[#E8EBF0] shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-6">
               <div className="flex items-center justify-between mb-4">
-                <div className="w-10 h-10 rounded-lg bg-amber-50 flex items-center justify-center">
-                  <svg className="w-5 h-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <div className="w-10 h-10 rounded-lg bg-[#EFF3FF] flex items-center justify-center">
+                  <svg className="w-5 h-5 text-[#4371FF]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 6v6l4 2m6-2a10 10 0 11-20 0 10 10 0 0120 0z" />
                   </svg>
                 </div>
@@ -129,7 +126,7 @@ export default function MyInterviewsPage() {
               <p className="text-sm text-slate-500 mt-1">场待进行</p>
             </div>
 
-            <div className="bg-white rounded-xl border border-slate-100 shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-6">
+            <div className="bg-white rounded-xl border border-[#E8EBF0] shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-6">
               <div className="flex items-center justify-between mb-4">
                 <div className="w-10 h-10 rounded-lg bg-emerald-50 flex items-center justify-center">
                   <svg className="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -142,7 +139,7 @@ export default function MyInterviewsPage() {
               <p className="text-sm text-slate-500 mt-1">场已完成</p>
             </div>
 
-            <div className="bg-white rounded-xl border border-slate-100 shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-6">
+            <div className="bg-white rounded-xl border border-[#E8EBF0] shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-6">
               <div className="flex items-center justify-between mb-4">
                 <div className="w-10 h-10 rounded-lg bg-blue-50 flex items-center justify-center">
                   <svg className="w-5 h-5 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -167,14 +164,14 @@ export default function MyInterviewsPage() {
 
           {loading ? (
             <div className="flex items-center justify-center py-20">
-              <div className="animate-spin rounded-full h-7 w-7 border-2 border-slate-200 border-t-amber-600" />
+              <div className="animate-spin rounded-full h-7 w-7 border-2 border-slate-200 border-t-[#4371FF]" />
             </div>
           ) : (
             <div className="space-y-3">
               {interviews.map((interview, index) => (
                 <div
                   key={interview.id}
-                  className="bg-white rounded-xl border border-slate-100 shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-6"
+                  className="bg-white rounded-xl border border-[#E8EBF0] shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-6"
                   style={{ animationDelay: `${index * 0.05}s` }}
                 >
                   <div className="flex items-start justify-between">
@@ -227,7 +224,7 @@ export default function MyInterviewsPage() {
                               href={interview.meetingUrl}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="text-amber-600 hover:text-amber-700 hover:underline truncate"
+                              className="text-[#4371FF] hover:text-[#3461E6] hover:underline truncate"
                             >
                               {interview.meetingUrl}
                             </a>
@@ -242,7 +239,7 @@ export default function MyInterviewsPage() {
                           onClick={() =>
                             router.push(`/feedback?interviewId=${interview.id}`)
                           }
-                          className="bg-amber-600 hover:bg-amber-700 text-white rounded-lg px-4 py-2.5 text-sm font-medium shadow-sm"
+                          className="bg-[#4371FF] hover:bg-[#3461E6] text-white rounded-lg px-4 py-2.5 text-sm font-medium shadow-sm"
                         >
                           开始面试
                         </button>
@@ -255,7 +252,7 @@ export default function MyInterviewsPage() {
                                 `/feedback?interviewId=${interview.id}`,
                               )
                             }
-                            className="border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-lg px-4 py-2.5 text-sm font-medium"
+                            className="border border-[#E8EBF0] hover:bg-slate-50 text-slate-700 rounded-lg px-4 py-2.5 text-sm font-medium"
                           >
                             查看反馈
                           </button>
@@ -265,7 +262,7 @@ export default function MyInterviewsPage() {
                                 `/feedback?interviewId=${interview.id}`,
                               )
                             }
-                            className="bg-amber-600 hover:bg-amber-700 text-white rounded-lg px-4 py-2.5 text-sm font-medium shadow-sm"
+                            className="bg-[#4371FF] hover:bg-[#3461E6] text-white rounded-lg px-4 py-2.5 text-sm font-medium shadow-sm"
                           >
                             修改反馈
                           </button>
@@ -277,7 +274,7 @@ export default function MyInterviewsPage() {
               ))}
 
               {interviews.length === 0 && (
-                <div className="text-center py-20 bg-white rounded-xl border border-slate-100 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+                <div className="text-center py-20 bg-white rounded-xl border border-[#E8EBF0] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
                   <div className="w-14 h-14 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
                     <svg className="w-7 h-7 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -293,6 +290,6 @@ export default function MyInterviewsPage() {
           )}
         </div>
       </main>
-    </div>
+    </MainLayout>
   );
 }

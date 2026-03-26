@@ -47,14 +47,14 @@ export default function FileUpload({
         {...getRootProps()}
         className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all ${
           isDragActive
-            ? "border-amber-400 bg-amber-50"
-            : "border-slate-200 hover:border-amber-400 hover:bg-slate-50"
+            ? "border-[#4371FF] bg-[#EFF3FF]"
+            : "border-slate-200 hover:border-[#4371FF] hover:bg-slate-50"
         }`}
       >
         <input {...getInputProps()} />
-        <div className="w-12 h-12 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-4">
+        <div className="w-12 h-12 bg-[#EFF3FF] rounded-full flex items-center justify-center mx-auto mb-4">
           <svg
-            className="w-6 h-6 text-amber-600"
+            className="w-6 h-6 text-[#4371FF]"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"

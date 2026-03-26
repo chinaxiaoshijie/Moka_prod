@@ -64,7 +64,7 @@ export default function MobileNav() {
   const pathname = usePathname();
 
   return (
-    <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-lg border-t border-slate-200/60 z-50 pb-[env(safe-area-inset-bottom)]">
+    <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-lg border-t border-[#E8EBF0] z-50 pb-[env(safe-area-inset-bottom)]">
       <div className="flex justify-around items-center h-14">
         {mobileNavItems.map((item) => {
           const isActive = pathname === item.path;
@@ -73,7 +73,7 @@ export default function MobileNav() {
               key={item.path}
               onClick={() => router.push(item.path)}
               className={`flex flex-col items-center justify-center flex-1 h-full transition-colors ${
-                isActive ? "text-amber-600" : "text-slate-400"
+                isActive ? "text-[#4371FF]" : "text-slate-400"
               }`}
             >
               {item.icon}

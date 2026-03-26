@@ -3,6 +3,25 @@
 import { useState } from "react";
 import { apiFetch } from "@/lib/api";
 
+/* Moka mountain logo SVG */
+const MokaLogoSVG = ({ size = 36 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect width="32" height="32" rx="8" fill="#4371FF" />
+    <path
+      d="M6 23L11 13L16 19L21 11L26 23H6Z"
+      fill="white"
+      fillOpacity="0.9"
+    />
+    <path
+      d="M6 23L11 13L16 19"
+      stroke="white"
+      strokeWidth="1"
+      strokeOpacity="0.4"
+      fill="none"
+    />
+  </svg>
+);
+
 export default function LoginPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -47,39 +66,39 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex">
-      {/* Left — Branding */}
-      <div className="hidden lg:flex lg:w-[55%] relative bg-[#0c1222] overflow-hidden">
+      {/* Left — Blue branding panel */}
+      <div className="hidden lg:flex lg:w-[55%] relative overflow-hidden" style={{ background: "linear-gradient(135deg, #4371FF 0%, #2952CC 60%, #1A3A9F 100%)" }}>
+        {/* Decorative background elements */}
         <div className="absolute inset-0">
-          <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-amber-600/8 via-transparent to-blue-600/5" />
-          <div className="absolute top-24 left-16 w-64 h-64 bg-amber-500/10 rounded-full blur-[100px]" />
-          <div className="absolute bottom-24 right-16 w-80 h-80 bg-slate-500/5 rounded-full blur-[100px]" />
+          <div className="absolute top-0 right-0 w-96 h-96 bg-white/[0.04] rounded-full blur-[120px] translate-x-1/3 -translate-y-1/3" />
+          <div className="absolute bottom-0 left-0 w-80 h-80 bg-white/[0.06] rounded-full blur-[100px] -translate-x-1/3 translate-y-1/3" />
           <div
-            className="absolute inset-0 opacity-[0.02]"
+            className="absolute inset-0 opacity-[0.03]"
             style={{
               backgroundImage:
-                "linear-gradient(rgba(255,255,255,.08) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.08) 1px, transparent 1px)",
-              backgroundSize: "64px 64px",
+                "linear-gradient(rgba(255,255,255,.15) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.15) 1px, transparent 1px)",
+              backgroundSize: "48px 48px",
             }}
           />
         </div>
 
         <div className="relative z-10 flex flex-col justify-between p-12 xl:p-16 w-full">
+          {/* Top logo */}
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-lg bg-amber-600 flex items-center justify-center text-white font-bold text-sm">
-              M
-            </div>
-            <span className="text-white/80 text-base font-semibold tracking-tight">
-              Moka
+            <MokaLogoSVG size={36} />
+            <span className="text-white font-bold text-[17px] tracking-tight">
+              Moka 招聘
             </span>
           </div>
 
+          {/* Center content */}
           <div className="max-w-md">
             <h1 className="text-[2.5rem] xl:text-5xl font-bold text-white leading-[1.15] mb-5 tracking-tight">
               智能化
               <br />
-              <span className="text-amber-400">招聘管理平台</span>
+              <span className="text-white/70">招聘管理平台</span>
             </h1>
-            <p className="text-slate-400 text-base leading-relaxed mb-12">
+            <p className="text-white/60 text-base leading-relaxed mb-12">
               高效管理职位发布、候选人筛选、面试流程与反馈评估，助力企业精准招聘。
             </p>
 
@@ -91,12 +110,12 @@ export default function LoginPage() {
                 { label: "数据洞察", desc: "招聘漏斗与转化率实时分析" },
               ].map((item, i) => (
                 <div key={i} className="flex items-center gap-4">
-                  <div className="w-1.5 h-1.5 rounded-full bg-amber-500/60 flex-shrink-0" />
+                  <div className="w-1.5 h-1.5 rounded-full bg-white/50 flex-shrink-0" />
                   <div>
-                    <span className="text-white/80 text-sm font-medium">
+                    <span className="text-white/85 text-sm font-medium">
                       {item.label}
                     </span>
-                    <span className="text-slate-500 text-sm ml-2">
+                    <span className="text-white/45 text-sm ml-2">
                       {item.desc}
                     </span>
                   </div>
@@ -105,31 +124,31 @@ export default function LoginPage() {
             </div>
           </div>
 
-          <p className="text-slate-600 text-xs">&copy; 2026 Moka</p>
+          <p className="text-white/30 text-xs">&copy; 2026 Moka</p>
         </div>
       </div>
 
-      {/* Right — Login Form */}
+      {/* Right — Login form */}
       <div className="flex-1 flex items-center justify-center bg-white px-6 py-12">
-        <div className="w-full max-w-[340px]">
-          {/* Mobile logo */}
-          <div className="lg:hidden text-center mb-10">
-            <div className="w-12 h-12 mx-auto mb-3 rounded-xl bg-amber-600 flex items-center justify-center text-white font-bold text-lg">
-              M
-            </div>
-            <h1 className="text-lg font-semibold text-slate-900">Moka</h1>
+        <div className="w-full max-w-[360px]">
+          {/* Logo at top */}
+          <div className="flex items-center gap-2.5 mb-8">
+            <MokaLogoSVG size={32} />
+            <span className="text-[#1A1A1A] font-bold text-[16px] tracking-tight">
+              Moka 招聘
+            </span>
           </div>
 
-          <div className="mb-8">
-            <h2 className="text-2xl font-bold text-slate-900 tracking-tight mb-1">
-              欢迎回来
+          <div className="mb-7">
+            <h2 className="text-[22px] font-bold text-[#1A1A1A] tracking-tight mb-1">
+              欢迎使用 Moka
             </h2>
-            <p className="text-slate-500 text-sm">登录您的账号以继续</p>
+            <p className="text-[#999] text-sm">请登录您的账号</p>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">
+              <label className="block text-[13px] font-medium text-[#666] mb-1.5">
                 用户名
               </label>
               <input
@@ -137,14 +156,14 @@ export default function LoginPage() {
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 required
-                className="w-full rounded-lg border border-slate-200 px-3.5 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/10 transition-all outline-none"
+                className="w-full rounded-lg border border-[#E8EBF0] px-3.5 py-2.5 text-sm text-[#1A1A1A] placeholder-[#999] focus:border-[#4371FF] focus:ring-2 focus:ring-[#4371FF]/10 transition-all outline-none"
                 placeholder="请输入用户名"
                 disabled={loading}
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1.5">
+              <label className="block text-[13px] font-medium text-[#666] mb-1.5">
                 密码
               </label>
               <input
@@ -152,7 +171,7 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                className="w-full rounded-lg border border-slate-200 px-3.5 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:border-amber-500 focus:ring-2 focus:ring-amber-500/10 transition-all outline-none"
+                className="w-full rounded-lg border border-[#E8EBF0] px-3.5 py-2.5 text-sm text-[#1A1A1A] placeholder-[#999] focus:border-[#4371FF] focus:ring-2 focus:ring-[#4371FF]/10 transition-all outline-none"
                 placeholder="请输入密码"
                 disabled={loading}
               />
@@ -167,7 +186,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-lg bg-amber-600 hover:bg-amber-700 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-50 mt-2"
+              className="w-full rounded-lg bg-[#4371FF] hover:bg-[#3461E6] px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-colors duration-150 disabled:cursor-not-allowed disabled:opacity-50 mt-2"
             >
               {loading ? (
                 <span className="flex items-center justify-center gap-2">
@@ -180,8 +199,25 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <div className="mt-8 pt-6 border-t border-slate-100">
-            <p className="text-xs text-slate-400 text-center mb-3">测试账号</p>
+          {/* Privacy policy */}
+          <p className="text-[11px] text-[#999] text-center mt-4">
+            登录即代表您同意
+            <span className="text-[#4371FF] cursor-pointer hover:underline ml-0.5">服务条款</span>
+            {" "}与{" "}
+            <span className="text-[#4371FF] cursor-pointer hover:underline">隐私政策</span>
+          </p>
+
+          {/* SSO option */}
+          <div className="mt-4 text-center">
+            <span className="text-[13px] text-[#999]">
+              支持{" "}
+              <span className="text-[#4371FF] cursor-pointer hover:underline font-medium">SSO 单点登录</span>
+            </span>
+          </div>
+
+          {/* Test accounts */}
+          <div className="mt-8 pt-6 border-t border-[#F0F2F5]">
+            <p className="text-xs text-[#999] text-center mb-3">测试账号</p>
             <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
@@ -189,12 +225,12 @@ export default function LoginPage() {
                   setUsername("hr");
                   setPassword("hr123456");
                 }}
-                className="px-3 py-2 bg-slate-50 border border-slate-100 rounded-lg text-xs text-slate-600 hover:border-amber-200 hover:bg-amber-50/50 transition-colors text-center"
+                className="px-3 py-2 bg-[#F5F7FA] border border-[#E8EBF0] rounded-lg text-xs text-[#666] hover:border-[#4371FF]/30 hover:bg-[#EFF3FF] transition-colors text-center"
               >
-                <span className="font-medium text-amber-700 block text-[11px]">
+                <span className="font-semibold text-[#4371FF] block text-[11px]">
                   HR
                 </span>
-                <span className="text-slate-400 text-[11px]">
+                <span className="text-[#999] text-[11px]">
                   hr / hr123456
                 </span>
               </button>
@@ -204,12 +240,12 @@ export default function LoginPage() {
                   setUsername("interviewer");
                   setPassword("interviewer123");
                 }}
-                className="px-3 py-2 bg-slate-50 border border-slate-100 rounded-lg text-xs text-slate-600 hover:border-blue-200 hover:bg-blue-50/50 transition-colors text-center"
+                className="px-3 py-2 bg-[#F5F7FA] border border-[#E8EBF0] rounded-lg text-xs text-[#666] hover:border-[#4371FF]/30 hover:bg-[#EFF3FF] transition-colors text-center"
               >
-                <span className="font-medium text-blue-700 block text-[11px]">
+                <span className="font-semibold text-[#4371FF] block text-[11px]">
                   面试官
                 </span>
-                <span className="text-slate-400 text-[11px]">interviewer</span>
+                <span className="text-[#999] text-[11px]">interviewer</span>
               </button>
             </div>
           </div>

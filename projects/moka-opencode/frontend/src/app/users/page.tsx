@@ -3,8 +3,7 @@ import { apiFetch } from "@/lib/api";
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import Sidebar from "@/components/Sidebar";
-import MobileNav from "@/components/MobileNav";
+import MainLayout from "@/components/MainLayout";
 
 interface User {
   id: string;
@@ -127,10 +126,8 @@ export default function UsersPage() {
   };
 
   return (
-    <div className="flex min-h-screen bg-[#f8fafc]">
-      <Sidebar />
-      <MobileNav />
-      <main className="flex-1 lg:ml-60 p-8">
+    <MainLayout>
+      <main className="flex-1 p-8">
         <div className="max-w-6xl mx-auto">
           {/* Header */}
           <div className="flex items-center justify-between mb-8">
@@ -140,7 +137,7 @@ export default function UsersPage() {
             </div>
             <button
               onClick={() => setShowForm(true)}
-              className="bg-amber-600 hover:bg-amber-700 text-white rounded-lg px-4 py-2.5 text-sm font-medium shadow-sm flex items-center gap-1.5"
+              className="bg-[#4371FF] hover:bg-[#3461E6] text-white rounded-lg px-4 py-2.5 text-sm font-medium shadow-sm flex items-center gap-1.5"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -160,10 +157,10 @@ export default function UsersPage() {
           )}
 
           {/* Users Table */}
-          <div className="bg-white rounded-xl border border-slate-100 shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
+          <div className="bg-white rounded-xl border border-[#E8EBF0] shadow-[0_1px_3px_rgba(0,0,0,0.04)] overflow-hidden">
             {loading ? (
               <div className="p-12 flex items-center justify-center">
-                <div className="animate-spin rounded-full h-7 w-7 border-2 border-slate-200 border-t-amber-600" />
+                <div className="animate-spin rounded-full h-7 w-7 border-2 border-slate-200 border-t-[#4371FF]" />
               </div>
             ) : users.length === 0 ? (
               <div className="p-12 text-center">
@@ -177,7 +174,7 @@ export default function UsersPage() {
             ) : (
               <table className="w-full">
                 <thead>
-                  <tr className="bg-slate-50/80 border-b border-slate-100">
+                  <tr className="bg-slate-50/80 border-b border-[#E8EBF0]">
                     <th className="text-left px-6 py-3.5 text-xs font-medium uppercase tracking-wider text-slate-500">
                       姓名
                     </th>
@@ -199,7 +196,7 @@ export default function UsersPage() {
                   {users.map((user) => (
                     <tr
                       key={user.id}
-                      className="border-b border-slate-50 hover:bg-slate-50/50"
+                      className="border-b border-slate-50 hover:bg-[#EFF3FF]/20"
                     >
                       <td className="px-6 py-4 text-sm font-medium text-slate-900">{user.name}</td>
                       <td className="px-6 py-4 text-sm text-slate-500">
@@ -212,7 +209,7 @@ export default function UsersPage() {
                         <span
                           className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium ${
                             user.role === "HR"
-                              ? "bg-amber-100 text-amber-700"
+                              ? "bg-[#EFF3FF] text-[#4371FF]"
                               : "bg-emerald-100 text-emerald-700"
                           }`}
                         >
@@ -241,7 +238,7 @@ export default function UsersPage() {
         {showForm && (
           <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-xl shadow-xl max-w-lg w-full">
-              <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+              <div className="px-6 py-4 border-b border-[#E8EBF0] flex items-center justify-between">
                 <h2 className="text-base font-semibold text-slate-900">添加用户</h2>
                 <button
                   onClick={() => setShowForm(false)}
@@ -263,7 +260,7 @@ export default function UsersPage() {
                     onChange={(e) =>
                       setFormData({ ...formData, username: e.target.value })
                     }
-                    className="w-full rounded-lg border border-slate-200 px-3.5 py-2.5 text-sm focus:border-amber-500 focus:ring-2 focus:ring-amber-500/10 outline-none"
+                    className="w-full rounded-lg border border-[#E8EBF0] px-3.5 py-2.5 text-sm focus:border-[#4371FF] focus:ring-2 focus:ring-[#4371FF]/10 outline-none"
                     placeholder="请输入用户名"
                     required
                   />
@@ -279,7 +276,7 @@ export default function UsersPage() {
                     onChange={(e) =>
                       setFormData({ ...formData, password: e.target.value })
                     }
-                    className="w-full rounded-lg border border-slate-200 px-3.5 py-2.5 text-sm focus:border-amber-500 focus:ring-2 focus:ring-amber-500/10 outline-none"
+                    className="w-full rounded-lg border border-[#E8EBF0] px-3.5 py-2.5 text-sm focus:border-[#4371FF] focus:ring-2 focus:ring-[#4371FF]/10 outline-none"
                     placeholder="请输入密码"
                     required
                   />
@@ -295,7 +292,7 @@ export default function UsersPage() {
                     onChange={(e) =>
                       setFormData({ ...formData, name: e.target.value })
                     }
-                    className="w-full rounded-lg border border-slate-200 px-3.5 py-2.5 text-sm focus:border-amber-500 focus:ring-2 focus:ring-amber-500/10 outline-none"
+                    className="w-full rounded-lg border border-[#E8EBF0] px-3.5 py-2.5 text-sm focus:border-[#4371FF] focus:ring-2 focus:ring-[#4371FF]/10 outline-none"
                     placeholder="请输入姓名"
                     required
                   />
@@ -311,7 +308,7 @@ export default function UsersPage() {
                     onChange={(e) =>
                       setFormData({ ...formData, email: e.target.value })
                     }
-                    className="w-full rounded-lg border border-slate-200 px-3.5 py-2.5 text-sm focus:border-amber-500 focus:ring-2 focus:ring-amber-500/10 outline-none"
+                    className="w-full rounded-lg border border-[#E8EBF0] px-3.5 py-2.5 text-sm focus:border-[#4371FF] focus:ring-2 focus:ring-[#4371FF]/10 outline-none"
                     placeholder="请输入邮箱（选填）"
                   />
                 </div>
@@ -328,7 +325,7 @@ export default function UsersPage() {
                         role: e.target.value as "HR" | "INTERVIEWER",
                       })
                     }
-                    className="w-full rounded-lg border border-slate-200 px-3.5 py-2.5 text-sm focus:border-amber-500 focus:ring-2 focus:ring-amber-500/10 outline-none"
+                    className="w-full rounded-lg border border-[#E8EBF0] px-3.5 py-2.5 text-sm focus:border-[#4371FF] focus:ring-2 focus:ring-[#4371FF]/10 outline-none"
                   >
                     <option value="INTERVIEWER">面试官</option>
                     <option value="HR">HR</option>
@@ -341,13 +338,13 @@ export default function UsersPage() {
                   <button
                     type="button"
                     onClick={() => setShowForm(false)}
-                    className="flex-1 border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-lg px-4 py-2.5 text-sm font-medium"
+                    className="flex-1 border border-[#E8EBF0] hover:bg-slate-50 text-slate-700 rounded-lg px-4 py-2.5 text-sm font-medium"
                   >
                     取消
                   </button>
                   <button
                     type="submit"
-                    className="flex-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg px-4 py-2.5 text-sm font-medium shadow-sm"
+                    className="flex-1 bg-[#4371FF] hover:bg-[#3461E6] text-white rounded-lg px-4 py-2.5 text-sm font-medium shadow-sm"
                   >
                     添加用户
                   </button>
@@ -357,6 +354,6 @@ export default function UsersPage() {
           </div>
         )}
       </main>
-    </div>
+    </MainLayout>
   );
 }

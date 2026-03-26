@@ -177,7 +177,7 @@ export default function NotificationBell() {
               <button
                 onClick={markAllAsRead}
                 disabled={loading}
-                className="text-sm text-amber-600 hover:text-amber-700 font-medium disabled:opacity-50"
+                className="text-sm text-[#4371FF] hover:text-[#3461E6] font-medium disabled:opacity-50"
               >
                 全部标记已读
               </button>
@@ -214,7 +214,7 @@ export default function NotificationBell() {
                     markAsRead(notification.id, notification.link)
                   }
                   className={`px-4 py-3 border-b border-slate-50 cursor-pointer hover:bg-slate-50 transition-colors ${
-                    !notification.read ? "bg-amber-50/40" : ""
+                    !notification.read ? "bg-[#EFF3FF]/40" : ""
                   }`}
                 >
                   <div className="flex items-start gap-3">
@@ -241,7 +241,7 @@ export default function NotificationBell() {
                       </p>
                     </div>
                     {!notification.read && (
-                      <span className="w-2 h-2 bg-amber-500 rounded-full flex-shrink-0 mt-1.5"></span>
+                      <span className="w-2 h-2 bg-[#4371FF] rounded-full flex-shrink-0 mt-1.5"></span>
                     )}
                   </div>
                 </div>

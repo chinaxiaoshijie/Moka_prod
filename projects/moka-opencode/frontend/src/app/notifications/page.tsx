@@ -3,8 +3,7 @@ import { apiFetch } from "@/lib/api";
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import Sidebar from "@/components/Sidebar";
-import MobileNav from "@/components/MobileNav";
+import MainLayout from "@/components/MainLayout";
 
 interface Notification {
   id: string;
@@ -99,7 +98,7 @@ export default function NotificationsPage() {
   const getNotificationIcon = (type: string) => {
     const iconMap: { [key: string]: React.ReactNode } = {
       INTERVIEW_REMINDER: (
-        <svg className="w-5 h-5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <svg className="w-5 h-5 text-[#4371FF]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
         </svg>
       ),
@@ -139,10 +138,8 @@ export default function NotificationsPage() {
   const unreadCount = notifications.filter((n) => !n.read).length;
 
   return (
-    <div className="flex min-h-screen bg-[#f8fafc]">
-      <Sidebar />
-      <MobileNav />
-      <main className="flex-1 lg:ml-60 p-8">
+    <MainLayout>
+      <main className="flex-1 p-8">
         <div className="max-w-4xl mx-auto">
           {/* 头部 */}
           <div className="flex items-center justify-between mb-8">
@@ -155,7 +152,7 @@ export default function NotificationsPage() {
             {unreadCount > 0 && (
               <button
                 onClick={markAllAsRead}
-                className="bg-amber-600 hover:bg-amber-700 text-white rounded-lg px-4 py-2.5 text-sm font-medium shadow-sm"
+                className="bg-[#4371FF] hover:bg-[#3461E6] text-white rounded-lg px-4 py-2.5 text-sm font-medium shadow-sm"
               >
                 全部标记已读
               </button>
@@ -168,8 +165,8 @@ export default function NotificationsPage() {
               onClick={() => setFilter("all")}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                 filter === "all"
-                  ? "bg-amber-600 text-white shadow-sm"
-                  : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
+                  ? "bg-[#4371FF] text-white shadow-sm"
+                  : "bg-white border border-[#E8EBF0] text-slate-600 hover:bg-slate-50"
               }`}
             >
               全部 ({notifications.length})
@@ -178,8 +175,8 @@ export default function NotificationsPage() {
               onClick={() => setFilter("unread")}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                 filter === "unread"
-                  ? "bg-amber-600 text-white shadow-sm"
-                  : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
+                  ? "bg-[#4371FF] text-white shadow-sm"
+                  : "bg-white border border-[#E8EBF0] text-slate-600 hover:bg-slate-50"
               }`}
             >
               未读 ({unreadCount})
@@ -188,10 +185,10 @@ export default function NotificationsPage() {
 
           {loading ? (
             <div className="flex items-center justify-center py-20">
-              <div className="animate-spin rounded-full h-7 w-7 border-2 border-slate-200 border-t-amber-600" />
+              <div className="animate-spin rounded-full h-7 w-7 border-2 border-slate-200 border-t-[#4371FF]" />
             </div>
           ) : filteredNotifications.length === 0 ? (
-            <div className="text-center py-20 bg-white rounded-xl border border-slate-100 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
+            <div className="text-center py-20 bg-white rounded-xl border border-[#E8EBF0] shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
               <div className="w-14 h-14 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4">
                 <svg className="w-7 h-7 text-slate-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
@@ -213,12 +210,12 @@ export default function NotificationsPage() {
                   key={notification.id}
                   className={`bg-white rounded-xl border shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-5 transition-all ${
                     !notification.read
-                      ? "border-amber-200 bg-amber-50/20"
-                      : "border-slate-100"
+                      ? "border-[#4371FF]/30 bg-[#EFF3FF]/20"
+                      : "border-[#E8EBF0]"
                   }`}
                 >
                   <div className="flex items-start gap-4">
-                    <div className="w-10 h-10 bg-slate-50 rounded-lg flex items-center justify-center flex-shrink-0 border border-slate-100">
+                    <div className="w-10 h-10 bg-slate-50 rounded-lg flex items-center justify-center flex-shrink-0 border border-[#E8EBF0]">
                       {getNotificationIcon(notification.type)}
                     </div>
 
@@ -236,7 +233,7 @@ export default function NotificationsPage() {
                               {notification.title}
                             </h3>
                             {!notification.read && (
-                              <span className="w-1.5 h-1.5 rounded-full bg-amber-500 flex-shrink-0" />
+                              <span className="w-1.5 h-1.5 rounded-full bg-[#4371FF] flex-shrink-0" />
                             )}
                           </div>
                           <p className="text-sm text-slate-500 mt-0.5">
@@ -253,7 +250,7 @@ export default function NotificationsPage() {
                               onClick={() =>
                                 markAsRead(notification.id, notification.link)
                               }
-                              className="bg-amber-600 hover:bg-amber-700 text-white rounded-lg px-3 py-1.5 text-xs font-medium shadow-sm"
+                              className="bg-[#4371FF] hover:bg-[#3461E6] text-white rounded-lg px-3 py-1.5 text-xs font-medium shadow-sm"
                             >
                               标记已读
                             </button>
@@ -261,7 +258,7 @@ export default function NotificationsPage() {
                           {notification.link && notification.read && (
                             <button
                               onClick={() => router.push(notification.link!)}
-                              className="border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-lg px-3 py-1.5 text-xs font-medium"
+                              className="border border-[#E8EBF0] hover:bg-slate-50 text-slate-700 rounded-lg px-3 py-1.5 text-xs font-medium"
                             >
                               查看详情
                             </button>
@@ -285,6 +282,6 @@ export default function NotificationsPage() {
           )}
         </div>
       </main>
-    </div>
+    </MainLayout>
   );
 }

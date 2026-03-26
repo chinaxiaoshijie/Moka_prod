@@ -6,8 +6,7 @@ import { useRouter } from "next/navigation";
 import { Calendar, momentLocalizer } from "react-big-calendar";
 import moment from "moment";
 import "react-big-calendar/lib/css/react-big-calendar.css";
-import Sidebar from "@/components/Sidebar";
-import MobileNav from "@/components/MobileNav";
+import MainLayout from "@/components/MainLayout";
 
 // 设置中文本地化
 const localizer = momentLocalizer(moment);
@@ -92,10 +91,8 @@ export default function CalendarPage() {
   };
 
   return (
-    <div className="flex min-h-screen bg-[#f8fafc]">
-      <Sidebar />
-      <MobileNav />
-      <main className="flex-1 lg:ml-60 p-6 lg:p-8">
+    <MainLayout>
+      <main className="flex-1 p-6 lg:p-8">
         <div className="max-w-7xl mx-auto h-[calc(100vh-4rem)]">
           {/* 头部 */}
           <div className="flex items-center justify-between mb-6">
@@ -107,12 +104,12 @@ export default function CalendarPage() {
             </div>
             <div className="flex items-center gap-3">
               {/* 视图切换 */}
-              <div className="flex bg-white rounded-lg border border-slate-200 p-1">
+              <div className="flex bg-white rounded-lg border border-[#E8EBF0] p-1">
                 <button
                   onClick={() => setView("month")}
                   className={`px-3.5 py-2 rounded-md text-sm font-medium transition-all ${
                     view === "month"
-                      ? "bg-amber-600 text-white shadow-sm"
+                      ? "bg-[#4371FF] text-white shadow-sm"
                       : "text-slate-600 hover:bg-slate-50"
                   }`}
                 >
@@ -122,7 +119,7 @@ export default function CalendarPage() {
                   onClick={() => setView("week")}
                   className={`px-3.5 py-2 rounded-md text-sm font-medium transition-all ${
                     view === "week"
-                      ? "bg-amber-600 text-white shadow-sm"
+                      ? "bg-[#4371FF] text-white shadow-sm"
                       : "text-slate-600 hover:bg-slate-50"
                   }`}
                 >
@@ -132,7 +129,7 @@ export default function CalendarPage() {
                   onClick={() => setView("day")}
                   className={`px-3.5 py-2 rounded-md text-sm font-medium transition-all ${
                     view === "day"
-                      ? "bg-amber-600 text-white shadow-sm"
+                      ? "bg-[#4371FF] text-white shadow-sm"
                       : "text-slate-600 hover:bg-slate-50"
                   }`}
                 >
@@ -142,7 +139,7 @@ export default function CalendarPage() {
 
               <button
                 onClick={() => router.push("/interviews/new")}
-                className="bg-amber-600 hover:bg-amber-700 text-white rounded-lg px-4 py-2.5 text-sm font-medium shadow-sm flex items-center gap-2"
+                className="bg-[#4371FF] hover:bg-[#3461E6] text-white rounded-lg px-4 py-2.5 text-sm font-medium shadow-sm flex items-center gap-2"
               >
                 <svg
                   className="w-4 h-4"
@@ -173,10 +170,10 @@ export default function CalendarPage() {
 
           {loading ? (
             <div className="flex items-center justify-center h-96">
-              <div className="animate-spin rounded-full h-7 w-7 border-2 border-slate-200 border-t-amber-600" />
+              <div className="animate-spin rounded-full h-7 w-7 border-2 border-slate-200 border-t-[#4371FF]" />
             </div>
           ) : (
-            <div className="bg-white rounded-xl border border-slate-100 shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-5 h-[calc(100%-5.5rem)]">
+            <div className="bg-white rounded-xl border border-[#E8EBF0] shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-5 h-[calc(100%-5.5rem)]">
               {/* 图例 */}
               <div className="flex items-center gap-5 mb-4">
                 <div className="flex items-center gap-1.5">
@@ -234,6 +231,6 @@ export default function CalendarPage() {
           )}
         </div>
       </main>
-    </div>
+    </MainLayout>
   );
 }

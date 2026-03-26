@@ -3,8 +3,7 @@ import { apiFetch } from "@/lib/api";
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import Sidebar from "@/components/Sidebar";
-import MobileNav from "@/components/MobileNav";
+import MainLayout from "@/components/MainLayout";
 
 interface UserProfile {
   id: string;
@@ -121,10 +120,8 @@ export default function SettingsPage() {
   ];
 
   return (
-    <div className="flex min-h-screen bg-[#f8fafc]">
-      <Sidebar />
-      <MobileNav />
-      <main className="flex-1 lg:ml-60 p-8">
+    <MainLayout>
+      <main className="flex-1 p-8">
         <div className="max-w-4xl mx-auto">
           <div className="mb-8">
             <h1 className="text-2xl font-bold text-slate-900 tracking-tight">系统设置</h1>
@@ -132,14 +129,14 @@ export default function SettingsPage() {
           </div>
 
           {/* 标签页 */}
-          <div className="flex gap-1 mb-6 bg-white rounded-xl border border-slate-100 shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-1">
+          <div className="flex gap-1 mb-6 bg-white rounded-xl border border-[#E8EBF0] shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-1">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                   activeTab === tab.id
-                    ? "bg-amber-600 text-white shadow-sm"
+                    ? "bg-[#4371FF] text-white shadow-sm"
                     : "text-slate-600 hover:text-slate-900 hover:bg-slate-50"
                 }`}
               >
@@ -163,7 +160,7 @@ export default function SettingsPage() {
           {/* 个人资料 */}
           {activeTab === "profile" && (
             <div className="space-y-5">
-              <div className="bg-white rounded-xl border border-slate-100 shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-6">
+              <div className="bg-white rounded-xl border border-[#E8EBF0] shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-6">
                 <h3 className="text-sm font-semibold text-slate-700 mb-5">
                   基本信息
                 </h3>
@@ -181,7 +178,7 @@ export default function SettingsPage() {
                           name: e.target.value,
                         }))
                       }
-                      className="w-full rounded-lg border border-slate-200 px-3.5 py-2.5 text-sm focus:border-amber-500 focus:ring-2 focus:ring-amber-500/10 outline-none"
+                      className="w-full rounded-lg border border-[#E8EBF0] px-3.5 py-2.5 text-sm focus:border-[#4371FF] focus:ring-2 focus:ring-[#4371FF]/10 outline-none"
                     />
                   </div>
                   <div>
@@ -197,7 +194,7 @@ export default function SettingsPage() {
                           email: e.target.value,
                         }))
                       }
-                      className="w-full rounded-lg border border-slate-200 px-3.5 py-2.5 text-sm focus:border-amber-500 focus:ring-2 focus:ring-amber-500/10 outline-none"
+                      className="w-full rounded-lg border border-[#E8EBF0] px-3.5 py-2.5 text-sm focus:border-[#4371FF] focus:ring-2 focus:ring-[#4371FF]/10 outline-none"
                     />
                   </div>
                   <div>
@@ -208,20 +205,20 @@ export default function SettingsPage() {
                       type="text"
                       value={user?.role === "HR" ? "HR管理员" : "面试官"}
                       disabled
-                      className="w-full rounded-lg border border-slate-200 px-3.5 py-2.5 text-sm bg-slate-50 text-slate-400"
+                      className="w-full rounded-lg border border-[#E8EBF0] px-3.5 py-2.5 text-sm bg-slate-50 text-slate-400"
                     />
                   </div>
                   <button
                     type="submit"
                     disabled={loading}
-                    className="bg-amber-600 hover:bg-amber-700 text-white rounded-lg px-4 py-2.5 text-sm font-medium shadow-sm disabled:opacity-50"
+                    className="bg-[#4371FF] hover:bg-[#3461E6] text-white rounded-lg px-4 py-2.5 text-sm font-medium shadow-sm disabled:opacity-50"
                   >
                     {loading ? "保存中..." : "保存修改"}
                   </button>
                 </form>
               </div>
 
-              <div className="bg-white rounded-xl border border-slate-100 shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-6">
+              <div className="bg-white rounded-xl border border-[#E8EBF0] shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-6">
                 <h3 className="text-sm font-semibold text-slate-700 mb-5">
                   修改密码
                 </h3>
@@ -239,7 +236,7 @@ export default function SettingsPage() {
                           currentPassword: e.target.value,
                         }))
                       }
-                      className="w-full rounded-lg border border-slate-200 px-3.5 py-2.5 text-sm focus:border-amber-500 focus:ring-2 focus:ring-amber-500/10 outline-none"
+                      className="w-full rounded-lg border border-[#E8EBF0] px-3.5 py-2.5 text-sm focus:border-[#4371FF] focus:ring-2 focus:ring-[#4371FF]/10 outline-none"
                     />
                   </div>
                   <div>
@@ -255,7 +252,7 @@ export default function SettingsPage() {
                           newPassword: e.target.value,
                         }))
                       }
-                      className="w-full rounded-lg border border-slate-200 px-3.5 py-2.5 text-sm focus:border-amber-500 focus:ring-2 focus:ring-amber-500/10 outline-none"
+                      className="w-full rounded-lg border border-[#E8EBF0] px-3.5 py-2.5 text-sm focus:border-[#4371FF] focus:ring-2 focus:ring-[#4371FF]/10 outline-none"
                     />
                   </div>
                   <div>
@@ -271,13 +268,13 @@ export default function SettingsPage() {
                           confirmPassword: e.target.value,
                         }))
                       }
-                      className="w-full rounded-lg border border-slate-200 px-3.5 py-2.5 text-sm focus:border-amber-500 focus:ring-2 focus:ring-amber-500/10 outline-none"
+                      className="w-full rounded-lg border border-[#E8EBF0] px-3.5 py-2.5 text-sm focus:border-[#4371FF] focus:ring-2 focus:ring-[#4371FF]/10 outline-none"
                     />
                   </div>
                   <button
                     type="submit"
                     disabled={loading}
-                    className="bg-amber-600 hover:bg-amber-700 text-white rounded-lg px-4 py-2.5 text-sm font-medium shadow-sm disabled:opacity-50"
+                    className="bg-[#4371FF] hover:bg-[#3461E6] text-white rounded-lg px-4 py-2.5 text-sm font-medium shadow-sm disabled:opacity-50"
                   >
                     {loading ? "修改中..." : "修改密码"}
                   </button>
@@ -289,7 +286,7 @@ export default function SettingsPage() {
           {/* 系统信息 */}
           {activeTab === "system" && (
             <div className="space-y-5">
-              <div className="bg-white rounded-xl border border-slate-100 shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-6">
+              <div className="bg-white rounded-xl border border-[#E8EBF0] shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-6">
                 <h3 className="text-sm font-semibold text-slate-700 mb-5">
                   系统信息
                 </h3>
@@ -311,7 +308,7 @@ export default function SettingsPage() {
                 </div>
               </div>
 
-              <div className="bg-white rounded-xl border border-slate-100 shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-6">
+              <div className="bg-white rounded-xl border border-[#E8EBF0] shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-6">
                 <h3 className="text-sm font-semibold text-slate-700 mb-2">
                   缓存管理
                 </h3>
@@ -330,8 +327,8 @@ export default function SettingsPage() {
 
           {/* 关于 */}
           {activeTab === "about" && (
-            <div className="bg-white rounded-xl border border-slate-100 shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-10 text-center">
-              <div className="w-16 h-16 bg-gradient-to-br from-amber-500 to-amber-700 rounded-2xl flex items-center justify-center mx-auto mb-6">
+            <div className="bg-white rounded-xl border border-[#E8EBF0] shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-10 text-center">
+              <div className="w-16 h-16 bg-gradient-to-br from-[#4371FF] to-[#3461E6] rounded-2xl flex items-center justify-center mx-auto mb-6">
                 <span className="text-white text-2xl font-bold">M</span>
               </div>
               <h2 className="text-xl font-bold text-slate-900 mb-1">
@@ -347,6 +344,6 @@ export default function SettingsPage() {
           )}
         </div>
       </main>
-    </div>
+    </MainLayout>
   );
 }

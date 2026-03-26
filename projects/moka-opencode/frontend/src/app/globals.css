@@ -5,31 +5,31 @@
 @tailwind utilities;
 
 /* ========================================
-   Design System: 精致商务风
+   Design System: Moka 官方蓝色主题
    ======================================== */
 
 @layer base {
   :root {
-    --brand: #d97706;
-    --brand-hover: #b45309;
-    --brand-soft: #fef3c7;
-    --brand-ring: rgba(217, 119, 6, 0.1);
+    --brand: #4371FF;
+    --brand-hover: #3461E6;
+    --brand-soft: #EFF3FF;
+    --brand-ring: rgba(67, 113, 255, 0.1);
     --surface: #ffffff;
-    --surface-secondary: #f8fafc;
+    --surface-secondary: #F5F7FA;
     --surface-elevated: #ffffff;
-    --sidebar-bg: #0c1222;
-    --sidebar-hover: rgba(255, 255, 255, 0.04);
-    --sidebar-active: rgba(217, 119, 6, 0.12);
-    --text-primary: #0f172a;
-    --text-secondary: #64748b;
-    --text-muted: #94a3b8;
+    --sidebar-bg: #FFFFFF;
+    --sidebar-hover: #F5F7FA;
+    --sidebar-active: #4371FF;
+    --text-primary: #1A1A1A;
+    --text-secondary: #666666;
+    --text-muted: #999999;
     --success: #059669;
     --success-soft: #ecfdf5;
     --danger: #dc2626;
     --danger-soft: #fef2f2;
     --warning-soft: #fffbeb;
-    --border: #e2e8f0;
-    --border-light: #f1f5f9;
+    --border: #E8EBF0;
+    --border-light: #F0F2F5;
     --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.04);
     --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.06);
     --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.08);

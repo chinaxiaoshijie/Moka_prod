@@ -2,6 +2,7 @@
 
 import Sidebar from "./Sidebar";
 import MobileNav from "./MobileNav";
+import TopBar from "./TopBar";
 
 interface MainLayoutProps {
   children: React.ReactNode;
@@ -9,11 +10,14 @@ interface MainLayoutProps {
 
 export default function MainLayout({ children }: MainLayoutProps) {
   return (
-    <div className="flex min-h-screen bg-slate-50">
+    <div className="flex min-h-screen bg-[#F5F7FA]">
       <Sidebar />
-      <main className="flex-1 lg:ml-60 p-4 lg:p-8 pb-20 lg:pb-8">
-        {children}
-      </main>
+      <div className="flex-1 lg:ml-[190px] flex flex-col">
+        <TopBar />
+        <main className="flex-1 p-4 pt-[72px] lg:p-6 lg:pt-[72px] pb-20 lg:pb-6">
+          {children}
+        </main>
+      </div>
       <MobileNav />
     </div>
   );

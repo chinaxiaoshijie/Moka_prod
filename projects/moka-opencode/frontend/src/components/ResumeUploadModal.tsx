@@ -161,11 +161,11 @@ export default function ResumeUploadModal({
           <button
             onClick={handleUpload}
             disabled={!selectedFile || uploading}
-            className="bg-amber-600 hover:bg-amber-700 text-white rounded-lg px-4 py-2.5 text-sm font-medium shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-colors"
+            className="bg-[#4371FF] hover:bg-[#3461E6] text-white rounded-lg px-4 py-2.5 text-sm font-medium shadow-sm disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-colors"
           >
             {uploading ? (
               <>
-                <span className="animate-spin rounded-full h-4 w-4 border-2 border-slate-200 border-t-amber-600" />
+                <span className="animate-spin rounded-full h-4 w-4 border-2 border-slate-200 border-t-[#4371FF]" />
                 上传中...
               </>
             ) : (

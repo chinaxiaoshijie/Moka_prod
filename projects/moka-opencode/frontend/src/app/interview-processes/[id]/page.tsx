@@ -3,8 +3,7 @@ import { apiFetch } from "@/lib/api";
 
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
-import Sidebar from "@/components/Sidebar";
-import MobileNav from "@/components/MobileNav";
+import MainLayout from "@/components/MainLayout";
 
 interface Feedback {
   id: string;
@@ -207,7 +206,7 @@ export default function InterviewProcessDetailPage() {
 
   const getStatusColor = (status: string) => {
     const map: { [key: string]: string } = {
-      IN_PROGRESS: "bg-amber-100 text-amber-700",
+      IN_PROGRESS: "bg-[#EFF3FF] text-[#4371FF]",
       WAITING_HR: "bg-blue-100 text-blue-700",
       COMPLETED: "bg-emerald-100 text-emerald-700",
       CANCELLED: "bg-red-100 text-red-700",
@@ -217,27 +216,23 @@ export default function InterviewProcessDetailPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen bg-[#f8fafc]">
-        <Sidebar />
-        <MobileNav />
-        <main className="flex-1 lg:ml-60 p-6 lg:p-8 flex items-center justify-center">
-          <div className="animate-spin rounded-full h-7 w-7 border-2 border-slate-200 border-t-amber-600" />
+      <MainLayout>
+        <main className="flex-1 p-6 lg:p-8 flex items-center justify-center">
+          <div className="animate-spin rounded-full h-7 w-7 border-2 border-slate-200 border-t-[#4371FF]" />
         </main>
-      </div>
+      </MainLayout>
     );
   }
 
   if (!process) {
     return (
-      <div className="flex min-h-screen bg-[#f8fafc]">
-        <Sidebar />
-        <MobileNav />
-        <main className="flex-1 lg:ml-60 p-6 lg:p-8">
+      <MainLayout>
+        <main className="flex-1 p-6 lg:p-8">
           <div className="text-center py-20">
             <p className="text-slate-500 text-sm">流程不存在</p>
           </div>
         </main>
-      </div>
+      </MainLayout>
     );
   }
 
@@ -245,10 +240,8 @@ export default function InterviewProcessDetailPage() {
   const isWaitingHR = process.status === "WAITING_HR";
 
   return (
-    <div className="flex min-h-screen bg-[#f8fafc]">
-      <Sidebar />
-      <MobileNav />
-      <main className="flex-1 lg:ml-60 p-6 lg:p-8">
+    <MainLayout>
+      <main className="flex-1 p-6 lg:p-8">
         <div className="max-w-4xl mx-auto">
           {/* Page Header */}
           <div className="mb-8">
@@ -271,7 +264,7 @@ export default function InterviewProcessDetailPage() {
 
           {/* HR Action Panel */}
           {user?.role === "HR" && isWaitingHR && currentInterview && (
-            <div className="bg-white rounded-xl border border-slate-100 shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-6 mb-5">
+            <div className="bg-white rounded-xl border border-[#E8EBF0] shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-6 mb-5">
               <h3 className="text-base font-semibold text-slate-900 mb-4">
                 第{process.currentRound}轮面试已完成，请确认
               </h3>
@@ -280,7 +273,7 @@ export default function InterviewProcessDetailPage() {
                   <>
                     <button
                       onClick={() => handleCompleteRound("next")}
-                      className="bg-amber-600 hover:bg-amber-700 text-white rounded-lg px-4 py-2.5 text-sm font-medium shadow-sm"
+                      className="bg-[#4371FF] hover:bg-[#3461E6] text-white rounded-lg px-4 py-2.5 text-sm font-medium shadow-sm"
                     >
                       通过，安排下一轮
                     </button>
@@ -312,7 +305,7 @@ export default function InterviewProcessDetailPage() {
           )}
 
           {/* Candidate Info Card */}
-          <div className="bg-white rounded-xl border border-slate-100 shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-6 mb-5">
+          <div className="bg-white rounded-xl border border-[#E8EBF0] shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-6 mb-5">
             <h2 className="text-base font-semibold text-slate-900 mb-4">候选人信息</h2>
             <div className="grid grid-cols-3 gap-4 text-sm">
               <div>
@@ -347,7 +340,7 @@ export default function InterviewProcessDetailPage() {
           </div>
 
           {/* Interview Process Timeline */}
-          <div className="bg-white rounded-xl border border-slate-100 shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-6">
+          <div className="bg-white rounded-xl border border-[#E8EBF0] shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-6">
             <h2 className="text-base font-semibold text-slate-900 mb-6">面试流程时间线</h2>
 
             <div className="space-y-6">
@@ -370,7 +363,7 @@ export default function InterviewProcessDetailPage() {
                     {/* Status indicator */}
                     <div className={`w-9 h-9 rounded-full flex items-center justify-center text-xs font-bold z-10 flex-shrink-0 ${
                       status === "completed" ? "bg-emerald-500 text-white" :
-                      status === "scheduled" ? "bg-amber-500 text-white" :
+                      status === "scheduled" ? "bg-[#4371FF] text-white" :
                       isCurrentRound ? "bg-blue-500 text-white" :
                       "bg-slate-200 text-slate-500"
                     }`}>
@@ -396,7 +389,7 @@ export default function InterviewProcessDetailPage() {
                         </div>
                         <span className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium ${
                           status === "completed" ? "bg-emerald-100 text-emerald-700" :
-                          status === "scheduled" ? "bg-amber-100 text-amber-700" :
+                          status === "scheduled" ? "bg-[#EFF3FF] text-[#4371FF]" :
                           isCurrentRound ? "bg-blue-100 text-blue-700" :
                           "bg-slate-100 text-slate-500"
                         }`}>
@@ -408,7 +401,7 @@ export default function InterviewProcessDetailPage() {
 
                       {/* Interview details */}
                       {interview ? (
-                        <div className="bg-slate-50/80 rounded-lg border border-slate-100 p-4 space-y-3">
+                        <div className="bg-slate-50/80 rounded-lg border border-[#E8EBF0] p-4 space-y-3">
                           {/* Time and format */}
                           <div className="grid grid-cols-2 gap-3 text-sm">
                             <div className="flex items-center gap-2 text-slate-700">
@@ -451,7 +444,7 @@ export default function InterviewProcessDetailPage() {
                                 <span className={`inline-flex px-2.5 py-0.5 rounded-full text-xs font-medium ${
                                   interview.feedbackResult === "PASS" ? "bg-emerald-100 text-emerald-700" :
                                   interview.feedbackResult === "FAIL" ? "bg-red-100 text-red-700" :
-                                  "bg-amber-100 text-amber-700"
+                                  "bg-[#EFF3FF] text-[#4371FF]"
                                 }`}>
                                   {interview.feedbackResult === "PASS" ? "通过" :
                                    interview.feedbackResult === "FAIL" ? "不通过" : "待定"}
@@ -463,7 +456,7 @@ export default function InterviewProcessDetailPage() {
                                 <div className="flex items-center gap-0.5 mb-3">
                                   {[1, 2, 3, 4, 5].map((star) => (
                                     <span key={star} className={`text-base ${
-                                      star <= (interview.feedbacks?.[0]?.overallRating ?? 0) ? "text-amber-400" : "text-slate-200"
+                                      star <= (interview.feedbacks?.[0]?.overallRating ?? 0) ? "text-[#4371FF]" : "text-slate-200"
                                     }`}>★</span>
                                   ))}
                                   <span className="ml-2 text-xs text-slate-500">
@@ -507,13 +500,13 @@ export default function InterviewProcessDetailPage() {
                             <div className="mt-3 pt-3 border-t border-slate-200 flex gap-2">
                               <button
                                 onClick={() => openScheduleModal(round.roundNumber)}
-                                className="border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-lg px-3 py-2 text-xs font-medium"
+                                className="border border-[#E8EBF0] hover:bg-slate-50 text-slate-700 rounded-lg px-3 py-2 text-xs font-medium"
                               >
                                 修改安排
                               </button>
                               <button
                                 onClick={() => router.push(`/interviews/${interview.id}`)}
-                                className="border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-lg px-3 py-2 text-xs font-medium"
+                                className="border border-[#E8EBF0] hover:bg-slate-50 text-slate-700 rounded-lg px-3 py-2 text-xs font-medium"
                               >
                                 查看详情
                               </button>
@@ -525,7 +518,7 @@ export default function InterviewProcessDetailPage() {
                             <div className="mt-3 pt-3 border-t border-slate-200">
                               <button
                                 onClick={() => openScheduleModal(round.roundNumber)}
-                                className="border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-lg px-3 py-2 text-xs font-medium"
+                                className="border border-[#E8EBF0] hover:bg-slate-50 text-slate-700 rounded-lg px-3 py-2 text-xs font-medium"
                               >
                                 {interview ? "修改" : "安排"}面试
                               </button>
@@ -538,7 +531,7 @@ export default function InterviewProcessDetailPage() {
                           {isCurrentRound && user?.role === "HR" ? (
                             <button
                               onClick={() => openScheduleModal(round.roundNumber)}
-                              className="mt-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg px-4 py-2 text-xs font-medium shadow-sm"
+                              className="mt-1 bg-[#4371FF] hover:bg-[#3461E6] text-white rounded-lg px-4 py-2 text-xs font-medium shadow-sm"
                             >
                               安排第{round.roundNumber}轮面试
                             </button>
@@ -558,7 +551,7 @@ export default function InterviewProcessDetailPage() {
           {showScheduleModal && schedulingRound && (
             <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
               <div className="bg-white rounded-xl shadow-xl max-w-lg w-full">
-                <div className="p-6 border-b border-slate-100">
+                <div className="p-6 border-b border-[#E8EBF0]">
                   <h2 className="text-lg font-semibold text-slate-900">
                     {editingInterviewId ? "修改" : "安排"}第{schedulingRound}轮面试
                   </h2>
@@ -572,7 +565,7 @@ export default function InterviewProcessDetailPage() {
                         type="datetime-local"
                         value={scheduleForm.startTime}
                         onChange={(e) => setScheduleForm(prev => ({ ...prev, startTime: e.target.value }))}
-                        className="w-full rounded-lg border border-slate-200 px-3.5 py-2.5 text-sm focus:border-amber-500 focus:ring-2 focus:ring-amber-500/10 outline-none"
+                        className="w-full rounded-lg border border-[#E8EBF0] px-3.5 py-2.5 text-sm focus:border-[#4371FF] focus:ring-2 focus:ring-[#4371FF]/10 outline-none"
                       />
                     </div>
                     <div>
@@ -581,7 +574,7 @@ export default function InterviewProcessDetailPage() {
                         type="datetime-local"
                         value={scheduleForm.endTime}
                         onChange={(e) => setScheduleForm(prev => ({ ...prev, endTime: e.target.value }))}
-                        className="w-full rounded-lg border border-slate-200 px-3.5 py-2.5 text-sm focus:border-amber-500 focus:ring-2 focus:ring-amber-500/10 outline-none"
+                        className="w-full rounded-lg border border-[#E8EBF0] px-3.5 py-2.5 text-sm focus:border-[#4371FF] focus:ring-2 focus:ring-[#4371FF]/10 outline-none"
                       />
                     </div>
                   </div>
@@ -591,7 +584,7 @@ export default function InterviewProcessDetailPage() {
                     <select
                       value={scheduleForm.format}
                       onChange={(e) => setScheduleForm(prev => ({ ...prev, format: e.target.value as any }))}
-                      className="w-full rounded-lg border border-slate-200 px-3.5 py-2.5 text-sm focus:border-amber-500 focus:ring-2 focus:ring-amber-500/10 outline-none"
+                      className="w-full rounded-lg border border-[#E8EBF0] px-3.5 py-2.5 text-sm focus:border-[#4371FF] focus:ring-2 focus:ring-[#4371FF]/10 outline-none"
                     >
                       <option value="ONLINE">线上</option>
                       <option value="OFFLINE">线下</option>
@@ -606,7 +599,7 @@ export default function InterviewProcessDetailPage() {
                           type="text"
                           value={scheduleForm.meetingUrl}
                           onChange={(e) => setScheduleForm(prev => ({ ...prev, meetingUrl: e.target.value }))}
-                          className="w-full rounded-lg border border-slate-200 px-3.5 py-2.5 text-sm focus:border-amber-500 focus:ring-2 focus:ring-amber-500/10 outline-none"
+                          className="w-full rounded-lg border border-[#E8EBF0] px-3.5 py-2.5 text-sm focus:border-[#4371FF] focus:ring-2 focus:ring-[#4371FF]/10 outline-none"
                           placeholder="腾讯会议链接"
                         />
                       </div>
@@ -616,7 +609,7 @@ export default function InterviewProcessDetailPage() {
                           type="text"
                           value={scheduleForm.meetingNumber}
                           onChange={(e) => setScheduleForm(prev => ({ ...prev, meetingNumber: e.target.value }))}
-                          className="w-full rounded-lg border border-slate-200 px-3.5 py-2.5 text-sm focus:border-amber-500 focus:ring-2 focus:ring-amber-500/10 outline-none"
+                          className="w-full rounded-lg border border-[#E8EBF0] px-3.5 py-2.5 text-sm focus:border-[#4371FF] focus:ring-2 focus:ring-[#4371FF]/10 outline-none"
                           placeholder="会议号"
                         />
                       </div>
@@ -628,7 +621,7 @@ export default function InterviewProcessDetailPage() {
                         type="text"
                         value={scheduleForm.location}
                         onChange={(e) => setScheduleForm(prev => ({ ...prev, location: e.target.value }))}
-                        className="w-full rounded-lg border border-slate-200 px-3.5 py-2.5 text-sm focus:border-amber-500 focus:ring-2 focus:ring-amber-500/10 outline-none"
+                        className="w-full rounded-lg border border-[#E8EBF0] px-3.5 py-2.5 text-sm focus:border-[#4371FF] focus:ring-2 focus:ring-[#4371FF]/10 outline-none"
                         placeholder="具体地址"
                       />
                     </div>
@@ -637,13 +630,13 @@ export default function InterviewProcessDetailPage() {
                   <div className="flex gap-3 pt-2">
                     <button
                       onClick={() => setShowScheduleModal(false)}
-                      className="flex-1 border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-lg px-4 py-2.5 text-sm font-medium"
+                      className="flex-1 border border-[#E8EBF0] hover:bg-slate-50 text-slate-700 rounded-lg px-4 py-2.5 text-sm font-medium"
                     >
                       取消
                     </button>
                     <button
                       onClick={handleScheduleInterview}
-                      className="flex-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg px-4 py-2.5 text-sm font-medium shadow-sm"
+                      className="flex-1 bg-[#4371FF] hover:bg-[#3461E6] text-white rounded-lg px-4 py-2.5 text-sm font-medium shadow-sm"
                     >
                       确认安排
                     </button>
@@ -654,6 +647,6 @@ export default function InterviewProcessDetailPage() {
           )}
         </div>
       </main>
-    </div>
+    </MainLayout>
   );
 }

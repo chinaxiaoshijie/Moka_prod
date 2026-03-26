@@ -21,8 +21,7 @@ import {
   Funnel,
   LabelList,
 } from "recharts";
-import Sidebar from "@/components/Sidebar";
-import MobileNav from "@/components/MobileNav";
+import MainLayout from "@/components/MainLayout";
 import { exportToExcel } from "@/components/DataImport";
 
 interface FunnelData {
@@ -62,7 +61,7 @@ interface DashboardStats {
 }
 
 const COLORS = [
-  "#f59e0b",
+  "#4371FF",
   "#3b82f6",
   "#10b981",
   "#ef4444",
@@ -144,21 +143,17 @@ export default function AnalyticsPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen bg-[#f8fafc]">
-        <Sidebar />
-        <MobileNav />
-        <main className="flex-1 lg:ml-60 p-8 flex items-center justify-center">
-          <div className="animate-spin rounded-full h-7 w-7 border-2 border-slate-200 border-t-amber-600" />
+      <MainLayout>
+        <main className="flex-1 p-8 flex items-center justify-center">
+          <div className="animate-spin rounded-full h-7 w-7 border-2 border-slate-200 border-t-[#4371FF]" />
         </main>
-      </div>
+      </MainLayout>
     );
   }
 
   return (
-    <div className="flex min-h-screen bg-[#f8fafc]">
-      <Sidebar />
-      <MobileNav />
-      <main className="flex-1 lg:ml-60 p-6 lg:p-8">
+    <MainLayout>
+      <main className="flex-1 p-6 lg:p-8">
         <div className="max-w-7xl mx-auto">
           {/* 头部 */}
           <div className="flex items-center justify-between mb-8">
@@ -172,7 +167,7 @@ export default function AnalyticsPage() {
               <select
                 value={timeRange}
                 onChange={(e) => setTimeRange(Number(e.target.value))}
-                className="rounded-lg border border-slate-200 px-3.5 py-2.5 text-sm focus:border-amber-500 focus:ring-2 focus:ring-amber-500/10 outline-none bg-white"
+                className="rounded-lg border border-[#E8EBF0] px-3.5 py-2.5 text-sm focus:border-[#4371FF] focus:ring-2 focus:ring-[#4371FF]/10 outline-none bg-white"
               >
                 <option value={7}>最近 7 天</option>
                 <option value={30}>最近 30 天</option>
@@ -180,7 +175,7 @@ export default function AnalyticsPage() {
               </select>
               <button
                 onClick={exportData}
-                className="border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-lg px-4 py-2.5 text-sm font-medium flex items-center gap-2"
+                className="border border-[#E8EBF0] hover:bg-slate-50 text-slate-700 rounded-lg px-4 py-2.5 text-sm font-medium flex items-center gap-2"
               >
                 <svg
                   className="w-4 h-4"
@@ -203,31 +198,31 @@ export default function AnalyticsPage() {
           {/* 关键指标卡片 */}
           {dashboardStats && (
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
-              <div className="bg-white rounded-xl border border-slate-100 shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-5">
+              <div className="bg-white rounded-xl border border-[#E8EBF0] shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-5">
                 <p className="text-xs font-medium uppercase tracking-wider text-slate-500 mb-2">总候选人</p>
                 <p className="text-2xl font-bold text-slate-900">
                   {dashboardStats.totalCandidates}
                 </p>
               </div>
-              <div className="bg-white rounded-xl border border-slate-100 shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-5">
+              <div className="bg-white rounded-xl border border-[#E8EBF0] shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-5">
                 <p className="text-xs font-medium uppercase tracking-wider text-slate-500 mb-2">待处理</p>
-                <p className="text-2xl font-bold text-amber-600">
+                <p className="text-2xl font-bold text-[#4371FF]">
                   {dashboardStats.pendingCandidates}
                 </p>
               </div>
-              <div className="bg-white rounded-xl border border-slate-100 shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-5">
+              <div className="bg-white rounded-xl border border-[#E8EBF0] shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-5">
                 <p className="text-xs font-medium uppercase tracking-wider text-slate-500 mb-2">本月录用</p>
                 <p className="text-2xl font-bold text-emerald-600">
                   {dashboardStats.hiredThisMonth}
                 </p>
               </div>
-              <div className="bg-white rounded-xl border border-slate-100 shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-5">
+              <div className="bg-white rounded-xl border border-[#E8EBF0] shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-5">
                 <p className="text-xs font-medium uppercase tracking-wider text-slate-500 mb-2">总面试数</p>
                 <p className="text-2xl font-bold text-blue-600">
                   {dashboardStats.totalInterviews}
                 </p>
               </div>
-              <div className="bg-white rounded-xl border border-slate-100 shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-5">
+              <div className="bg-white rounded-xl border border-[#E8EBF0] shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-5">
                 <p className="text-xs font-medium uppercase tracking-wider text-slate-500 mb-2">即将面试</p>
                 <p className="text-2xl font-bold text-violet-600">
                   {dashboardStats.upcomingInterviews}
@@ -239,13 +234,13 @@ export default function AnalyticsPage() {
           {/* 图表区域 */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
             {/* 招聘漏斗 */}
-            <div className="bg-white rounded-xl border border-slate-100 shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-6">
+            <div className="bg-white rounded-xl border border-[#E8EBF0] shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-6">
               <h3 className="text-sm font-semibold text-slate-900 mb-1">
                 招聘漏斗
               </h3>
               <p className="text-xs text-slate-500 mb-4">
                 总体转化率：
-                <span className="text-amber-600 font-semibold ml-1">
+                <span className="text-[#4371FF] font-semibold ml-1">
                   {funnelData?.conversionRate}%
                 </span>
               </p>
@@ -277,7 +272,7 @@ export default function AnalyticsPage() {
             </div>
 
             {/* 候选人来源 */}
-            <div className="bg-white rounded-xl border border-slate-100 shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-6">
+            <div className="bg-white rounded-xl border border-[#E8EBF0] shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-6">
               <h3 className="text-sm font-semibold text-slate-900 mb-4">
                 候选人来源分布
               </h3>
@@ -311,7 +306,7 @@ export default function AnalyticsPage() {
           </div>
 
           {/* 面试官工作量 */}
-          <div className="bg-white rounded-xl border border-slate-100 shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-6 mb-5">
+          <div className="bg-white rounded-xl border border-[#E8EBF0] shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-6 mb-5">
             <h3 className="text-sm font-semibold text-slate-900 mb-4">
               面试官工作量统计
             </h3>
@@ -332,7 +327,7 @@ export default function AnalyticsPage() {
                   <Bar
                     dataKey="pendingInterviews"
                     name="待面试"
-                    fill="#f59e0b"
+                    fill="#4371FF"
                     radius={[3, 3, 0, 0]}
                   />
                 </BarChart>
@@ -341,7 +336,7 @@ export default function AnalyticsPage() {
           </div>
 
           {/* 招聘趋势 */}
-          <div className="bg-white rounded-xl border border-slate-100 shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-6">
+          <div className="bg-white rounded-xl border border-[#E8EBF0] shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-6">
             <h3 className="text-sm font-semibold text-slate-900 mb-4">
               招聘趋势（最近 {timeRange} 天）
             </h3>
@@ -379,6 +374,6 @@ export default function AnalyticsPage() {
           </div>
         </div>
       </main>
-    </div>
+    </MainLayout>
   );
 }
