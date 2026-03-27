@@ -159,10 +159,25 @@ export class EmailService {
   }
 
   async sendRoundCompletedToHR(data: RoundCompletedData): Promise<void> {
-    const subject = `面试轮次完成 - ${data.candidateName} - ${data.positionTitle} 第${data.roundNumber}轮`;
+    const subject = `面试轮次完成 - ${data.candidateName} - ${data.positionTitle} 第${data.roundNumber || "N"}轮`;
     const { text, html } = this.buildRoundCompletedEmail(data);
 
     await this.sendEmail(data.hrEmail, subject, html, text);
+  }
+
+  async sendCustomEmail(data: {
+    to: string;
+    subject: string;
+    content: string;
+  }): Promise<void> {
+    const html = `
+<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+  ${data.content}
+  <p style="color: #999; margin-top: 30px;">Moka 面试系统</p>
+</div>
+    `.trim();
+
+    await this.sendEmail(data.to, data.subject, html, data.content);
   }
 
   private buildCandidateEmail(data: InterviewEmailData): {
@@ -185,7 +200,7 @@ export class EmailService {
 - 时间：${this.formatDateTime(data.startTime)} - ${this.formatTime(data.endTime)}
 - 形式：${formatText}
 - ${locationInfo}
-- 面试官：${data.interviewerName}
+- 面试官：${data.interviewerName || "待定"}
 
 请您准时参加。如有任何问题，请随时与我们联系。
 
@@ -370,7 +385,7 @@ Moka 面试系统
     const resultText = data.result === "HIRED" ? "已录用" : "已淘汰";
 
     const text = `
-${data.hrName} 您好：
+${data.hrName || "HR"} 您好：
 
 候选人 ${data.candidateName}（${data.positionTitle}）的面试流程已完成。
 
@@ -411,9 +426,9 @@ Moka 面试系统
     const resultText = data.result === "PASS" ? "通过" : "未通过";
 
     const text = `
-${data.hrName} 您好：
+${data.hrName || "HR"} 您好：
 
-候选人 ${data.candidateName}（${data.positionTitle}）已完成第${data.roundNumber}轮面试（${roundTypeText}）。
+候选人 ${data.candidateName}（${data.positionTitle}）已完成第${data.roundNumber || "N"}轮面试（${roundTypeText}）。
 
 面试结果：${resultText}
 

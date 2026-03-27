@@ -42,6 +42,11 @@ export class InterviewProcessService {
       throw new BadRequestException("终面必须是最后一轮");
     }
 
+    // 校验最少3轮
+    if (rounds.length < 3) {
+      throw new BadRequestException("面试流程至少需要3轮（包括终面）");
+    }
+
     // 创建流程主记录
     const process = await this.prisma.interviewProcess.create({
       data: {
@@ -415,6 +420,14 @@ export class InterviewProcessService {
         },
         data: { interviewerId: updateDto.interviewerId },
       });
+    }
+
+    // 验证更新后仍至少3轮
+    const updatedRounds = await this.prisma.interviewRound.findMany({
+      where: { processId },
+    });
+    if (updatedRounds.length < 3) {
+      throw new BadRequestException("面试流程至少需要3轮（包括终面）");
     }
 
     return this.findOne(processId);

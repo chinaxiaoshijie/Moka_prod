@@ -84,4 +84,17 @@ export class InterviewController {
       throw new HttpException(error.message, HttpStatus.NOT_FOUND);
     }
   }
+
+  @Post(":id/send-candidate-email")
+  @ApiOperation({ summary: "手动发送邮件给候选人" })
+  async sendCandidateEmail(
+    @Param("id") id: string,
+    @Body() body: { subject?: string; content?: string },
+  ): Promise<{ message: string }> {
+    try {
+      return await this.interviewService.sendCandidateEmail(id, body.subject, body.content);
+    } catch (error: any) {
+      throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
+    }
+  }
 }

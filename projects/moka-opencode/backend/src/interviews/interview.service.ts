@@ -39,22 +39,7 @@ export class InterviewService {
       },
     });
 
-    if (interview.candidate.email) {
-      await this.emailService.sendInterviewNotificationToCandidate({
-        candidateName: interview.candidate.name,
-        candidateEmail: interview.candidate.email,
-        positionTitle: interview.position.title,
-        interviewerName: interview.interviewer.name,
-        interviewerEmail: interview.interviewer.email || "",
-        startTime: interview.startTime,
-        endTime: interview.endTime,
-        format: interview.format,
-        location: interview.location || undefined,
-        meetingUrl: interview.meetingUrl || undefined,
-        meetingNumber: interview.meetingNumber || undefined,
-      });
-    }
-
+    // 仅发送给面试官，不自动发送给候选人
     if (interview.interviewer.email) {
       await this.emailService.sendInterviewNotificationToInterviewer({
         candidateName: interview.candidate.name,
@@ -72,6 +57,66 @@ export class InterviewService {
     }
 
     return this.mapToResponseDto(interview);
+  }
+
+  async sendCandidateEmail(
+    interviewId: string,
+    customSubject?: string,
+    customContent?: string,
+  ): Promise<{ message: string }> {
+    const interview = await this.prisma.interview.findUnique({
+      where: { id: interviewId },
+      include: {
+        candidate: true,
+        position: true,
+        interviewer: true,
+        process: {
+          include: {
+            candidate: true,
+            position: true,
+          },
+        },
+      },
+    });
+
+    if (!interview) {
+      throw new Error("面试安排不存在");
+    }
+
+    if (!interview.candidate.email) {
+      throw new Error("候选人没有邮箱，无法发送邮件");
+    }
+
+    try {
+      if (customContent) {
+        // 自定义内容邮件
+        await this.emailService.sendCustomEmail({
+          to: interview.candidate.email,
+          subject: customSubject || `面试通知 - ${interview.position.title}`,
+          content: customContent,
+        });
+      } else {
+        // 标准面试通知邮件
+        await this.emailService.sendInterviewNotificationToCandidate({
+          candidateName: interview.candidate.name,
+          candidateEmail: interview.candidate.email,
+          positionTitle: interview.position.title,
+          interviewerName: interview.interviewer.name || "面试官",
+          interviewerEmail: interview.interviewer.email || "",
+          startTime: interview.startTime,
+          endTime: interview.endTime,
+          format: interview.format,
+          location: interview.location || undefined,
+          meetingUrl: interview.meetingUrl || undefined,
+          meetingNumber: interview.meetingNumber || undefined,
+        });
+      }
+
+      return { message: "邮件已成功发送" };
+    } catch (error) {
+      console.error("发送邮件给候选人失败:", error);
+      return { message: `邮件发送失败: ${(error as Error).message}` };
+    }
   }
 
   async findAll(
