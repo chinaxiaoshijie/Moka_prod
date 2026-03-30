@@ -51,6 +51,11 @@ export default function InterviewDetailPage() {
   const [error, setError] = useState("");
   const [updating, setUpdating] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [showEmailModal, setShowEmailModal] = useState(false);
+  const [emailSubject, setEmailSubject] = useState("");
+  const [emailContent, setEmailContent] = useState("");
+  const [sendingEmail, setSendingEmail] = useState(false);
+  const [emailMessage, setEmailMessage] = useState("");
 
   useEffect(() => {
     if (interviewId) {
@@ -204,6 +209,44 @@ export default function InterviewDetailPage() {
       router.push("/interviews");
     } catch (err: any) {
       setError(err.message);
+    }
+  };
+
+  const handleSendEmailToCandidate = async () => {
+    setSendingEmail(true);
+    setEmailMessage("");
+
+    try {
+      const token = localStorage.getItem("token");
+      const response = await apiFetch(
+        `/interviews/${interviewId}/send-candidate-email`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            subject: emailSubject,
+            content: emailContent,
+          }),
+        },
+      );
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setEmailMessage("✅ " + data.message);
+        setShowEmailModal(false);
+        setEmailSubject("");
+        setEmailContent("");
+      } else {
+        setEmailMessage("❌ " + (data.message || "发送失败"));
+      }
+    } catch (err: any) {
+      setEmailMessage("❌ 邮件发送失败: " + (err.message || "未知错误"));
+    } finally {
+      setSendingEmail(false);
     }
   };
 
@@ -741,8 +784,41 @@ export default function InterviewDetailPage() {
                   <p className="font-medium text-[#1A1A1A] text-sm">查看候选人</p>
                   <p className="text-xs text-[#666] mt-0.5">查看候选人详情</p>
                 </button>
+                {interview.candidate.email && (
+                  <button
+                    onClick={() => {
+                      setEmailSubject(`面试通知 - ${interview.position.title}`);
+                      setEmailContent(`
+<p>尊敬的 ${interview.candidate.name} 您好：</p>
+<p>感谢您应聘我司 ${interview.position.title} 职位。经过初步筛选，我们诚挚邀请您参加面试：</p>
+<div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
+  <h3 style="margin-top: 0; color: #666;">面试信息</h3>
+  <p><strong>职位：</strong>${interview.position.title}</p>
+  <p><strong>时间：</strong>${formatDateTime(interview.startTime)}</p>
+  <p><strong>形式：</strong>${getFormatText(interview.format)}</p>
+  ${interview.location ? `<p><strong>面试地点：</strong>${interview.location}</p>` : ''}
+  ${interview.meetingUrl ? `<p><strong>会议链接：</strong>${interview.meetingUrl}</p>` : ''}
+  <p><strong>面试官：</strong>${interview.interviewer.name || '待定'}</p>
+</div>
+<p>请您准时参加。如有任何问题，请随时与我们联系。</p>
+<p>祝您面试顺利！</p>
+`);
+                      setShowEmailModal(true);
+                    }}
+                    className="w-full px-4 py-3 text-left rounded-lg border border-[#4371FF]/30 hover:bg-[#EFF3FF] transition-all"
+                  >
+                    <p className="font-medium text-[#4371FF] text-sm">发送邮件给候选人</p>
+                    <p className="text-xs text-[#666] mt-0.5">手动发送面试通知邮件</p>
+                  </button>
+                )}
               </div>
             </div>
+
+            {emailMessage && (
+              <div className={`rounded-xl p-4 border ${emailMessage.startsWith('✅') ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-red-50 border-red-200 text-red-700'}`}>
+                <p className="text-sm">{emailMessage}</p>
+              </div>
+            )}
 
             <div className="bg-[#EFF3FF] rounded-xl p-5 border border-[#4371FF]/20">
               <h3 className="font-semibold text-[#4371FF] mb-2 text-sm">提示</h3>
@@ -753,6 +829,91 @@ export default function InterviewDetailPage() {
           </div>
         </div>
       </div>
+
+      {/* Email Modal */}
+      {showEmailModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-[#E8EBF0] flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-[#1A1A1A]">发送邮件给候选人</h3>
+              <button
+                onClick={() => setShowEmailModal(false)}
+                className="w-8 h-8 rounded-full hover:bg-slate-100 flex items-center justify-center"
+              >
+                <svg className="w-5 h-5 text-[#666]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-[#1A1A1A] mb-1">
+                  收件人
+                </label>
+                <div className="px-3 py-2 bg-slate-50 rounded-lg text-sm text-[#666] border border-[#E8EBF0]">
+                  {interview?.candidate.email}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-[#1A1A1A] mb-1">
+                  邮件主题
+                </label>
+                <input
+                  type="text"
+                  value={emailSubject}
+                  onChange={(e) => setEmailSubject(e.target.value)}
+                  className="w-full px-3 py-2 border border-[#E8EBF0] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#4371FF] focus:border-transparent"
+                  placeholder="请输入邮件主题"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-[#1A1A1A] mb-1">
+                  邮件内容
+                </label>
+                <textarea
+                  value={emailContent}
+                  onChange={(e) => setEmailContent(e.target.value)}
+                  className="w-full px-3 py-2 border border-[#E8EBF0] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#4371FF] focus:border-transparent min-h-[300px] font-mono"
+                  placeholder="请输入邮件内容（支持 HTML 格式）"
+                />
+              </div>
+
+              {emailMessage && (
+                <div className={`rounded-lg p-3 border ${emailMessage.startsWith('✅') ? 'bg-emerald-50 border-emerald-200 text-emerald-700' : 'bg-red-50 border-red-200 text-red-700'}`}>
+                  <p className="text-sm">{emailMessage}</p>
+                </div>
+              )}
+            </div>
+
+            <div className="p-6 border-t border-[#E8EBF0] flex items-center justify-end gap-3">
+              <button
+                onClick={() => setShowEmailModal(false)}
+                className="px-5 py-2.5 border border-[#E8EBF0] rounded-lg text-sm font-medium text-[#666] hover:bg-slate-50"
+              >
+                取消
+              </button>
+              <button
+                onClick={handleSendEmailToCandidate}
+                disabled={sendingEmail || !emailSubject.trim()}
+                className="px-5 py-2.5 bg-[#4371FF] hover:bg-[#3461E6] text-white rounded-lg text-sm font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {sendingEmail ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                    <span>发送中...</span>
+                  </>
+                ) : (
+                  <span>发送邮件</span>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </MainLayout>
   );
 }
