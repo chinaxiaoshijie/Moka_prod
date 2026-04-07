@@ -104,11 +104,11 @@ export class UpdateInterviewDto {
 export class InterviewResponseDto {
   id!: string;
   candidateId!: string;
-  candidate!: { name: string; phone: string };
+  candidate!: { name: string; phone: string; email: string | null };
   positionId!: string;
   position!: { title: string };
   interviewerId!: string;
-  interviewer!: { name: string };
+  interviewer!: { name: string; email: string | null };
   type!: InterviewType;
   format!: InterviewFormat;
   startTime!: Date;

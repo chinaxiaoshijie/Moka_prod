@@ -167,18 +167,19 @@ export class CandidateService {
     }
 
     const timestamp = Date.now();
-    const safeFileName = file.originalname.replace(/[^a-zA-Z0-9.]/g, "_");
-    const fileName = `${candidateId}_${timestamp}_${safeFileName}`;
-    const filePath = path.join(uploadDir, fileName);
+    // 使用安全文件名存储（避免中文乱码和特殊字符问题）
+    const safeFileName = `${candidateId}_${timestamp}.pdf`;
+    const filePath = path.join(uploadDir, safeFileName);
 
     fs.writeFileSync(filePath, file.buffer);
 
-    const fileUrl = `/candidates/resumes/file/${fileName}`;
+    // fileUrl 不再使用，前端直接使用 resumeId
+    const fileUrl = `/candidates/resumes/${candidateId}`;
 
     const resumeFile = await this.prisma.resumeFile.create({
       data: {
         candidateId,
-        fileName: file.originalname,
+        fileName: file.originalname, // 保留原始文件名用于显示
         fileType: file.mimetype,
         fileSize: file.size,
         filePath,

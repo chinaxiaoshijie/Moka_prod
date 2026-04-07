@@ -1,6 +1,7 @@
 import { Injectable } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { EmailService } from "../email/email.service";
+import { EmailLimitService } from "../email/email-limit.service";
 import {
   CreateInterviewDto,
   UpdateInterviewDto,
@@ -13,11 +14,20 @@ export class InterviewService {
   constructor(
     private prisma: PrismaService,
     private emailService: EmailService,
+    private emailLimitService: EmailLimitService,
   ) {}
 
   async create(createDto: CreateInterviewDto): Promise<InterviewResponseDto> {
-    const interview = await this.prisma.interview.create({
-      data: {
+    // ✅ 使用 upsert 避免竞态条件（替代 findFirst + update/create）
+    const interview = await this.prisma.interview.upsert({
+      where: {
+        // 使用复合唯一键：同一流程的同一轮次只能有一个面试
+        processId_roundNumber: {
+          processId: createDto.processId,
+          roundNumber: createDto.roundNumber,
+        },
+      },
+      create: {
         candidateId: createDto.candidateId,
         positionId: createDto.positionId,
         interviewerId: createDto.interviewerId,
@@ -32,6 +42,19 @@ export class InterviewService {
         roundNumber: createDto.roundNumber,
         status: "SCHEDULED",
       },
+      update: {
+        candidateId: createDto.candidateId,
+        positionId: createDto.positionId,
+        interviewerId: createDto.interviewerId,
+        type: createDto.type,
+        format: createDto.format,
+        startTime: new Date(createDto.startTime),
+        endTime: new Date(createDto.endTime),
+        location: createDto.location,
+        meetingUrl: createDto.meetingUrl,
+        meetingNumber: createDto.meetingNumber,
+        status: "SCHEDULED",
+      },
       include: {
         candidate: true,
         position: true,
@@ -39,22 +62,8 @@ export class InterviewService {
       },
     });
 
-    // 仅发送给面试官，不自动发送给候选人
-    if (interview.interviewer.email) {
-      await this.emailService.sendInterviewNotificationToInterviewer({
-        candidateName: interview.candidate.name,
-        candidateEmail: interview.candidate.email || "",
-        positionTitle: interview.position.title,
-        interviewerName: interview.interviewer.name,
-        interviewerEmail: interview.interviewer.email,
-        startTime: interview.startTime,
-        endTime: interview.endTime,
-        format: interview.format,
-        location: interview.location || undefined,
-        meetingUrl: interview.meetingUrl || undefined,
-        meetingNumber: interview.meetingNumber || undefined,
-      });
-    }
+    // ✅ 原则 1：移除自动发送邮件，改为 HR 手动发送
+    // 邮件由 HR 在面试详情页手动编辑并发送
 
     return this.mapToResponseDto(interview);
   }
@@ -63,6 +72,7 @@ export class InterviewService {
     interviewId: string,
     customSubject?: string,
     customContent?: string,
+    sentBy?: string,
   ): Promise<{ message: string }> {
     const interview = await this.prisma.interview.findUnique({
       where: { id: interviewId },
@@ -85,6 +95,34 @@ export class InterviewService {
 
     if (!interview.candidate.email) {
       throw new Error("候选人没有邮箱，无法发送邮件");
+    }
+
+    // ✅ 检查 2 小时内是否已发送过邮件，避免重复发送
+    const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
+    const recentEmailLogs = await this.prisma.interviewEmailLog.findMany({
+      where: {
+        interviewId: interviewId,
+        sentAt: { gte: twoHoursAgo },
+      },
+      orderBy: { sentAt: "desc" },
+      take: 1,
+    });
+
+    if (recentEmailLogs.length > 0) {
+      const lastSent = recentEmailLogs[0].sentAt;
+      throw new Error(
+        `2 小时内已发送过邮件，请勿重复发送（上次发送时间：${lastSent.toLocaleString("zh-CN", { timeZone: "Asia/Shanghai" })}）`
+      );
+    }
+
+    // ✅ 检查邮件发送频率限制
+    const limitCheck = await this.emailLimitService.checkEmailLimit(
+      interviewId,
+      interview.candidateId,
+    );
+
+    if (!limitCheck.allowed) {
+      throw new Error(`邮件发送受限：${limitCheck.reason}`);
     }
 
     try {
@@ -112,16 +150,46 @@ export class InterviewService {
         });
       }
 
+      // ✅ 记录邮件发送日志
+      await this.prisma.interviewEmailLog.create({
+        data: {
+          interviewId: interviewId,
+          candidateId: interview.candidateId,
+          recipientEmail: interview.candidate.email,
+          subject: customSubject || `面试通知 - ${interview.position.title}`,
+          content: customContent || "标准面试通知模板",
+          sentBy: sentBy || "system",
+          status: "sent",
+        },
+      });
+
       return { message: "邮件已成功发送" };
     } catch (error) {
+      // ✅ 记录发送失败的日志
+      await this.prisma.interviewEmailLog.create({
+        data: {
+          interviewId: interviewId,
+          candidateId: interview.candidateId,
+          recipientEmail: interview.candidate.email || "",
+          subject: customSubject || `面试通知 - ${interview.position.title}`,
+          content: customContent || "标准面试通知模板",
+          sentBy: sentBy || "system",
+          status: "failed",
+          errorMessage: (error as Error).message,
+        },
+      });
+
       console.error("发送邮件给候选人失败:", error);
-      return { message: `邮件发送失败: ${(error as Error).message}` };
+      return { message: `邮件发送失败：${(error as Error).message}` };
     }
   }
 
   async findAll(
     page: number = 1,
-    pageSize: number = 100,
+    pageSize: number = 10,
+    userId?: string,
+    userRole?: string,
+    positionId?: string,
   ): Promise<InterviewListResponseDto> {
     const skip = (page - 1) * pageSize;
     const [items, total] = await Promise.all([
@@ -224,6 +292,13 @@ export class InterviewService {
     return this.mapToResponseDto(deletedInterview);
   }
 
+  /**
+   * 获取邮件发送历史
+   */
+  async getEmailHistory(interviewId: string, limit: number = 10): Promise<any> {
+    return await this.emailLimitService.getEmailHistory(interviewId, undefined, limit);
+  }
+
   private mapToResponseDto(interview: any): InterviewResponseDto {
     return {
       id: interview.id,
@@ -231,11 +306,15 @@ export class InterviewService {
       candidate: {
         name: interview.candidate.name,
         phone: interview.candidate.phone,
+        email: interview.candidate.email,
       },
       positionId: interview.positionId,
       position: { title: interview.position.title },
       interviewerId: interview.interviewerId,
-      interviewer: { name: interview.interviewer.name },
+      interviewer: {
+        name: interview.interviewer.name,
+        email: interview.interviewer.email,
+      },
       type: interview.type,
       format: interview.format,
       startTime: interview.startTime,

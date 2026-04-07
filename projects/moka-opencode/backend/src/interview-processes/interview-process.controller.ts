@@ -107,16 +107,21 @@ export class InterviewProcessController {
     @Query("pageSize", new DefaultValuePipe(10), ParseIntPipe)
     pageSize?: number,
     @Query("status") status?: string,
+    @Request() req?: any,
   ): Promise<ProcessListResponseDto> {
-    return this.processService.findAll(page, pageSize, status);
+    const userId = req?.user?.sub;
+    const userRole = req?.user?.role;
+    return this.processService.findAll(page, pageSize, status, userId, userRole);
   }
 
   @Get(":id")
   @Roles("HR", "INTERVIEWER")
   @ApiOperation({ summary: "获取面试流程详情" })
-  async findOne(@Param("id") id: string): Promise<ProcessResponseDto> {
+  async findOne(@Param("id") id: string, @Request() req?: any): Promise<ProcessResponseDto> {
     try {
-      return await this.processService.findOne(id);
+      const userId = req?.user?.sub;
+      const userRole = req?.user?.role;
+      return await this.processService.findOne(id, userId, userRole);
     } catch (error: any) {
       throw new HttpException(error.message, HttpStatus.NOT_FOUND);
     }

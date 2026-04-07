@@ -1,7 +1,8 @@
 "use client";
 import { apiFetch } from "@/lib/api";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
+
 import { useRouter, useParams } from "next/navigation";
 import MainLayout from "@/components/MainLayout";
 
@@ -52,6 +53,7 @@ export default function InterviewDetailPage() {
   const [updating, setUpdating] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [showEmailModal, setShowEmailModal] = useState(false);
+  const [candidateEmail, setCandidateEmail] = useState("");
   const [emailSubject, setEmailSubject] = useState("");
   const [emailContent, setEmailContent] = useState("");
   const [sendingEmail, setSendingEmail] = useState(false);
@@ -229,6 +231,7 @@ export default function InterviewDetailPage() {
           body: JSON.stringify({
             subject: emailSubject,
             content: emailContent,
+            candidateEmail: candidateEmail, // 使用可编辑的邮箱地址
           }),
         },
       );
@@ -784,11 +787,14 @@ export default function InterviewDetailPage() {
                   <p className="font-medium text-[#1A1A1A] text-sm">查看候选人</p>
                   <p className="text-xs text-[#666] mt-0.5">查看候选人详情</p>
                 </button>
-                {interview.candidate.email && (
-                  <button
-                    onClick={() => {
-                      setEmailSubject(`面试通知 - ${interview.position.title}`);
-                      setEmailContent(`
+                <button
+                  onClick={() => {
+                    if (!interview.candidate.email) {
+                      alert('候选人没有邮箱，请先在候选人详情中添加邮箱地址');
+                      return;
+                    }
+                    setEmailSubject(`面试通知 - ${interview.position.title}`);
+                    setEmailContent(`
 <p>尊敬的 ${interview.candidate.name} 您好：</p>
 <p>感谢您应聘我司 ${interview.position.title} 职位。经过初步筛选，我们诚挚邀请您参加面试：</p>
 <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
@@ -803,14 +809,14 @@ export default function InterviewDetailPage() {
 <p>请您准时参加。如有任何问题，请随时与我们联系。</p>
 <p>祝您面试顺利！</p>
 `);
+                    setCandidateEmail(interview?.candidate.email || "");
                       setShowEmailModal(true);
-                    }}
-                    className="w-full px-4 py-3 text-left rounded-lg border border-[#4371FF]/30 hover:bg-[#EFF3FF] transition-all"
-                  >
-                    <p className="font-medium text-[#4371FF] text-sm">发送邮件给候选人</p>
-                    <p className="text-xs text-[#666] mt-0.5">手动发送面试通知邮件</p>
-                  </button>
-                )}
+                  }}
+                  className="w-full px-4 py-3 text-left rounded-lg border border-[#4371FF]/30 hover:bg-[#EFF3FF] transition-all"
+                >
+                  <p className="font-medium text-[#4371FF] text-sm">发送邮件给候选人</p>
+                  <p className="text-xs text-[#666] mt-0.5">手动发送面试通知邮件</p>
+                </button>
               </div>
             </div>
 
@@ -849,11 +855,18 @@ export default function InterviewDetailPage() {
             <div className="p-6 space-y-4">
               <div>
                 <label className="block text-sm font-medium text-[#1A1A1A] mb-1">
-                  收件人
+                  收件人邮箱 <span className="text-red-500">*</span>
                 </label>
-                <div className="px-3 py-2 bg-slate-50 rounded-lg text-sm text-[#666] border border-[#E8EBF0]">
-                  {interview?.candidate.email}
-                </div>
+                <input
+                  type="email"
+                  value={candidateEmail}
+                  onChange={(e) => setCandidateEmail(e.target.value)}
+                  className="w-full px-3 py-2 border border-[#E8EBF0] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#4371FF] focus:border-transparent"
+                  placeholder="请输入候选人邮箱"
+                />
+                <p className="text-xs text-[#666] mt-1">
+                  💡 邮箱地址已自动生成，您可以根据需要修改
+                </p>
               </div>
 
               <div>
@@ -873,12 +886,10 @@ export default function InterviewDetailPage() {
                 <label className="block text-sm font-medium text-[#1A1A1A] mb-1">
                   邮件内容
                 </label>
-                <textarea
-                  value={emailContent}
-                  onChange={(e) => setEmailContent(e.target.value)}
-                  className="w-full px-3 py-2 border border-[#E8EBF0] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#4371FF] focus:border-transparent min-h-[300px] font-mono"
-                  placeholder="请输入邮件内容（支持 HTML 格式）"
-                />
+                <div id="quill-editor" className="border border-[#E8EBF0] rounded-lg overflow-hidden" style={{ minHeight: '400px' }}></div>
+                <p className="text-xs text-[#666] mt-1">
+                  💡 支持富文本编辑：标题、加粗、列表、颜色等
+                </p>
               </div>
 
               {emailMessage && (

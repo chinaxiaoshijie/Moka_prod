@@ -61,6 +61,7 @@ export default function CandidatesPage() {
   const [selectedCandidate, setSelectedCandidate] = useState<Candidate | null>(
     null,
   );
+  const [hrUsers, setHrUsers] = useState<User[]>([]);
   const [processConfig, setProcessConfig] = useState({
     positionId: "",
     hasHRRound: true,
@@ -105,7 +106,9 @@ export default function CandidatesPage() {
       if (response.ok) {
         const data = await response.json();
         const interviewers = data.filter((u: User) => u.role === "INTERVIEWER");
+        const hrs = data.filter((u: User) => u.role === "HR");
         setInterviewers(interviewers || []);
+        setHrUsers(hrs || []);
       }
     } catch (err) {
       console.error("获取面试官列表失败", err);
@@ -250,7 +253,7 @@ export default function CandidatesPage() {
 
   const addRound = () => {
     if (processConfig.rounds.length >= 4) {
-      setError("最多4轮面试（HR初面 + 最多2轮技术面 + 终面）");
+      setError("最多4轮面试（初面 + 最多2轮技术面 + 终面）");
       return;
     }
     setProcessConfig((prev) => {
@@ -342,7 +345,9 @@ export default function CandidatesPage() {
     setImportLoading(true);
     try {
       const token = localStorage.getItem("token");
-      const response = await apiFetch("/candidates", {
+      
+      // 1. 创建候选人
+      const createResponse = await apiFetch("/candidates", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -352,11 +357,31 @@ export default function CandidatesPage() {
           name: importPreview.name,
           phone: importPreview.phone,
           email: importPreview.email,
+          positionId: addForm.positionId || undefined,
           source: "BOSS",
         }),
       });
 
-      if (!response.ok) throw new Error("导入候选人失败");
+      if (!createResponse.ok) throw new Error("导入候选人失败");
+      const candidate = await createResponse.json();
+
+      // 2. 上传简历文件（如果有上传文件）
+      if (importFile && candidate.id) {
+        const formData = new FormData();
+        formData.append("file", importFile);
+        
+        try {
+          await apiFetch(`/candidates/${candidate.id}/resumes`, {
+            method: "POST",
+            headers: { Authorization: `Bearer ${token}` },
+            body: formData,
+          });
+          console.log("简历文件上传成功");
+        } catch (uploadErr) {
+          console.error("简历文件上传失败:", uploadErr);
+          // 不阻塞流程，继续完成导入
+        }
+      }
 
       setShowImportModal(false);
       setImportFile(null);
@@ -599,6 +624,28 @@ export default function CandidatesPage() {
                           placeholder="请输入邮箱"
                         />
                       </div>
+                      <div>
+                        <label className="block text-xs font-medium text-slate-600 mb-1">
+                          应聘职位
+                        </label>
+                        <select
+                          value={addForm.positionId}
+                          onChange={(e) =>
+                            setAddForm((prev) => ({
+                              ...prev,
+                              positionId: e.target.value,
+                            }))
+                          }
+                          className="w-full rounded-lg border border-[#E8EBF0] px-3.5 py-2.5 text-sm focus:border-[#4371FF] focus:ring-2 focus:ring-[#4371FF]/10 outline-none"
+                        >
+                          <option value="">请选择职位（选填）</option>
+                          {positions.map((pos) => (
+                            <option key={pos.id} value={pos.id}>
+                              {pos.title}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
                     </div>
 
                     <p className="text-xs text-slate-500 text-center">
@@ -827,9 +874,9 @@ export default function CandidatesPage() {
                         <div className="flex-1 min-w-0">
                           <div className="text-sm font-medium text-slate-700 mb-1">
                             {round.isHRRound
-                              ? "HR初面"
+                              ? "初面"
                               : round.roundType === "TECHNICAL"
-                                ? "技术面试"
+                                ? "复面"
                                 : "终面"}
                           </div>
                           <select
@@ -844,9 +891,11 @@ export default function CandidatesPage() {
                           >
                             <option value="">选择面试官</option>
                             {round.isHRRound ? (
-                              <option value={user?.id}>
-                                {user?.name} (HR)
-                              </option>
+                              hrUsers.map((hr) => (
+                                <option key={hr.id} value={hr.id}>
+                                  {hr.name} (HR)
+                                </option>
+                              ))
                             ) : (
                               interviewers.map((i) => (
                                 <option key={i.id} value={i.id}>
@@ -985,9 +1034,12 @@ export default function CandidatesPage() {
                         <div className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center text-slate-600 font-semibold text-sm flex-shrink-0">
                           {candidate.name.charAt(0)}
                         </div>
-                        <span className="font-medium text-[#1A1A1A] text-sm">
+                        <button
+                          onClick={() => router.push(`/candidates/${candidate.id}`)}
+                          className="font-medium text-[#1A1A1A] text-sm hover:text-[#4371FF] hover:underline text-left"
+                        >
                           {candidate.name}
-                        </span>
+                        </button>
                       </div>
                     </td>
                     <td className="px-6 py-4">

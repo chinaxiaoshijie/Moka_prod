@@ -60,6 +60,12 @@ export class InterviewProcessService {
       },
     });
 
+    // ✅ 同步更新候选人的 positionId
+    await this.prisma.candidate.update({
+      where: { id: candidateId },
+      data: { positionId },
+    });
+
     // 创建轮次配置
     await Promise.all(
       rounds.map((round) =>
@@ -126,9 +132,32 @@ export class InterviewProcessService {
       throw new BadRequestException("请填写有效的开始时间和结束时间");
     }
 
-    // 创建面试记录
-    const interview = await this.prisma.interview.create({
-      data: {
+    // ✅ 使用 upsert 避免竞态条件（替代 findFirst + update/create）
+    const interview = await this.prisma.interview.upsert({
+      where: {
+        // 使用复合唯一键：同一流程的同一轮次只能有一个面试
+        processId_roundNumber: {
+          processId: process.id,
+          roundNumber: roundNumber,
+        },
+      },
+      create: {
+        candidateId: process.candidateId,
+        positionId: process.positionId,
+        interviewerId: roundConfig.interviewerId,
+        type: interviewType,
+        format: createDto.format,
+        startTime,
+        endTime,
+        location: createDto.location,
+        meetingUrl: createDto.meetingUrl,
+        meetingNumber: createDto.meetingNumber,
+        status: "SCHEDULED",
+        processId: process.id,
+        roundNumber: roundNumber,
+        isHRRound: roundConfig.isHRRound,
+      },
+      update: {
         candidateId: process.candidateId,
         positionId: process.positionId,
         interviewerId: roundConfig.interviewerId,
@@ -165,52 +194,9 @@ export class InterviewProcessService {
       console.warn("候选人状态更新跳过:", (error as Error).message);
     }
 
-    // P1-2: 邮件发送异常隔离
-    const interviewer = await this.prisma.user.findUnique({
-      where: { id: roundConfig.interviewerId },
-    });
-
-    // 面试官邮件始终发送
-    if (interviewer?.email) {
-      try {
-        await this.emailService.sendInterviewNotificationToInterviewer({
-          candidateName: process.candidate.name,
-          candidateEmail: process.candidate.email || "",
-          positionTitle: process.position.title,
-          interviewerName: interviewer.name,
-          interviewerEmail: interviewer.email,
-          startTime: interview.startTime,
-          endTime: interview.endTime,
-          format: interview.format,
-          location: interview.location || undefined,
-          meetingUrl: interview.meetingUrl || undefined,
-          meetingNumber: interview.meetingNumber || undefined,
-        });
-      } catch (error) {
-        console.error("面试官邮件通知发送失败:", error);
-      }
-    }
-
-    // Feature 4: 可选候选人邮件通知
-    if (createDto.notifyCandidate !== false && process.candidate.email) {
-      try {
-        await this.emailService.sendInterviewNotificationToCandidate({
-          candidateName: process.candidate.name,
-          candidateEmail: process.candidate.email,
-          positionTitle: process.position.title,
-          interviewerName: interviewer?.name || "面试官",
-          interviewerEmail: interviewer?.email || "",
-          startTime: interview.startTime,
-          endTime: interview.endTime,
-          format: interview.format,
-          location: interview.location || undefined,
-          meetingUrl: interview.meetingUrl || undefined,
-          meetingNumber: interview.meetingNumber || undefined,
-        });
-      } catch (error) {
-        console.error("候选人邮件通知发送失败:", error);
-      }
-    }
+    // ✅ 原则 1：移除自动发送邮件，改为 HR 手动发送
+    // 邮件由 HR 在面试详情页手动编辑并发送
+    // 已移除面试官邮件和候选人邮件的自动发送逻辑
 
     // 更新流程状态为进行中（如果是从等待HR状态恢复的）
     if (process.status === "WAITING_HR") {
@@ -438,11 +424,21 @@ export class InterviewProcessService {
     page: number = 1,
     pageSize: number = 10,
     status?: string,
+    userId?: string,
+    userRole?: string,
   ): Promise<ProcessListResponseDto> {
     const skip = (page - 1) * pageSize;
 
     const where: any = {};
     if (status) where.status = status;
+    
+    // 面试官权限隔离：只能看到自己参与的面试流程
+    if (userRole === "INTERVIEWER" && userId) {
+      where.OR = [
+        { rounds: { some: { interviewerId: userId } } },
+        { interviews: { some: { interviewerId: userId } } },
+      ];
+    }
 
     const [items, total] = await Promise.all([
       this.prisma.interviewProcess.findMany({
@@ -482,7 +478,7 @@ export class InterviewProcessService {
   }
 
   // 获取单个流程详情
-  async findOne(id: string): Promise<ProcessResponseDto> {
+  async findOne(id: string, userId?: string, userRole?: string): Promise<ProcessResponseDto> {
     const process = await this.prisma.interviewProcess.findUnique({
       where: { id },
       include: {
@@ -516,6 +512,17 @@ export class InterviewProcessService {
 
     if (!process) {
       throw new BadRequestException("面试流程不存在");
+    }
+    
+    // 面试官权限检查：只能查看自己参与的流程
+    if (userRole === "INTERVIEWER" && userId) {
+      const isParticipating = 
+        process.rounds.some((r) => r.interviewerId === userId) ||
+        process.interviews.some((i) => i.interviewerId === userId);
+      
+      if (!isParticipating) {
+        throw new BadRequestException("无权查看该面试流程");
+      }
     }
 
     return this.mapToResponseDto(process);

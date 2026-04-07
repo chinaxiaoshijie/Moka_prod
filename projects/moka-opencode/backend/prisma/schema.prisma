@@ -108,6 +108,8 @@ model Candidate {
   statusHistory CandidateStatusHistory[]
 
   @@unique([name, phone]) // 去重约束
+  emailLogs    InterviewEmailLog[]
+  
   @@map("candidates")
 }
 
@@ -181,6 +183,9 @@ model Interview {
   // 反馈Token（免登录提交）
   feedbackToken FeedbackToken?
 
+  emailLogs    InterviewEmailLog[]
+  
+  @@unique([processId, roundNumber])
   @@map("interviews")
 }
 
@@ -369,4 +374,25 @@ model CandidateStatusHistory {
   @@index([candidateId])
   @@index([createdAt])
   @@map("candidate_status_history")
+}
+
+// 邮件发送记录
+model InterviewEmailLog {
+  id           String   @id @default(uuid())
+  interviewId  String
+  candidateId  String
+  recipientEmail String
+  subject      String
+  content      String
+  sentBy       String
+  sentAt       DateTime @default(now())
+  status       String   @default("sent")
+  errorMessage String?
+  
+  interview    Interview @relation(fields: [interviewId], references: [id], onDelete: Cascade)
+  candidate    Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  
+  @@index([interviewId])
+  @@index([candidateId])
+  @@index([sentAt])
 }

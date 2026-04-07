@@ -21,6 +21,13 @@ export default function UsersPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [showForm, setShowForm] = useState(false);
+  const [showEditForm, setShowEditForm] = useState(false);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [editFormData, setEditFormData] = useState({
+    name: "",
+    email: "",
+    role: "HR" as "HR" | "INTERVIEWER",
+  });
   const [formData, setFormData] = useState({
     username: "",
     password: "",
@@ -120,6 +127,46 @@ export default function UsersPage() {
         throw new Error(data.message || "停用用户失败");
       }
 
+      fetchUsers();
+    } catch (err: any) {
+      setError(err.message);
+    }
+  };
+
+  const handleEdit = (user: User) => {
+    setEditingUser(user);
+    setEditFormData({
+      name: user.name,
+      email: user.email || "",
+      role: user.role,
+    });
+    setShowEditForm(true);
+  };
+
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+
+    if (!editingUser) return;
+
+    try {
+      const token = localStorage.getItem("token");
+      const response = await apiFetch(`/users/${editingUser.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(editFormData),
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.message || "更新用户失败");
+      }
+
+      setShowEditForm(false);
+      setEditingUser(null);
       fetchUsers();
     } catch (err: any) {
       setError(err.message);
@@ -257,8 +304,14 @@ export default function UsersPage() {
                         </span>
                       </td>
                       <td className="px-6 py-4">
-                        {user.role !== "HR" && (
-                          user.isActive ? (
+                        <div className="flex items-center gap-3">
+                          <button
+                            onClick={() => handleEdit(user)}
+                            className="text-sm text-[#4371FF] hover:text-[#3461E6] font-medium"
+                          >
+                            编辑
+                          </button>
+                          {user.isActive ? (
                             <button
                               onClick={() => handleDeactivate(user.id)}
                               className="text-sm text-red-500 hover:text-red-600 font-medium"
@@ -272,8 +325,8 @@ export default function UsersPage() {
                             >
                               启用
                             </button>
-                          )
-                        )}
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -396,6 +449,99 @@ export default function UsersPage() {
                     className="flex-1 bg-[#4371FF] hover:bg-[#3461E6] text-white rounded-lg px-4 py-2.5 text-sm font-medium shadow-sm"
                   >
                     添加用户
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
+        {/* Edit User Modal */}
+        {showEditForm && editingUser && (
+          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl shadow-xl max-w-lg w-full">
+              <div className="px-6 py-4 border-b border-[#E8EBF0] flex items-center justify-between">
+                <h2 className="text-base font-semibold text-slate-900">编辑用户</h2>
+                <button
+                  onClick={() => setShowEditForm(false)}
+                  className="text-slate-400 hover:text-slate-600 p-1 rounded-lg hover:bg-slate-50"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <form onSubmit={handleEditSubmit} className="p-6 space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                    姓名 <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={editFormData.name}
+                    onChange={(e) =>
+                      setEditFormData({
+                        ...editFormData,
+                        name: e.target.value,
+                      })
+                    }
+                    className="w-full rounded-lg border border-[#E8EBF0] px-3.5 py-2.5 text-sm focus:border-[#4371FF] focus:ring-2 focus:ring-[#4371FF]/10 outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                    邮箱
+                  </label>
+                  <input
+                    type="email"
+                    value={editFormData.email}
+                    onChange={(e) =>
+                      setEditFormData({
+                        ...editFormData,
+                        email: e.target.value,
+                      })
+                    }
+                    className="w-full rounded-lg border border-[#E8EBF0] px-3.5 py-2.5 text-sm focus:border-[#4371FF] focus:ring-2 focus:ring-[#4371FF]/10 outline-none"
+                    placeholder="请输入邮箱（选填）"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                    角色 <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    value={editFormData.role}
+                    onChange={(e) =>
+                      setEditFormData({
+                        ...editFormData,
+                        role: e.target.value as "HR" | "INTERVIEWER",
+                      })
+                    }
+                    className="w-full rounded-lg border border-[#E8EBF0] px-3.5 py-2.5 text-sm focus:border-[#4371FF] focus:ring-2 focus:ring-[#4371FF]/10 outline-none"
+                  >
+                    <option value="INTERVIEWER">面试官</option>
+                    <option value="HR">HR</option>
+                  </select>
+                </div>
+
+                {error && <div className="text-red-600 text-sm">{error}</div>}
+
+                <div className="flex gap-3 pt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowEditForm(false)}
+                    className="flex-1 border border-[#E8EBF0] hover:bg-slate-50 text-slate-700 rounded-lg px-4 py-2.5 text-sm font-medium"
+                  >
+                    取消
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 bg-[#4371FF] hover:bg-[#3461E6] text-white rounded-lg px-4 py-2.5 text-sm font-medium shadow-sm"
+                  >
+                    保存
                   </button>
                 </div>
               </form>

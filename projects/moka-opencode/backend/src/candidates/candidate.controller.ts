@@ -19,6 +19,7 @@ import {
   UseGuards,
   Request,
 } from "@nestjs/common";
+import { Public } from "../common/decorators/public.decorator";
 import { FileInterceptor } from "@nestjs/platform-express";
 import {
   ApiTags,
@@ -197,9 +198,30 @@ export class CandidateController {
     return await this.candidateService.getResumes(candidateId);
   }
 
-  @Get("resumes/:resumeId")
+  @Get("public/resumes/:resumeId")
+  @ApiOperation({ summary: "公开下载简历文件（无需认证）" })
+  @Public()  // 跳过认证
+  async downloadResumePublic(
+    @Param("resumeId") resumeId: string,
+    @Res() res: Response,
+  ) {
+    const resume = await this.candidateService.getResumeFile(resumeId);
+    
+    res.setHeader("Content-Type", resume.fileType);
+    res.setHeader(
+      "Content-Disposition",
+      `inline; filename="${encodeURIComponent(resume.fileName)}"`,
+    );
+    
+    const fs = await import("fs");
+    const fileStream = fs.createReadStream(resume.filePath);
+    fileStream.pipe(res);
+  }
+
+  @Get(":id/resumes/:resumeId")
   @ApiOperation({ summary: "下载或预览简历文件" })
   async downloadResume(
+    @Param("id") candidateId: string,
     @Param("resumeId") resumeId: string,
     @Res() res: Response,
   ) {

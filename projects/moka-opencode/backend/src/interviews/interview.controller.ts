@@ -89,12 +89,18 @@ export class InterviewController {
   @ApiOperation({ summary: "手动发送邮件给候选人" })
   async sendCandidateEmail(
     @Param("id") id: string,
-    @Body() body: { subject?: string; content?: string },
+    @Body() body: { subject?: string; content?: string; sentBy?: string; candidateEmail?: string },
   ): Promise<{ message: string }> {
     try {
-      return await this.interviewService.sendCandidateEmail(id, body.subject, body.content);
+      return await this.interviewService.sendCandidateEmail(id, body.subject, body.content, body.sentBy);
     } catch (error: any) {
       throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
     }
+  }
+
+  @Get(":id/email-history")
+  @ApiOperation({ summary: "获取面试邮件发送历史" })
+  async getEmailHistory(@Param("id") interviewId: string): Promise<any> {
+    return await this.interviewService.getEmailHistory(interviewId);
   }
 }

@@ -85,7 +85,7 @@ export default function InterviewProcessDetailPage() {
   const [showScheduleModal, setShowScheduleModal] = useState(false);
   const [schedulingRound, setSchedulingRound] = useState<number | null>(null);
   const [editingInterviewId, setEditingInterviewId] = useState<string | null>(null);
-  const [notifyCandidate, setNotifyCandidate] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false); // ✅ 防重复提交
   const [scheduleForm, setScheduleForm] = useState({
     startTime: "",
     endTime: "",
@@ -139,6 +139,12 @@ export default function InterviewProcessDetailPage() {
       setError("请填写开始时间和结束时间");
       return;
     }
+    // ✅ 防重复提交
+    if (isSubmitting) {
+      console.log("正在提交中，请勿重复点击");
+      return;
+    }
+    setIsSubmitting(true);
     try {
       const token = localStorage.getItem("token");
       const isEditing = editingInterviewId !== null;
@@ -148,7 +154,7 @@ export default function InterviewProcessDetailPage() {
 
       const body = isEditing
         ? scheduleForm
-        : { ...scheduleForm, notifyCandidate };
+        : scheduleForm;
 
       const response = await apiFetch(url, {
         method: isEditing ? "PUT" : "POST",
@@ -164,6 +170,8 @@ export default function InterviewProcessDetailPage() {
       fetchProcess();
     } catch (err: any) {
       setError(err.message);
+    } finally {
+      setIsSubmitting(false); // ✅ 释放提交锁
     }
   };
 
@@ -233,7 +241,6 @@ export default function InterviewProcessDetailPage() {
 
   const openScheduleModal = (roundNumber: number) => {
     setSchedulingRound(roundNumber);
-    setNotifyCandidate(true);
     const existingInterview = process?.interviews.find(i => i.roundNumber === roundNumber);
     if (existingInterview) {
       setEditingInterviewId(existingInterview.id);
@@ -363,7 +370,8 @@ export default function InterviewProcessDetailPage() {
 
   const banner = getStatusBanner();
   const isHR = user?.role === "HR";
-  const isWaitingHR = process.status === "WAITING_HR";
+  // 修复 Bug 10：WAITING_HR 状态也允许 HR 操作
+  const isWaitingHR = process.status === "WAITING_HR" || process.status === "IN_PROGRESS";
 
   return (
     <MainLayout>
@@ -504,7 +512,7 @@ export default function InterviewProcessDetailPage() {
                       <div className="flex items-center justify-between mb-2">
                         <div>
                           <h3 className="text-[13px] font-semibold text-[#000000d9]">
-                            第{round.roundNumber}轮 · {round.isHRRound ? "HR面试" : round.roundType === "TECHNICAL" ? "技术面试" : round.roundType === "FINAL" ? "终面" : round.roundType}
+                            第{round.roundNumber}轮 · {round.isHRRound ? "HR面试" : round.roundType === "TECHNICAL" ? "复面" : round.roundType === "FINAL" ? "终面" : round.roundType}
                           </h3>
                           <p className="text-[12px] text-[#00000073] mt-0.5">
                             面试官：{round.interviewerName}
@@ -830,31 +838,30 @@ export default function InterviewProcessDetailPage() {
                     </div>
                   )}
 
-                  {/* Notify candidate checkbox */}
-                  {!editingInterviewId && (
-                    <label className="flex items-center gap-2 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={notifyCandidate}
-                        onChange={(e) => setNotifyCandidate(e.target.checked)}
-                        className="rounded border-[#d9d9d9] text-[#1890ff] focus:ring-[#1890ff]/20"
-                      />
-                      <span className="text-[13px] text-[#000000d9]">通知候选人（发送邮件）</span>
-                    </label>
-                  )}
+                  {/* ✅ 原则 1：移除自动发送，改为 HR 手动发送 */}
+                  {/* 已移除"通知候选人"复选框，邮件由 HR 在面试详情页手动编辑发送 */}
 
                   <div className="flex gap-2 pt-1">
                     <button
                       onClick={() => { setShowScheduleModal(false); setEditingInterviewId(null); }}
-                      className="flex-1 border border-[#d9d9d9] hover:border-[#1890ff] text-[#000000d9] rounded px-4 py-2 text-[13px] font-medium transition-colors"
+                      disabled={isSubmitting}
+                      className="flex-1 border border-[#d9d9d9] hover:border-[#1890ff] text-[#000000d9] rounded px-4 py-2 text-[13px] font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       取消
                     </button>
                     <button
                       onClick={handleScheduleInterview}
-                      className="flex-1 bg-[#1890ff] hover:bg-[#40a9ff] text-white rounded px-4 py-2 text-[13px] font-medium"
+                      disabled={isSubmitting}
+                      className="flex-1 bg-[#1890ff] hover:bg-[#40a9ff] text-white rounded px-4 py-2 text-[13px] font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                     >
-                      确认
+                      {isSubmitting ? (
+                        <>
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                          <span>提交中...</span>
+                        </>
+                      ) : (
+                        "确认"
+                      )}
                     </button>
                   </div>
                 </div>
