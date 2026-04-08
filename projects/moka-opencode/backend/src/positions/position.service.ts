@@ -44,7 +44,7 @@ export class PositionService {
     ]);
 
     return {
-      items: items.map((item) => this.mapToResponseDto(item)),
+      items: items.map((item: any) => this.mapToResponseDto(item)),
       total,
       page,
       pageSize,

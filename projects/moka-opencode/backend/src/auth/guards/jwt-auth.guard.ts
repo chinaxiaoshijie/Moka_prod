@@ -40,7 +40,7 @@ export class JwtAuthGuard implements CanActivate {
       request.user = payload;
       return true;
     } catch (error) {
-      console.log("JWT verify error:", error.message);
+      console.log("JWT verify error:", error instanceof Error ? error.message : error);
       throw new UnauthorizedException("Invalid token");
     }
   }

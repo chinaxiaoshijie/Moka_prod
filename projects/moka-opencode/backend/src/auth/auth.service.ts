@@ -105,7 +105,8 @@ export class AuthService {
       throw new BadRequestException("当前密码不正确");
     }
 
-    if (newPassword.length < 6) {
+    // 增强密码强度验证
+    if (newPassword.length < 8) {
       throw new BadRequestException("新密码长度至少为6位");
     }
 

@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException } from "@nestjs/common";
+import { Injectable, BadRequestException, Logger } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { EmailService } from "../email/email.service";
 import { CandidateStatusService } from "../candidates/candidate-status.service";
@@ -17,6 +17,8 @@ import { InterviewType, NotificationType } from "@prisma/client";
 
 @Injectable()
 export class InterviewProcessService {
+  private readonly logger = new Logger(InterviewProcessService.name);
+  
   constructor(
     private prisma: PrismaService,
     private emailService: EmailService,
@@ -189,9 +191,10 @@ export class InterviewProcessService {
         `面试安排 - ${roundTypeLabel}（第${roundNumber}轮）`,
         interview.id,
       );
+      this.logger.log(`候选人状态更新成功：candidateId=${process.candidateId}, status=${candidateStatus}`);
     } catch (error) {
       // 状态转换不允许时仅记日志，不阻塞面试安排
-      console.warn("候选人状态更新跳过:", (error as Error).message);
+      this.logger.warn(`候选人状态更新跳过：candidateId=${process.candidateId}, reason=${(error as Error).message}`);
     }
 
     // ✅ 原则 1：移除自动发送邮件，改为 HR 手动发送
@@ -215,8 +218,9 @@ export class InterviewProcessService {
         content: `您有新面试：候选人${process.candidate.name}，职位${process.position.title}，第${roundNumber}轮`,
         link: `/interview-processes/${processId}`,
       });
+      this.logger.log(`站内通知发送成功：interviewerId=${roundConfig.interviewerId}, processId=${processId}`);
     } catch (error) {
-      console.error("站内通知发送失败:", error);
+      this.logger.error(`站内通知发送失败：interviewerId=${roundConfig.interviewerId}`, error as Error);
     }
 
     return this.findOne(processId);
@@ -242,16 +246,27 @@ export class InterviewProcessService {
       throw new BadRequestException("面试流程不存在");
     }
 
-    // P1-1: 验证当前轮次面试是否真正完成
+    // P1-1: 验证当前轮次面试是否完成（有反馈或状态为 COMPLETED）
     const currentRoundInterview = await this.prisma.interview.findFirst({
       where: {
         processId,
         roundNumber: process.currentRound,
       },
+      include: {
+        feedbacks: true,
+      },
     });
 
-    if (!currentRoundInterview || currentRoundInterview.status !== "COMPLETED") {
-      throw new BadRequestException("当前轮次面试尚未完成，无法推进");
+    if (!currentRoundInterview) {
+      throw new BadRequestException("当前轮次面试不存在");
+    }
+
+    // 检查是否可以推进：面试已完成 OR 有反馈
+    const hasFeedback = currentRoundInterview.feedbacks && currentRoundInterview.feedbacks.length > 0;
+    const isCompleted = currentRoundInterview.status === "COMPLETED";
+
+    if (!hasFeedback && !isCompleted) {
+      throw new BadRequestException("当前轮次面试尚未完成，无法推进。请先标记面试完成或填写反馈。");
     }
 
     if (action === "complete") {
@@ -282,8 +297,9 @@ export class InterviewProcessService {
             totalRounds: process.currentRound,
             finalResult: "已录用",
           });
+          this.logger.log(`流程完成邮件发送成功：hrEmail=${process.createdBy.email}, processId=${processId}`);
         } catch (error) {
-          console.error("流程完成邮件发送失败:", error);
+          this.logger.error(`流程完成邮件发送失败：hrEmail=${process.createdBy.email}`, error as Error);
         }
       }
     } else if (action === "reject") {
@@ -314,8 +330,9 @@ export class InterviewProcessService {
             totalRounds: process.currentRound,
             finalResult: "未通过",
           });
+          this.logger.log(`流程完成邮件发送成功：hrEmail=${process.createdBy.email}, processId=${processId}`);
         } catch (error) {
-          console.error("流程完成邮件发送失败:", error);
+          this.logger.error(`流程完成邮件发送失败：hrEmail=${process.createdBy.email}`, error as Error);
         }
       }
     } else if (action === "next") {
@@ -347,8 +364,9 @@ export class InterviewProcessService {
             content: `候选人${process.candidate.name}即将进入您的第${nextRound}轮面试环节，职位${process.position.title}`,
             link: `/interview-processes/${processId}`,
           });
+          this.logger.log(`下一轮通知发送成功：interviewerId=${nextRoundConfig.interviewerId}, processId=${processId}`);
         } catch (error) {
-          console.error("下一轮站内通知发送失败:", error);
+          this.logger.error(`下一轮通知发送失败：interviewerId=${nextRoundConfig.interviewerId}`, error as Error);
         }
       }
     }
@@ -611,7 +629,7 @@ export class InterviewProcessService {
             result: latestFeedback?.result || "未知",
           });
         } catch (error) {
-          console.error("轮次完成邮件发送失败:", error);
+          this.logger.error(`轮次完成邮件发送失败：hrEmail=${process.createdBy.email}`, error as Error);
         }
       }
     }

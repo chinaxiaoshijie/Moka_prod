@@ -16,6 +16,7 @@
     // NestJS requirements
     "experimentalDecorators": true,
     "emitDecoratorMetadata": true,
+    "useDefineForClassFields": false,
 
     // Best practices
     "strict": true,

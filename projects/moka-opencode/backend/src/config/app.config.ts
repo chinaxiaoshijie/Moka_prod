@@ -9,7 +9,14 @@ export class AppConfigService {
 
   constructor() {
     this.databaseUrl = process.env.DATABASE_URL || "";
-    this.jwtSecret = process.env.JWT_SECRET || "dev-secret-key";
+    const jwtSecret = process.env.JWT_SECRET;
+    if (!jwtSecret || jwtSecret === "dev-secret-key") {
+      throw new Error(
+        "JWT_SECRET environment variable must be set to a secure random value (min 32 characters). " +
+        "For development, you can use: openssl rand -hex 32"
+      );
+    }
+    this.jwtSecret = jwtSecret;
     this.jwtExpiresIn = process.env.JWT_EXPIRES_IN || "7d";
     this.jwtRefreshExpiresIn = process.env.JWT_REFRESH_EXPIRES_IN || "30d";
   }

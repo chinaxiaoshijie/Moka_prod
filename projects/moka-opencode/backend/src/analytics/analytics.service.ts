@@ -1,11 +1,58 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, Logger } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
+
+interface CacheEntry<T> {
+  data: T;
+  timestamp: number;
+  ttl: number; // Time to live in milliseconds
+}
 
 @Injectable()
 export class AnalyticsService {
+  private readonly logger = new Logger(AnalyticsService.name);
+  private readonly cache = new Map<string, CacheEntry<any>>();
+  private readonly DEFAULT_TTL = 5 * 60 * 1000; // 5 minutes
+
   constructor(private prisma: PrismaService) {}
 
+  private getFromCache<T>(key: string): T | null {
+    const entry = this.cache.get(key);
+    if (!entry) return null;
+    
+    if (Date.now() - entry.timestamp > entry.ttl) {
+      this.cache.delete(key);
+      return null;
+    }
+    
+    return entry.data as T;
+  }
+
+  private setCache<T>(key: string, data: T, ttl?: number): void {
+    this.cache.set(key, {
+      data,
+      timestamp: Date.now(),
+      ttl: ttl || this.DEFAULT_TTL,
+    });
+    this.logger.debug(`Cache set: ${key}`);
+  }
+
+  private invalidateCache(pattern: string): void {
+    for (const key of this.cache.keys()) {
+      if (key.startsWith(pattern)) {
+        this.cache.delete(key);
+        this.logger.debug(`Cache invalidated: ${key}`);
+      }
+    }
+  }
+
   async getRecruitmentFunnel() {
+    const cacheKey = "analytics:funnel";
+    const cached = this.getFromCache(cacheKey);
+    if (cached) {
+      this.logger.debug(`Cache hit: ${cacheKey}`);
+      return cached;
+    }
+
     const [
       totalCandidates,
       screeningCandidates,
@@ -24,7 +71,7 @@ export class AnalyticsService {
       this.prisma.candidate.count({ where: { status: "REJECTED" } }),
     ]);
 
-    return {
+    const result = {
       stages: [
         { name: "新增候选人", count: totalCandidates },
         { name: "筛选中", count: screeningCandidates },
@@ -39,6 +86,9 @@ export class AnalyticsService {
           ? ((hiredCandidates / totalCandidates) * 100).toFixed(2)
           : 0,
     };
+
+    this.setCache(cacheKey, result);
+    return result;
   }
 
   async getInterviewerStats() {
@@ -178,6 +228,13 @@ export class AnalyticsService {
   }
 
   async getDashboardStats() {
+    const cacheKey = "analytics:dashboard";
+    const cached = this.getFromCache(cacheKey);
+    if (cached) {
+      this.logger.debug(`Cache hit: ${cacheKey}`);
+      return cached;
+    }
+
     const [
       totalCandidates,
       pendingCandidates,
@@ -204,12 +261,23 @@ export class AnalyticsService {
       }),
     ]);
 
-    return {
+    const result = {
       totalCandidates,
       pendingCandidates,
       hiredThisMonth,
       totalInterviews,
       upcomingInterviews,
     };
+
+    this.setCache(cacheKey, result);
+    return result;
+  }
+
+  /**
+   * 清除分析缓存（在数据变更时调用）
+   */
+  clearCache(): void {
+    this.cache.clear();
+    this.logger.log("Analytics cache cleared");
   }
 }

@@ -1,5 +1,5 @@
 import "multer";
-import { Injectable } from "@nestjs/common";
+import { Injectable, Logger } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { EmailService } from "../email/email.service";
 import {
@@ -11,6 +11,8 @@ import {
 
 @Injectable()
 export class CandidateService {
+  private readonly logger = new Logger(CandidateService.name);
+  
   constructor(
     private prisma: PrismaService,
     private emailService: EmailService,
@@ -79,6 +81,10 @@ export class CandidateService {
   }
 
   async findOne(id: string): Promise<CandidateResponseDto> {
+    if (!/^[a-zA-Z0-9-]+$/.test(id)) {
+      throw new Error("无效的候选人 ID 格式");
+    }
+
     const candidate = await this.prisma.candidate.findUnique({
       where: { id },
       include: { position: true },
@@ -150,6 +156,12 @@ export class CandidateService {
     file: Express.Multer.File,
     uploadedBy?: string,
   ) {
+    // 验证 candidateId 格式，防止路径遍历攻击
+    if (!/^[a-zA-Z0-9-]+$/.test(candidateId)) {
+      throw new Error("无效的候选人 ID 格式");
+    }
+
+    // 验证文件存在性（在事务外）
     const candidate = await this.prisma.candidate.findUnique({
       where: { id: candidateId },
     });
@@ -176,32 +188,40 @@ export class CandidateService {
     // fileUrl 不再使用，前端直接使用 resumeId
     const fileUrl = `/candidates/resumes/${candidateId}`;
 
-    const resumeFile = await this.prisma.resumeFile.create({
-      data: {
-        candidateId,
-        fileName: file.originalname, // 保留原始文件名用于显示
-        fileType: file.mimetype,
-        fileSize: file.size,
-        filePath,
-        fileUrl,
-        uploadedBy,
-        isActive: true,
-      },
+    // 使用事务保护多个数据库操作
+    const resumeFile = await this.prisma.$transaction(async (tx) => {
+      const createdResume = await tx.resumeFile.create({
+        data: {
+          candidateId,
+          fileName: file.originalname,
+          fileType: file.mimetype,
+          fileSize: file.size,
+          filePath,
+          fileUrl,
+          uploadedBy,
+          isActive: true,
+        },
+      });
+
+      // 将该候选人的其他简历设为非活跃
+      await tx.resumeFile.updateMany({
+        where: {
+          candidateId,
+          id: { not: createdResume.id },
+        },
+        data: { isActive: false },
+      });
+
+      // 更新候选人的 resumeUrl
+      await tx.candidate.update({
+        where: { id: candidateId },
+        data: { resumeUrl: fileUrl },
+      });
+
+      return createdResume;
     });
 
-    await this.prisma.resumeFile.updateMany({
-      where: {
-        candidateId,
-        id: { not: resumeFile.id },
-      },
-      data: { isActive: false },
-    });
-
-    await this.prisma.candidate.update({
-      where: { id: candidateId },
-      data: { resumeUrl: fileUrl },
-    });
-
+    this.logger.log(`简历上传成功：candidateId=${candidateId}, fileName=${file.originalname}`);
     return resumeFile;
   }
 
@@ -228,12 +248,25 @@ export class CandidateService {
   }
 
   async getResumeFile(resumeId: string) {
+    // 验证 resumeId 格式，防止路径遍历攻击
+    if (!/^[a-zA-Z0-9-]+$/.test(resumeId)) {
+      throw new Error("无效的简历 ID 格式");
+    }
+
     const resume = await this.prisma.resumeFile.findUnique({
       where: { id: resumeId },
     });
 
     if (!resume) {
       throw new Error("简历文件不存在");
+    }
+
+    // 验证文件路径安全性，确保文件在允许的目录内
+    const path = await import("path");
+    const uploadDir = path.join(process.cwd(), "uploads", "resumes");
+    const normalizedPath = path.normalize(resume.filePath);
+    if (!normalizedPath.startsWith(uploadDir)) {
+      throw new Error("非法的文件路径");
     }
 
     return resume;
@@ -383,8 +416,9 @@ export class CandidateService {
           message,
           candidateId,
         });
+        this.logger.log(`@通知邮件发送成功：interviewerId=${interviewerId}, candidateId=${candidateId}`);
       } catch (error) {
-        console.error("@面试官邮件通知发送失败:", error);
+        this.logger.error(`@通知邮件发送失败：interviewerId=${interviewerId}, candidateId=${candidateId}`, error as Error);
       }
     }
 

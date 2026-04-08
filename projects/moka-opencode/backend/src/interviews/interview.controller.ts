@@ -92,7 +92,13 @@ export class InterviewController {
     @Body() body: { subject?: string; content?: string; sentBy?: string; candidateEmail?: string },
   ): Promise<{ message: string }> {
     try {
-      return await this.interviewService.sendCandidateEmail(id, body.subject, body.content, body.sentBy);
+      return await this.interviewService.sendCandidateEmail(
+        id,
+        body.subject,
+        body.content,
+        body.sentBy,
+        body.candidateEmail,
+      );
     } catch (error: any) {
       throw new HttpException(error.message, HttpStatus.BAD_REQUEST);
     }

@@ -1,5 +1,6 @@
 "use client";
 import { apiFetch } from "@/lib/api";
+import { utcToLocalInput, localToUTC } from "@/lib/timezone";
 
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -107,8 +108,7 @@ function EditInterviewContent() {
   };
 
   const formatDateTimeLocal = (dateStr: string) => {
-    const date = new Date(dateStr);
-    return date.toISOString().slice(0, 16);
+    return utcToLocalInput(dateStr);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -130,8 +130,8 @@ function EditInterviewContent() {
             interviewerId: formData.interviewerId,
             type: formData.type,
             format: formData.format,
-            startTime: new Date(formData.startTime).toISOString(),
-            endTime: new Date(formData.endTime).toISOString(),
+            startTime: localToUTC(formData.startTime),
+            endTime: localToUTC(formData.endTime),
             location: formData.location || undefined,
             meetingUrl: formData.meetingUrl || undefined,
             meetingNumber: formData.meetingNumber || undefined,

@@ -1,5 +1,6 @@
 "use client";
 import { apiFetch } from "@/lib/api";
+import { localToUTC } from "@/lib/timezone";
 
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -192,8 +193,8 @@ function CreateInterviewContent() {
           interviewerId: formData.interviewerId,
           type: formData.type,
           format: formData.format,
-          startTime: new Date(formData.startTime).toISOString(),
-          endTime: new Date(formData.endTime).toISOString(),
+          startTime: localToUTC(formData.startTime),
+          endTime: localToUTC(formData.endTime),
           location: formData.location || undefined,
           meetingUrl: formData.meetingUrl || undefined,
           meetingNumber: formData.meetingNumber || undefined,

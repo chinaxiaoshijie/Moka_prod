@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, Logger } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { EmailService } from "../email/email.service";
 import { EmailLimitService } from "../email/email-limit.service";
@@ -11,6 +11,8 @@ import {
 
 @Injectable()
 export class InterviewService {
+  private readonly logger = new Logger(InterviewService.name);
+  
   constructor(
     private prisma: PrismaService,
     private emailService: EmailService,
@@ -73,6 +75,7 @@ export class InterviewService {
     customSubject?: string,
     customContent?: string,
     sentBy?: string,
+    candidateEmail?: string,
   ): Promise<{ message: string }> {
     const interview = await this.prisma.interview.findUnique({
       where: { id: interviewId },
@@ -93,26 +96,11 @@ export class InterviewService {
       throw new Error("面试安排不存在");
     }
 
-    if (!interview.candidate.email) {
+    // 优先使用传入的 candidateEmail，否则使用候选人记录中的邮箱
+    const recipientEmail = candidateEmail || interview.candidate.email;
+
+    if (!recipientEmail) {
       throw new Error("候选人没有邮箱，无法发送邮件");
-    }
-
-    // ✅ 检查 2 小时内是否已发送过邮件，避免重复发送
-    const twoHoursAgo = new Date(Date.now() - 2 * 60 * 60 * 1000);
-    const recentEmailLogs = await this.prisma.interviewEmailLog.findMany({
-      where: {
-        interviewId: interviewId,
-        sentAt: { gte: twoHoursAgo },
-      },
-      orderBy: { sentAt: "desc" },
-      take: 1,
-    });
-
-    if (recentEmailLogs.length > 0) {
-      const lastSent = recentEmailLogs[0].sentAt;
-      throw new Error(
-        `2 小时内已发送过邮件，请勿重复发送（上次发送时间：${lastSent.toLocaleString("zh-CN", { timeZone: "Asia/Shanghai" })}）`
-      );
     }
 
     // ✅ 检查邮件发送频率限制
@@ -129,7 +117,7 @@ export class InterviewService {
       if (customContent) {
         // 自定义内容邮件
         await this.emailService.sendCustomEmail({
-          to: interview.candidate.email,
+          to: recipientEmail,
           subject: customSubject || `面试通知 - ${interview.position.title}`,
           content: customContent,
         });
@@ -137,7 +125,7 @@ export class InterviewService {
         // 标准面试通知邮件
         await this.emailService.sendInterviewNotificationToCandidate({
           candidateName: interview.candidate.name,
-          candidateEmail: interview.candidate.email,
+          candidateEmail: recipientEmail,
           positionTitle: interview.position.title,
           interviewerName: interview.interviewer.name || "面试官",
           interviewerEmail: interview.interviewer.email || "",
@@ -155,7 +143,7 @@ export class InterviewService {
         data: {
           interviewId: interviewId,
           candidateId: interview.candidateId,
-          recipientEmail: interview.candidate.email,
+          recipientEmail: recipientEmail,
           subject: customSubject || `面试通知 - ${interview.position.title}`,
           content: customContent || "标准面试通知模板",
           sentBy: sentBy || "system",
@@ -163,6 +151,7 @@ export class InterviewService {
         },
       });
 
+      this.logger.log(`面试邮件发送成功：interviewId=${interviewId}, candidateId=${interview.candidateId}`);
       return { message: "邮件已成功发送" };
     } catch (error) {
       // ✅ 记录发送失败的日志
@@ -170,7 +159,7 @@ export class InterviewService {
         data: {
           interviewId: interviewId,
           candidateId: interview.candidateId,
-          recipientEmail: interview.candidate.email || "",
+          recipientEmail: recipientEmail || "",
           subject: customSubject || `面试通知 - ${interview.position.title}`,
           content: customContent || "标准面试通知模板",
           sentBy: sentBy || "system",
@@ -179,7 +168,7 @@ export class InterviewService {
         },
       });
 
-      console.error("发送邮件给候选人失败:", error);
+      this.logger.error(`面试邮件发送失败：interviewId=${interviewId}`, error as Error);
       return { message: `邮件发送失败：${(error as Error).message}` };
     }
   }

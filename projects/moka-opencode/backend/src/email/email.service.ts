@@ -1,4 +1,4 @@
-import { Injectable } from "@nestjs/common";
+import { Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import * as nodemailer from "nodemailer";
 import { Transporter } from "nodemailer";
@@ -60,6 +60,7 @@ interface RoundCompletedData {
 
 @Injectable()
 export class EmailService {
+  private readonly logger = new Logger(EmailService.name);
   private transporter: Transporter | null = null;
 
   constructor(private configService: ConfigService) {
@@ -82,11 +83,9 @@ export class EmailService {
           pass: smtpPass,
         },
       });
-      console.log("[EmailService] SMTP transporter initialized");
+      this.logger.log("SMTP transporter initialized");
     } else {
-      console.log(
-        "[EmailService] SMTP not configured, using console logging mode",
-      );
+      this.logger.log("SMTP not configured, using console logging mode");
     }
   }
 
@@ -107,15 +106,13 @@ export class EmailService {
           text,
           html,
         });
-        console.log(`[EmailService] Email sent to ${to}`);
+        this.logger.log(`Email sent to ${to}`);
       } catch (error) {
-        console.error(`[EmailService] Failed to send email to ${to}:`, error);
+        this.logger.error(`Failed to send email to ${to}`, error as Error);
         throw error;
       }
     } else {
-      console.log(`[EmailService] CONSOLE MODE - Would send email to: ${to}`);
-      console.log(`[EmailService] Subject: ${subject}`);
-      console.log(`[EmailService] Body: ${text}`);
+      this.logger.log(`CONSOLE MODE - Would send email to: ${to}, Subject: ${subject}`);
     }
   }
 

@@ -1,4 +1,4 @@
-import { Injectable, ForbiddenException } from "@nestjs/common";
+import { Injectable, ForbiddenException, Logger } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { InterviewProcessService } from "../interview-processes/interview-process.service";
 import {
@@ -11,6 +11,8 @@ import {
 
 @Injectable()
 export class FeedbackService {
+  private readonly logger = new Logger(FeedbackService.name);
+  
   constructor(
     private prisma: PrismaService,
     private processService: InterviewProcessService,
@@ -42,8 +44,14 @@ export class FeedbackService {
       throw new Error("该面试状态不允许提交反馈");
     }
 
-    // 校验2: 提交者必须是该面试的指定面试官
-    if (interview.interviewerId !== interviewerId) {
+    // 校验2: 权限检查（HR 可代面试官填写反馈）
+    const currentUser = await this.prisma.user.findUnique({
+      where: { id: interviewerId },
+    });
+    const isHR = currentUser?.role === "HR";
+    const isInterviewerOfInterview = interview.interviewerId === interviewerId;
+
+    if (!isHR && !isInterviewerOfInterview) {
       throw new ForbiddenException("您不是该面试的指定面试官，无权提交反馈");
     }
 
@@ -118,7 +126,7 @@ export class FeedbackService {
             interview.roundNumber,
           );
         } catch (error) {
-          console.error("流程状态更新通知失败:", error);
+          this.logger.error("流程状态更新通知失败", error as Error);
         }
       }
     }
@@ -237,10 +245,16 @@ export class FeedbackService {
     interviewerId: string,
     updateDto: UpdateFeedbackDto,
   ): Promise<FeedbackResponseDto> {
+    // 权限检查：HR 可以修改任何反馈
+    const currentUser = await this.prisma.user.findUnique({
+      where: { id: interviewerId },
+    });
+    const isHR = currentUser?.role === "HR";
+
     const feedback = await this.prisma.interviewFeedback.findFirst({
       where: {
         id,
-        interviewerId,
+        ...(isHR ? {} : { interviewerId }),  // HR 不限制 interviewerId
       },
       include: {
         interview: true,
@@ -295,10 +309,16 @@ export class FeedbackService {
   }
 
   async remove(id: string, interviewerId: string): Promise<void> {
+    // 权限检查：HR 可以删除任何反馈
+    const currentUser = await this.prisma.user.findUnique({
+      where: { id: interviewerId },
+    });
+    const isHR = currentUser?.role === "HR";
+
     const feedback = await this.prisma.interviewFeedback.findFirst({
       where: {
         id,
-        interviewerId,
+        ...(isHR ? {} : { interviewerId }),
       },
     });
 

@@ -1,5 +1,6 @@
 "use client";
 import { apiFetch } from "@/lib/api";
+import { formatUTCToLocal, utcToLocalInput, localToUTC } from "@/lib/timezone";
 
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
@@ -105,6 +106,19 @@ export default function InterviewProcessDetailPage() {
   const [editingFeedbackId, setEditingFeedbackId] = useState<string | null>(null);
   const [feedbackEditForm, setFeedbackEditForm] = useState({ notes: "", strengths: "", weaknesses: "" });
 
+  // HR 代填写反馈弹窗状态
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  const [feedbackInterviewId, setFeedbackInterviewId] = useState<string | null>(null);
+  const [isSubmittingFeedback, setIsSubmittingFeedback] = useState(false);
+  const [isCompletingRound, setIsCompletingRound] = useState(false);
+  const [feedbackForm, setFeedbackForm] = useState({
+    result: "PENDING" as "PASS" | "FAIL" | "PENDING",
+    overallRating: 0,
+    strengths: "",
+    weaknesses: "",
+    notes: "",
+  });
+
   useEffect(() => {
     const userData = localStorage.getItem("user");
     if (userData) {
@@ -116,6 +130,61 @@ export default function InterviewProcessDetailPage() {
     }
     fetchProcess();
   }, [processId]);
+
+  // HR 代填写反馈
+  const handleSubmitFeedback = async () => {
+    if (!feedbackInterviewId) return;
+    if (feedbackForm.overallRating === 0) {
+      setError("请选择评分");
+      return;
+    }
+
+    // 防重复提交
+    if (isSubmittingFeedback) {
+      console.log("正在提交中，请勿重复点击");
+      return;
+    }
+    setIsSubmittingFeedback(true);
+
+    try {
+      const token = localStorage.getItem("token");
+      const response = await apiFetch("/feedback", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          interviewId: feedbackInterviewId,
+          result: feedbackForm.result,
+          overallRating: feedbackForm.overallRating,
+          strengths: feedbackForm.strengths || undefined,
+          weaknesses: feedbackForm.weaknesses || undefined,
+          notes: feedbackForm.notes || undefined,
+        }),
+      });
+
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.message || "提交反馈失败");
+      }
+
+      setShowFeedbackModal(false);
+      setFeedbackInterviewId(null);
+      setFeedbackForm({
+        result: "PENDING",
+        overallRating: 0,
+        strengths: "",
+        weaknesses: "",
+        notes: "",
+      });
+      fetchProcess();
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setIsSubmittingFeedback(false);
+    }
+  };
 
   const fetchProcess = async () => {
     try {
@@ -152,9 +221,12 @@ export default function InterviewProcessDetailPage() {
         ? `/interviews/${editingInterviewId}`
         : `/interview-processes/${processId}/rounds/${schedulingRound}/interview`;
 
-      const body = isEditing
-        ? scheduleForm
-        : scheduleForm;
+      // 转换时间：datetime-local (本地时间) -> UTC
+      const body = {
+        ...scheduleForm,
+        startTime: localToUTC(scheduleForm.startTime),
+        endTime: localToUTC(scheduleForm.endTime),
+      };
 
       const response = await apiFetch(url, {
         method: isEditing ? "PUT" : "POST",
@@ -176,6 +248,13 @@ export default function InterviewProcessDetailPage() {
   };
 
   const handleCompleteRound = async (action: "next" | "complete" | "reject") => {
+    // 防重复提交
+    if (isCompletingRound) {
+      console.log("正在处理中，请勿重复点击");
+      return;
+    }
+    setIsCompletingRound(true);
+
     try {
       const token = localStorage.getItem("token");
       const response = await apiFetch(
@@ -194,6 +273,8 @@ export default function InterviewProcessDetailPage() {
       fetchProcess();
     } catch (err: any) {
       setError(err.message);
+    } finally {
+      setIsCompletingRound(false);
     }
   };
 
@@ -245,8 +326,8 @@ export default function InterviewProcessDetailPage() {
     if (existingInterview) {
       setEditingInterviewId(existingInterview.id);
       setScheduleForm({
-        startTime: existingInterview.startTime ? new Date(existingInterview.startTime).toISOString().slice(0, 16) : "",
-        endTime: existingInterview.endTime ? new Date(existingInterview.endTime).toISOString().slice(0, 16) :
+        startTime: existingInterview.startTime ? utcToLocalInput(existingInterview.startTime) : "",
+        endTime: existingInterview.endTime ? utcToLocalInput(existingInterview.endTime) :
           existingInterview.startTime ? new Date(new Date(existingInterview.startTime).getTime() + 3600000).toISOString().slice(0, 16) : "",
         format: (existingInterview.format as "ONLINE" | "OFFLINE") || "ONLINE",
         location: existingInterview.location || "",
@@ -337,13 +418,26 @@ export default function InterviewProcessDetailPage() {
   // Permission check: can this user edit feedback result?
   const canEditFeedbackResult = (feedback: Feedback, interview: ProcessInterview): boolean => {
     if (!process || !user) return false;
+    // HR 可以编辑任何反馈
+    if (user.role === "HR") return true;
+    // 面试官只能编辑自己的反馈
     if (feedback.interviewerId !== user.id) return false;
     return process.currentRound === interview.roundNumber && process.status === "IN_PROGRESS";
   };
 
   const canEditFeedbackNotes = (feedback: Feedback): boolean => {
     if (!user) return false;
+    // HR 可以编辑任何反馈
+    if (user.role === "HR") return true;
     return feedback.interviewerId === user.id;
+  };
+
+  // HR 可以为任何面试填写反馈
+  const canCreateFeedback = (interview: ProcessInterview): boolean => {
+    if (!user) return false;
+    if (user.role === "HR") return true;
+    if (user.role === "INTERVIEWER" && interview.interviewerId === user.id) return true;
+    return false;
   };
 
   if (loading) {
@@ -413,19 +507,22 @@ export default function InterviewProcessDetailPage() {
                   <>
                     <button
                       onClick={() => handleCompleteRound("next")}
-                      className="bg-[#1890ff] hover:bg-[#40a9ff] text-white rounded-md px-4 py-2 text-[13px] font-medium"
+                      disabled={isCompletingRound}
+                      className="bg-[#1890ff] hover:bg-[#40a9ff] text-white rounded-md px-4 py-2 text-[13px] font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       通过，安排下一轮
                     </button>
                     <button
                       onClick={() => handleCompleteRound("complete")}
-                      className="bg-[#52c41a] hover:bg-[#73d13d] text-white rounded-md px-4 py-2 text-[13px] font-medium"
+                      disabled={isCompletingRound}
+                      className="bg-[#52c41a] hover:bg-[#73d13d] text-white rounded-md px-4 py-2 text-[13px] font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       直接录用
                     </button>
                     <button
                       onClick={() => handleCompleteRound("reject")}
-                      className="bg-[#fff2f0] text-[#ff4d4f] hover:bg-[#ffccc7] rounded-md px-4 py-2 text-[13px] font-medium border border-[#ffccc7]"
+                      disabled={isCompletingRound}
+                      className="bg-[#fff2f0] text-[#ff4d4f] hover:bg-[#ffccc7] rounded-md px-4 py-2 text-[13px] font-medium border border-[#ffccc7] disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       不通过
                     </button>
@@ -434,13 +531,15 @@ export default function InterviewProcessDetailPage() {
                   <>
                     <button
                       onClick={() => handleCompleteRound("complete")}
-                      className="bg-[#52c41a] hover:bg-[#73d13d] text-white rounded-md px-4 py-2 text-[13px] font-medium"
+                      disabled={isCompletingRound}
+                      className="bg-[#52c41a] hover:bg-[#73d13d] text-white rounded-md px-4 py-2 text-[13px] font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       通过，录用候选人
                     </button>
                     <button
                       onClick={() => handleCompleteRound("reject")}
-                      className="bg-[#fff2f0] text-[#ff4d4f] hover:bg-[#ffccc7] rounded-md px-4 py-2 text-[13px] font-medium border border-[#ffccc7]"
+                      disabled={isCompletingRound}
+                      className="bg-[#fff2f0] text-[#ff4d4f] hover:bg-[#ffccc7] rounded-md px-4 py-2 text-[13px] font-medium border border-[#ffccc7] disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       不通过
                     </button>
@@ -550,7 +649,7 @@ export default function InterviewProcessDetailPage() {
                               <svg className="w-3.5 h-3.5 text-[#00000073]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                               </svg>
-                              {new Date(interview.startTime).toLocaleString("zh-CN")}
+                              {formatUTCToLocal(interview.startTime)}
                             </div>
                             <div className="flex items-center gap-1.5">
                               <svg className="w-3.5 h-3.5 text-[#00000073]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -714,13 +813,24 @@ export default function InterviewProcessDetailPage() {
 
                           {/* Action buttons */}
                           {isCurrentRound && isHR && (
-                            <div className="mt-3 pt-3 border-t border-[#f0f0f0] flex gap-2">
+                            <div className="mt-3 pt-3 border-t border-[#f0f0f0] flex gap-2 flex-wrap">
                               <button
                                 onClick={() => openScheduleModal(round.roundNumber)}
                                 className="border border-[#d9d9d9] hover:border-[#1890ff] hover:text-[#1890ff] text-[#000000d9] rounded px-3 py-1.5 text-[12px] font-medium transition-colors"
                               >
                                 修改安排
                               </button>
+                              {interview && !interview.hasFeedback && (
+                                <button
+                                  onClick={() => {
+                                    setFeedbackInterviewId(interview.id);
+                                    setShowFeedbackModal(true);
+                                  }}
+                                  className="bg-[#52c41a] hover:bg-[#73d13d] text-white rounded px-3 py-1.5 text-[12px] font-medium"
+                                >
+                                  代填写反馈
+                                </button>
+                              )}
                             </div>
                           )}
 
@@ -909,6 +1019,137 @@ export default function InterviewProcessDetailPage() {
                       确认更换
                     </button>
                   </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* HR 代填写反馈弹窗 */}
+          {showFeedbackModal && feedbackInterviewId && (
+            <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+              <div className="bg-white rounded-lg shadow-lg max-w-lg w-full max-h-[90vh] overflow-y-auto">
+                <div className="px-5 py-3.5 border-b border-[#f0f0f0]">
+                  <h2 className="text-sm font-semibold text-[#000000d9]">
+                    代填写面试反馈
+                  </h2>
+                </div>
+                <div className="p-5 space-y-4">
+                  {/* 面试结论 */}
+                  <div>
+                    <label className="block text-[12px] font-medium text-[#000000d9] mb-1">面试结论 <span className="text-red-500">*</span></label>
+                    <div className="flex gap-4">
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="result"
+                          value="PASS"
+                          checked={feedbackForm.result === "PASS"}
+                          onChange={() => setFeedbackForm({ ...feedbackForm, result: "PASS" })}
+                          className="w-4 h-4"
+                        />
+                        <span className="text-[13px]">通过</span>
+                      </label>
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="result"
+                          value="FAIL"
+                          checked={feedbackForm.result === "FAIL"}
+                          onChange={() => setFeedbackForm({ ...feedbackForm, result: "FAIL" })}
+                          className="w-4 h-4"
+                        />
+                        <span className="text-[13px]">不通过</span>
+                      </label>
+                      <label className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="result"
+                          value="PENDING"
+                          checked={feedbackForm.result === "PENDING"}
+                          onChange={() => setFeedbackForm({ ...feedbackForm, result: "PENDING" })}
+                          className="w-4 h-4"
+                        />
+                        <span className="text-[13px]">待定</span>
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* 评分 */}
+                  <div>
+                    <label className="block text-[12px] font-medium text-[#000000d9] mb-1">综合评分 <span className="text-red-500">*</span></label>
+                    <div className="flex gap-2">
+                      {[1, 2, 3, 4, 5].map((rating) => (
+                        <button
+                          key={rating}
+                          type="button"
+                          onClick={() => setFeedbackForm({ ...feedbackForm, overallRating: rating })}
+                          className={`w-10 h-10 rounded-full border-2 flex items-center justify-center text-sm font-medium transition-colors ${
+                            feedbackForm.overallRating >= rating
+                              ? "bg-[#1890ff] border-[#1890ff] text-white"
+                              : "bg-white border-[#d9d9d9] text-[#000000d9] hover:border-[#1890ff]"
+                          }`}
+                        >
+                          {rating}
+                        </button>
+                      ))}
+                    </div>
+                    <p className="text-[11px] text-[#999] mt-1">1-5分，5分最高</p>
+                  </div>
+
+                  {/* 优点 */}
+                  <div>
+                    <label className="block text-[12px] font-medium text-[#000000d9] mb-1">候选人优点</label>
+                    <textarea
+                      value={feedbackForm.strengths}
+                      onChange={(e) => setFeedbackForm({ ...feedbackForm, strengths: e.target.value })}
+                      placeholder="请输入候选人的优点..."
+                      rows={3}
+                      className="w-full border border-[#d9d9d9] rounded px-3 py-2 text-[13px] focus:border-[#1890ff] focus:outline-none"
+                    />
+                  </div>
+
+                  {/* 不足 */}
+                  <div>
+                    <label className="block text-[12px] font-medium text-[#000000d9] mb-1">待改进之处</label>
+                    <textarea
+                      value={feedbackForm.weaknesses}
+                      onChange={(e) => setFeedbackForm({ ...feedbackForm, weaknesses: e.target.value })}
+                      placeholder="请输入候选人需要改进的地方..."
+                      rows={3}
+                      className="w-full border border-[#d9d9d9] rounded px-3 py-2 text-[13px] focus:border-[#1890ff] focus:outline-none"
+                    />
+                  </div>
+
+                  {/* 备注 */}
+                  <div>
+                    <label className="block text-[12px] font-medium text-[#000000d9] mb-1">备注</label>
+                    <textarea
+                      value={feedbackForm.notes}
+                      onChange={(e) => setFeedbackForm({ ...feedbackForm, notes: e.target.value })}
+                      placeholder="其他补充说明..."
+                      rows={3}
+                      className="w-full border border-[#d9d9d9] rounded px-3 py-2 text-[13px] focus:border-[#1890ff] focus:outline-none"
+                    />
+                  </div>
+                </div>
+                <div className="px-5 py-3.5 border-t border-[#f0f0f0] flex gap-2">
+                  <button
+                    onClick={() => {
+                      setShowFeedbackModal(false);
+                      setFeedbackInterviewId(null);
+                      setFeedbackForm({ result: "PENDING", overallRating: 0, strengths: "", weaknesses: "", notes: "" });
+                    }}
+                    className="flex-1 border border-[#d9d9d9] hover:border-[#1890ff] text-[#000000d9] rounded px-4 py-2 text-[13px] font-medium transition-colors"
+                  >
+                    取消
+                  </button>
+                  <button
+                    onClick={handleSubmitFeedback}
+                    disabled={isSubmittingFeedback}
+                    className="flex-1 bg-[#52c41a] hover:bg-[#73d13d] text-white rounded px-4 py-2 text-[13px] font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    提交反馈
+                  </button>
                 </div>
               </div>
             </div>
