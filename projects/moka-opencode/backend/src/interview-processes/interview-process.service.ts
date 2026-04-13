@@ -40,9 +40,6 @@ export class InterviewProcessService {
     } = createDto;
 
     // 校验终面必须是最后一轮
-    if (rounds.length > 0 && rounds[rounds.length - 1].roundType !== "FINAL") {
-      throw new BadRequestException("终面必须是最后一轮");
-    }
 
     // 校验最少3轮
     if (rounds.length < 3) {

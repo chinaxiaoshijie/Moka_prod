@@ -1,4 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
+import { IsString, IsOptional, IsInt, IsIn, Min, Max } from "class-validator";
 
 // 使用字符串字面量而非 Prisma 枚举，因为 Prisma 枚举在运行时不可用
 export type PositionStatus = "OPEN" | "PAUSED" | "CLOSED";
@@ -6,59 +7,100 @@ export const POSITION_STATUS_VALUES = ["OPEN", "PAUSED", "CLOSED"] as const;
 
 export class CreatePositionDto {
   @ApiProperty({ description: "职位名称", example: "高级前端工程师" })
+  @IsString()
   title!: string;
 
   @ApiPropertyOptional({ description: "职位描述" })
+  @IsOptional()
+  @IsString()
   description?: string;
 
   @ApiPropertyOptional({ description: "最低薪资", example: 15000 })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
   salaryMin?: number;
 
   @ApiPropertyOptional({ description: "最高薪资", example: 25000 })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
   salaryMax?: number;
 
   @ApiPropertyOptional({ description: "招聘人数", example: 5 })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
   headcount?: number;
 
   @ApiPropertyOptional({ description: "工作地点", example: "北京" })
+  @IsOptional()
+  @IsString()
   location?: string;
 
   @ApiPropertyOptional({ description: "职位要求" })
+  @IsOptional()
+  @IsString()
   requirements?: string;
 
   @ApiPropertyOptional({ description: "部门 ID" })
+  @IsOptional()
+  @IsString()
   departmentId?: string;
 
   @ApiPropertyOptional({ description: "汇报对象 ID" })
+  @IsOptional()
+  @IsString()
   reportsToId?: string;
 }
 
 export class UpdatePositionDto {
   @ApiPropertyOptional({ description: "职位名称" })
+  @IsOptional()
+  @IsString()
   title?: string;
 
   @ApiPropertyOptional({ description: "职位描述" })
+  @IsOptional()
+  @IsString()
   description?: string;
 
   @ApiPropertyOptional({ description: "最低薪资" })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
   salaryMin?: number;
 
   @ApiPropertyOptional({ description: "最高薪资" })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
   salaryMax?: number;
 
   @ApiPropertyOptional({ description: "招聘人数" })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
   headcount?: number;
 
   @ApiPropertyOptional({ description: "工作地点" })
+  @IsOptional()
+  @IsString()
   location?: string;
 
   @ApiPropertyOptional({ description: "职位要求" })
+  @IsOptional()
+  @IsString()
   requirements?: string;
 
   @ApiPropertyOptional({ description: "部门 ID" })
+  @IsOptional()
+  @IsString()
   departmentId?: string;
 
   @ApiPropertyOptional({ description: "汇报对象 ID" })
+  @IsOptional()
+  @IsString()
   reportsToId?: string;
 
   @ApiPropertyOptional({
@@ -66,6 +108,8 @@ export class UpdatePositionDto {
     enum: POSITION_STATUS_VALUES,
     example: "OPEN",
   })
+  @IsOptional()
+  @IsIn(POSITION_STATUS_VALUES)
   status?: PositionStatus;
 }
 
@@ -103,6 +147,9 @@ export class PositionResponseDto {
   @ApiProperty({ description: "工作地点", nullable: true })
   location!: string | null;
 
+  @ApiProperty({ description: "职位要求", nullable: true })
+  requirements!: string | null;
+
   @ApiProperty({ description: "创建时间" })
   createdAt!: Date;
 
@@ -111,23 +158,18 @@ export class PositionResponseDto {
 }
 
 export class PositionListResponseDto {
-  @ApiProperty({ description: "职位列表", type: [PositionResponseDto] })
+  @ApiProperty({ type: [PositionResponseDto] })
   items!: PositionResponseDto[];
 
-  @ApiProperty({ description: "总数", example: 100 })
+  @ApiProperty()
   total!: number;
 
-  @ApiProperty({ description: "当前页码", example: 1 })
+  @ApiProperty()
   page!: number;
 
-  @ApiProperty({ description: "每页数量", example: 10 })
+  @ApiProperty()
   pageSize!: number;
-}
 
-export class PaginationQueryDto {
-  @ApiPropertyOptional({ description: "页码", example: 1, default: 1 })
-  page?: number;
-
-  @ApiPropertyOptional({ description: "每页数量", example: 10, default: 10 })
-  pageSize?: number;
+  @ApiProperty()
+  totalPages?: number;
 }

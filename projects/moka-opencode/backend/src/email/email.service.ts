@@ -12,6 +12,7 @@ interface InterviewEmailData {
   startTime: Date;
   endTime: Date;
   format: string;
+  roundNumber?: number;
   location?: string;
   meetingUrl?: string;
   meetingNumber?: string;
@@ -239,17 +240,19 @@ Moka 面试系统
       data.format === "ONLINE"
         ? `会议链接：${data.meetingUrl || "待定"}`
         : `面试地点：${data.location || "待定"}`;
+    const roundInfo = data.roundNumber ? `第${data.roundNumber}轮` : "";
 
     const text = `
 ${data.interviewerName} 您好：
 
-您有新的面试安排：
+您有新的${roundInfo}面试安排：
 
 候选人信息：
 - 姓名：${data.candidateName}
 - 应聘职位：${data.positionTitle}
 
 面试详情：
+- 轮次：${roundInfo || "待定"}
 - 时间：${this.formatDateTime(data.startTime)} - ${this.formatTime(data.endTime)}
 - 形式：${formatText}
 - ${locationInfo}
@@ -273,6 +276,7 @@ Moka 面试系统
   
   <div style="background: #f5f5f5; padding: 20px; border-radius: 8px; margin: 20px 0;">
     <h3 style="margin-top: 0; color: #666;">面试详情</h3>
+    <p><strong>轮次：</strong>${data.roundNumber ? `第${data.roundNumber}轮` : "待定"}</p>
     <p><strong>时间：</strong>${this.formatDateTime(data.startTime)} - ${this.formatTime(data.endTime)}</p>
     <p><strong>形式：</strong>${formatText}</p>
     <p><strong>${data.format === "ONLINE" ? "会议链接" : "面试地点"}：</strong>${data.format === "ONLINE" ? data.meetingUrl : data.location}</p>

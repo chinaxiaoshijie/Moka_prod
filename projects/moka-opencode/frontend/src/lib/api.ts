@@ -1,10 +1,9 @@
 export const getApiUrl = (path: string = "") => {
-  // Always use /api prefix for proxy to nginx
   const apiPath = path.startsWith("/") ? path : `/${path}`;
   const fullPath = apiPath.startsWith("/api") ? apiPath : `/api${apiPath}`;
 
   if (typeof window !== "undefined") {
-    // Browser environment - use relative path for proxy
+    // Browser environment - use relative path, nginx will proxy to backend
     return fullPath;
   } else {
     // Server environment - use configured API URL
@@ -35,7 +34,7 @@ const getToken = (): string | null => {
 };
 
 // Helper function for API calls
-// Automatically adds /api prefix, Content-Type for JSON requests, and JWT token
+// Automatically adds /api prefix for nginx proxy, Content-Type for JSON requests, and JWT token
 // Skips Content-Type for FormData (lets browser set multipart boundary)
 export const apiFetch = async (url: string, options: RequestInit = {}) => {
   const fullUrl = getApiUrl(url);

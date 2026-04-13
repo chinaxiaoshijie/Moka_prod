@@ -270,7 +270,7 @@ export default function CandidateDetailPage() {
                   </div>
                   <div className="flex gap-2">
                     <a
-                      href={`http://localhost:13001/candidates/public/resumes/${file.id}`}
+                      href={`/api/candidates/public/resumes/${file.id}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="px-4 py-2 text-sm text-[#4371FF] hover:bg-[#4371FF]/10 rounded-lg transition-colors"
@@ -278,7 +278,7 @@ export default function CandidateDetailPage() {
                       查看
                     </a>
                     <a
-                      href={`http://localhost:13001/candidates/public/resumes/${file.id}`}
+                      href={`/api/candidates/public/resumes/${file.id}`}
                       download={file.fileName}
                       className="px-4 py-2 text-sm bg-[#4371FF] hover:bg-[#3461E6] text-white rounded-lg transition-colors"
                     >

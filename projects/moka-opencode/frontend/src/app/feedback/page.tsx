@@ -48,6 +48,7 @@ function FeedbackContent() {
   const [weaknesses, setWeaknesses] = useState("");
   const [overallRating, setOverallRating] = useState(3);
   const [notes, setNotes] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     const userData = localStorage.getItem("user");
@@ -146,6 +147,9 @@ function FeedbackContent() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (isSubmitting) return; // 防止重复提交
+    setIsSubmitting(true);
 
     try {
       const token = localStorage.getItem("token");
@@ -253,7 +257,7 @@ function FeedbackContent() {
             <p className="text-slate-500 mb-6 text-sm">请选择要查看反馈的面试</p>
             <button
               onClick={() => router.push("/interviews")}
-              className="bg-[#4371FF] hover:bg-[#3461E6] text-white rounded-lg px-4 py-2.5 text-sm font-medium shadow-sm"
+              className="bg-[#4371FF] hover:bg-[#3461E6] text-white rounded-lg px-4 py-2.5 text-sm font-medium shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
               查看面试列表
             </button>
@@ -363,7 +367,7 @@ function FeedbackContent() {
                           setIsEditing(true);
                           setShowForm(true);
                         }}
-                        className="bg-[#4371FF] hover:bg-[#3461E6] text-white rounded-lg px-4 py-2.5 text-sm font-medium shadow-sm"
+                        className="bg-[#4371FF] hover:bg-[#3461E6] text-white rounded-lg px-4 py-2.5 text-sm font-medium shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         修改我的反馈
                       </button>
@@ -374,7 +378,7 @@ function FeedbackContent() {
                           setIsEditing(false);
                           setShowForm(!showForm);
                         }}
-                        className="bg-[#4371FF] hover:bg-[#3461E6] text-white rounded-lg px-4 py-2.5 text-sm font-medium shadow-sm"
+                        className="bg-[#4371FF] hover:bg-[#3461E6] text-white rounded-lg px-4 py-2.5 text-sm font-medium shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         {showForm ? "取消" : "添加反馈"}
                       </button>
@@ -476,9 +480,10 @@ function FeedbackContent() {
 
                       <button
                         type="submit"
-                        className="w-full py-2.5 bg-[#4371FF] hover:bg-[#3461E6] text-white rounded-lg text-sm font-medium shadow-sm"
+                        disabled={isSubmitting}
+                        className="w-full py-2.5 bg-[#4371FF] hover:bg-[#3461E6] text-white rounded-lg text-sm font-medium shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
                       >
-                        {isEditing ? "更新反馈" : "提交反馈"}
+                        {isSubmitting ? "提交中..." : (isEditing ? "更新反馈" : "提交反馈")}
                       </button>
                     </form>
                   </div>

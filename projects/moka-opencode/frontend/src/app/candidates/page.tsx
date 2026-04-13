@@ -82,6 +82,12 @@ export default function CandidatesPage() {
         roundNumber: 3,
         interviewerId: "",
         isHRRound: false,
+        roundType: "TECHNICAL",
+      },
+      {
+        roundNumber: 4,
+        interviewerId: "",
+        isHRRound: false,
         roundType: "FINAL",
       },
     ] as InterviewRound[],
@@ -173,6 +179,12 @@ export default function CandidatesPage() {
         },
         {
           roundNumber: 3,
+        interviewerId: "",
+        isHRRound: false,
+        roundType: "TECHNICAL",
+      },
+      {
+        roundNumber: 4,
           interviewerId: "",
           isHRRound: false,
           roundType: "FINAL",
@@ -252,8 +264,8 @@ export default function CandidatesPage() {
   };
 
   const addRound = () => {
-    if (processConfig.rounds.length >= 4) {
-      setError("最多4轮面试（初面 + 最多2轮技术面 + 终面）");
+    if (processConfig.rounds.length >= 5) {
+      setError("最多 5 轮面试（初面 + 最多 3 轮技术面 + 终面）");
       return;
     }
     setProcessConfig((prev) => {
@@ -855,7 +867,7 @@ export default function CandidatesPage() {
                     </label>
                     <button
                       onClick={addRound}
-                      disabled={processConfig.rounds.length >= 4}
+                      disabled={processConfig.rounds.length >= 5}
                       className="text-sm text-[#4371FF] hover:text-[#3461E6] disabled:text-slate-400 font-medium"
                     >
                       + 添加轮次

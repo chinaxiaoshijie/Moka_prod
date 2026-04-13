@@ -33,7 +33,7 @@ export class AuthService {
       role: user.role,
     };
 
-    const token = this.jwtService.sign(payload);
+    const token = this.jwtService.sign(payload, { expiresIn: "7d" });
 
     return {
       access_token: token,

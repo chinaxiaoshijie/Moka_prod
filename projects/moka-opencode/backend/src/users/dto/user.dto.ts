@@ -1,11 +1,5 @@
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
-import {
-  IsString,
-  IsEmail,
-  IsOptional,
-  IsEnum,
-  MinLength,
-} from "class-validator";
+import { IsString, IsEmail, IsOptional, IsIn, MinLength } from "class-validator";
 
 export class CreateUserDto {
   @ApiProperty({ example: "john_doe", description: "用户名" })
@@ -26,12 +20,8 @@ export class CreateUserDto {
   @IsOptional()
   email?: string;
 
-  @ApiProperty({
-    example: "INTERVIEWER",
-    enum: ["HR", "INTERVIEWER"],
-    description: "角色",
-  })
-  @IsEnum(["HR", "INTERVIEWER"])
+  @ApiProperty({ example: "INTERVIEWER", enum: ["HR", "INTERVIEWER"], description: "角色" })
+  @IsIn(["HR", "INTERVIEWER"])
   role: "HR" | "INTERVIEWER";
 }
 
@@ -48,7 +38,12 @@ export class UpdateUserDto {
 
   @ApiPropertyOptional({ example: "newpassword123", description: "新密码" })
   @IsString()
-  @IsOptional()
   @MinLength(6)
+  @IsOptional()
   password?: string;
+
+  @ApiPropertyOptional({ example: "HR", enum: ["HR", "INTERVIEWER"], description: "角色" })
+  @IsIn(["HR", "INTERVIEWER"])
+  @IsOptional()
+  role?: "HR" | "INTERVIEWER";
 }

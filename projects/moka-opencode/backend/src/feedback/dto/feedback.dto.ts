@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsEnum, IsInt, Min, Max } from "class-validator";
+import { IsString, IsOptional, IsIn, IsInt, Min, Max } from "class-validator";
 
 // 使用字符串字面量而非 Prisma 枚举
 export type FeedbackResult = "PASS" | "FAIL" | "PENDING";
@@ -8,7 +8,7 @@ export class CreateFeedbackDto {
   @IsString()
   interviewId!: string;
 
-  @IsEnum(FEEDBACK_RESULT_VALUES, {
+  @IsIn(FEEDBACK_RESULT_VALUES, {
     message: "反馈结果必须是 PASS, FAIL 或 PENDING",
   })
   result!: FeedbackResult;
@@ -34,7 +34,7 @@ export class CreateFeedbackDto {
 
 export class UpdateFeedbackDto {
   @IsOptional()
-  @IsEnum(FEEDBACK_RESULT_VALUES, {
+  @IsIn(FEEDBACK_RESULT_VALUES, {
     message: "反馈结果必须是 PASS, FAIL 或 PENDING",
   })
   result?: FeedbackResult;

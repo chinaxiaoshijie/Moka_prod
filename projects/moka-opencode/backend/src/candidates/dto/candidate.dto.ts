@@ -1,4 +1,4 @@
-import { IsString, IsOptional, IsInt, IsEnum } from "class-validator";
+import { IsString, IsOptional, IsInt, IsIn } from "class-validator";
 
 // 使用字符串字面量而非 Prisma 枚举
 export type CandidateStatus = "PENDING" | "SCREENING" | "INTERVIEW_1" | "INTERVIEW_2" | "INTERVIEW_3" | "HIRED" | "REJECTED";
@@ -23,13 +23,13 @@ export class CreateCandidateDto {
   positionId?: string;
 
   @IsOptional()
-  @IsEnum(CANDIDATE_STATUS_VALUES, {
+  @IsIn(CANDIDATE_STATUS_VALUES, {
     message: "候选人状态必须是 PENDING, SCREENING, INTERVIEW_1, INTERVIEW_2, INTERVIEW_3, HIRED 或 REJECTED",
   })
   status?: CandidateStatus;
 
   @IsOptional()
-  @IsEnum(CANDIDATE_SOURCE_VALUES, {
+  @IsIn(CANDIDATE_SOURCE_VALUES, {
     message: "候选人来源必须是 BOSS, REFERRAL, HEADHUNTER 或 WEBSITE",
   })
   source?: CandidateSource;
@@ -57,13 +57,13 @@ export class UpdateCandidateDto {
   positionId?: string;
 
   @IsOptional()
-  @IsEnum(CANDIDATE_STATUS_VALUES, {
+  @IsIn(CANDIDATE_STATUS_VALUES, {
     message: "候选人状态必须是 PENDING, SCREENING, INTERVIEW_1, INTERVIEW_2, INTERVIEW_3, HIRED 或 REJECTED",
   })
   status?: CandidateStatus;
 
   @IsOptional()
-  @IsEnum(CANDIDATE_SOURCE_VALUES, {
+  @IsIn(CANDIDATE_SOURCE_VALUES, {
     message: "候选人来源必须是 BOSS, REFERRAL, HEADHUNTER 或 WEBSITE",
   })
   source?: CandidateSource;

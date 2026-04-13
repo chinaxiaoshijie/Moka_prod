@@ -815,6 +815,7 @@ export default function InterviewProcessDetailPage() {
                           {isCurrentRound && isHR && (
                             <div className="mt-3 pt-3 border-t border-[#f0f0f0] flex gap-2 flex-wrap">
                               <button
+                                disabled={process.status === "COMPLETED" || process.status === "CANCELLED"}
                                 onClick={() => openScheduleModal(round.roundNumber)}
                                 className="border border-[#d9d9d9] hover:border-[#1890ff] hover:text-[#1890ff] text-[#000000d9] rounded px-3 py-1.5 text-[12px] font-medium transition-colors"
                               >

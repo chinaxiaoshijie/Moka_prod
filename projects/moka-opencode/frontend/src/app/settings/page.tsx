@@ -309,11 +309,11 @@ export default function SettingsPage() {
                 <div className="space-y-0">
                   <div className="flex items-center justify-between py-3.5 border-b border-slate-50">
                     <span className="text-sm text-slate-600">系统版本</span>
-                    <span className="text-sm font-medium text-slate-900">v1.0.0</span>
+                    <span className="text-sm font-medium text-slate-900">v2.0.0</span>
                   </div>
                   <div className="flex items-center justify-between py-3.5 border-b border-slate-50">
                     <span className="text-sm text-slate-600">最后更新</span>
-                    <span className="text-sm font-medium text-slate-900">2026-02-24</span>
+                    <span className="text-sm font-medium text-slate-900">2026-04-09</span>
                   </div>
                   <div className="flex items-center justify-between py-3.5">
                     <span className="text-sm text-slate-600">数据库状态</span>
@@ -352,7 +352,7 @@ export default function SettingsPage() {
               </h2>
               <p className="text-slate-500 text-sm mb-6">智能化招聘管理平台</p>
               <div className="space-y-2 text-sm text-slate-500">
-                <p>版本: v1.0.0</p>
+                <p>版本: v2.0.0</p>
                 <p>技术栈: NestJS + Next.js + Prisma + PostgreSQL</p>
                 <p>© 2026 Moka Interview System. All rights reserved.</p>
               </div>

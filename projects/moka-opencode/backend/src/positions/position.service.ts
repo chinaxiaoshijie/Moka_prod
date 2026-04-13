@@ -111,6 +111,7 @@ export class PositionService {
       inProgressCount: position.inProgressCount,
       status: position.status,
       location: position.location,
+      requirements: position.requirements,
       createdAt: position.createdAt,
       updatedAt: position.updatedAt,
     };

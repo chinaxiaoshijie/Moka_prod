@@ -58,7 +58,7 @@ export class PositionController {
   }
 
   @Post()
-  @Roles("admin", "hr")
+  @Roles("admin", "HR")
   @ApiOperation({ summary: "创建职位" })
   @ApiResponse({ status: 201, type: PositionResponseDto })
   @ApiResponse({ status: 400, description: "请求参数错误" })
@@ -70,7 +70,7 @@ export class PositionController {
   }
 
   @Put(":id")
-  @Roles("admin", "hr")
+  @Roles("admin", "HR")
   @ApiOperation({ summary: "更新职位" })
   @ApiResponse({ status: 200, type: PositionResponseDto })
   @ApiResponse({ status: 404, description: "职位不存在" })
@@ -87,7 +87,7 @@ export class PositionController {
   }
 
   @Delete(":id")
-  @Roles("admin")
+  @Roles("HR")
   @ApiOperation({ summary: "删除职位" })
   @ApiResponse({ status: 200, type: PositionResponseDto })
   @ApiResponse({ status: 404, description: "职位不存在" })

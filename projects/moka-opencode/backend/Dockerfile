@@ -7,8 +7,8 @@ FROM node:20-bullseye AS deps
 WORKDIR /app
 
 # Use domestic Debian mirror (Tsinghua University)
-RUN sed -i 's/deb.debian.org/mirrors.tuna.tsinghua.edu.cn/g' /etc/apt/sources.list && \
-    sed -i 's/security.debian.org/mirrors.tuna.tsinghua.edu.cn/g' /etc/apt/sources.list && \
+RUN sed -i 's/deb.debian.org/deb.aliyun.com/g' /etc/apt/sources.list && \
+    sed -i 's/deb.aliyun.com/deb.aliyun.com/g' /etc/apt/sources.list && \
     apt-get update
 
 # Configure npm to use domestic registry
