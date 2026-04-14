@@ -194,9 +194,35 @@ export class InterviewProcessService {
       this.logger.warn(`候选人状态更新跳过：candidateId=${process.candidateId}, reason=${(error as Error).message}`);
     }
 
-    // ✅ 原则 1：移除自动发送邮件，改为 HR 手动发送
-    // 邮件由 HR 在面试详情页手动编辑并发送
-    // 已移除面试官邮件和候选人邮件的自动发送逻辑
+    // 自动发送邮件通知面试官 — 面试安排或时间调整时触发
+    try {
+      const interviewer = await this.prisma.user.findUnique({
+        where: { id: roundConfig.interviewerId },
+        select: { id: true, name: true, email: true },
+      });
+      
+      if (interviewer?.email) {
+        await this.emailService.sendInterviewNotificationToInterviewer({
+          candidateName: process.candidate.name,
+          candidateEmail: process.candidate.email || "",
+          positionTitle: process.position.title,
+          interviewerName: interviewer.name,
+          interviewerEmail: interviewer.email,
+          startTime,
+          endTime,
+          format: createDto.format,
+          roundNumber,
+          location: createDto.location,
+          meetingUrl: createDto.meetingUrl,
+          meetingNumber: createDto.meetingNumber,
+        });
+        this.logger.log(`面试官邮件通知发送成功：interviewerId=${interviewer.id}, round=${roundNumber}`);
+      } else {
+        this.logger.warn(`面试官未配置邮箱，跳过邮件通知：interviewerId=${roundConfig.interviewerId}`);
+      }
+    } catch (error) {
+      this.logger.error(`面试官邮件通知发送失败：interviewerId=${roundConfig.interviewerId}`, error as Error);
+    }
 
     // 更新流程状态为进行中（如果是从等待HR状态恢复的）
     if (process.status === "WAITING_HR") {
