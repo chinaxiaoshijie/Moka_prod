@@ -405,7 +405,7 @@ export class InterviewProcessService {
   ): Promise<ProcessResponseDto> {
     const process = await this.prisma.interviewProcess.findUnique({
       where: { id: processId },
-      include: { rounds: true },
+      include: { rounds: true, candidate: true, position: true },
     });
 
     if (!process) {
@@ -447,6 +447,42 @@ export class InterviewProcessService {
         },
         data: { interviewerId: updateDto.interviewerId },
       });
+
+      // 邮件通知新面试官（仅通知已有面试安排的轮次）
+      try {
+        const existingInterview = await this.prisma.interview.findFirst({
+          where: { processId, roundNumber, status: "SCHEDULED" },
+        });
+
+        if (existingInterview) {
+          const newInterviewer = await this.prisma.user.findUnique({
+            where: { id: updateDto.interviewerId },
+            select: { id: true, name: true, email: true },
+          });
+
+          if (newInterviewer?.email) {
+            await this.emailService.sendInterviewNotificationToInterviewer({
+              candidateName: process.candidate.name,
+              candidateEmail: process.candidate.email || "",
+              positionTitle: process.position.title,
+              interviewerName: newInterviewer.name,
+              interviewerEmail: newInterviewer.email,
+              startTime: existingInterview.startTime,
+              endTime: existingInterview.endTime,
+              format: existingInterview.format,
+              roundNumber,
+              location: existingInterview.location || undefined,
+              meetingUrl: existingInterview.meetingUrl || undefined,
+              meetingNumber: existingInterview.meetingNumber || undefined,
+            });
+            this.logger.log(`面试官更换通知发送成功：oldRound=${roundNumber}, newInterviewerId=${newInterviewer.id}`);
+          } else {
+            this.logger.warn(`新面试官未配置邮箱，跳过邮件通知：interviewerId=${updateDto.interviewerId}`);
+          }
+        }
+      } catch (error) {
+        this.logger.error(`面试官更换邮件通知发送失败：interviewerId=${updateDto.interviewerId}`, error as Error);
+      }
     }
 
     // 验证更新后仍至少3轮
