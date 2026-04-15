@@ -2,6 +2,8 @@ import { Injectable, Logger } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { EmailService } from "../email/email.service";
 import { EmailLimitService } from "../email/email-limit.service";
+import { NotificationService } from "../notifications/notification.service";
+import { NotificationType } from "@prisma/client";
 import {
   CreateInterviewDto,
   UpdateInterviewDto,
@@ -17,6 +19,7 @@ export class InterviewService {
     private prisma: PrismaService,
     private emailService: EmailService,
     private emailLimitService: EmailLimitService,
+    private notificationService: NotificationService,
   ) {}
 
   async create(createDto: CreateInterviewDto): Promise<InterviewResponseDto> {
@@ -243,6 +246,11 @@ export class InterviewService {
       throw new Error("面试安排不存在");
     }
 
+    // 记录变更字段，用于判断是否需要通知
+    const timeChanged = (updateDto.startTime && new Date(updateDto.startTime).getTime() !== interview.startTime.getTime()) ||
+                        (updateDto.endTime && new Date(updateDto.endTime).getTime() !== interview.endTime.getTime());
+    const interviewerChanged = updateDto.interviewerId && updateDto.interviewerId !== interview.interviewerId;
+
     const data: any = { ...updateDto };
     if (updateDto.startTime) data.startTime = new Date(updateDto.startTime);
     if (updateDto.endTime) data.endTime = new Date(updateDto.endTime);
@@ -254,8 +262,52 @@ export class InterviewService {
         candidate: true,
         position: true,
         interviewer: true,
+        process: true,
       },
     });
+
+    // 面试时间调整或面试官更换时，自动通知新面试官
+    if (timeChanged || interviewerChanged) {
+      try {
+        const interviewer = updatedInterview.interviewer;
+        if (interviewer?.email) {
+          await this.emailService.sendInterviewNotificationToInterviewer({
+            candidateName: updatedInterview.candidate.name,
+            candidateEmail: updatedInterview.candidate.email || "",
+            positionTitle: updatedInterview.position.title,
+            interviewerName: interviewer.name,
+            interviewerEmail: interviewer.email,
+            startTime: updatedInterview.startTime,
+            endTime: updatedInterview.endTime,
+            format: updatedInterview.format,
+            roundNumber: updatedInterview.roundNumber,
+            location: updatedInterview.location || undefined,
+            meetingUrl: updatedInterview.meetingUrl || undefined,
+            meetingNumber: updatedInterview.meetingNumber || undefined,
+          });
+          this.logger.log(`面试时间调整/面试官更换通知发送成功：interviewId=${id}, interviewerId=${interviewer.id}`);
+        } else {
+          this.logger.warn(`面试官未配置邮箱，跳过邮件通知：interviewerId=${interviewer?.id}`);
+        }
+      } catch (error) {
+        this.logger.error(`面试官邮件通知发送失败：interviewId=${id}`, error as Error);
+      }
+
+      // 站内通知
+      try {
+        await this.notificationService.create({
+          userId: updatedInterview.interviewerId,
+          type: NotificationType.INTERVIEW_REMINDER,
+          title: timeChanged ? "面试时间调整" : "新面试安排",
+          content: timeChanged
+            ? `候选人${updatedInterview.candidate.name}面试时间已调整，请准时参加`
+            : `您有新面试：候选人${updatedInterview.candidate.name}，职位${updatedInterview.position.title}`,
+          link: `/interviews/${id}`,
+        });
+      } catch (error) {
+        this.logger.error(`站内通知发送失败：interviewId=${id}`, error as Error);
+      }
+    }
 
     return this.mapToResponseDto(updatedInterview);
   }
