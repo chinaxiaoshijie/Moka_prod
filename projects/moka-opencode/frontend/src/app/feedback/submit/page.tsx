@@ -218,7 +218,7 @@ export default function SubmitFeedbackPage() {
                   <div>
                     <span className="text-slate-400">面试时间：</span>
                     <span className="font-medium text-slate-700">
-                      {new Date(interview.startTime).toLocaleString("zh-CN")}
+                      {new Date(interview.startTime).toLocaleString("zh-CN", { timeZone: "Asia/Shanghai", year: "numeric", month: "long", day: "numeric", hour: "2-digit", minute: "2-digit" })}
                     </span>
                   </div>
                 </div>

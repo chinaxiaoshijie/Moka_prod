@@ -404,17 +404,22 @@ export default function InterviewDetailPage() {
 
   const formatDate = (dateStr: string) => {
     const utcDate = new Date(dateStr);
-    let day = utcDate.getUTCDate();
-    let hour = utcDate.getUTCHours() + 8;
-    if (hour >= 24) day += 1;
-    return `${utcDate.getUTCFullYear()}年${utcDate.getUTCMonth() + 1}月${day}日`;
+    return utcDate.toLocaleDateString("zh-CN", {
+      timeZone: "Asia/Shanghai",
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
   };
 
   const formatTime = (dateStr: string) => {
     const utcDate = new Date(dateStr);
-    let hour = utcDate.getUTCHours() + 8;
-    if (hour >= 24) hour -= 24;
-    return `${String(hour).padStart(2, '0')}:${String(utcDate.getUTCMinutes()).padStart(2, '0')}`;
+    return utcDate.toLocaleTimeString("zh-CN", {
+      timeZone: "Asia/Shanghai",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    });
   };
 
 
@@ -634,7 +639,7 @@ export default function InterviewDetailPage() {
                         isScheduled ? 'text-blue-600' : 'text-slate-400'
                       }`}>
                         {isCompleted ? '已完成' :
-                         isScheduled ? new Date(interviewForRound.startTime).toLocaleDateString('zh-CN') :
+                         isScheduled ? new Date(interviewForRound.startTime).toLocaleDateString('zh-CN', { timeZone: 'Asia/Shanghai' }) :
                          '待安排'}
                       </div>
                     )}
@@ -797,9 +802,7 @@ export default function InterviewDetailPage() {
                             {feedback.interviewer.name}
                           </span>
                           <span className="text-xs text-[#666]">
-                            {new Date(feedback.createdAt).toLocaleDateString(
-                              "zh-CN",
-                            )}
+                            {new Date(feedback.createdAt).toLocaleDateString("zh-CN", { timeZone: "Asia/Shanghai" })}
                           </span>
                         </div>
                         <span

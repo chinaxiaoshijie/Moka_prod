@@ -95,6 +95,7 @@ function getProcessStatusBadge(group: CandidateGroup): { text: string; color: st
 function formatDateTime(dateStr: string): string {
   const date = new Date(dateStr);
   return date.toLocaleString("zh-CN", {
+    timeZone: "Asia/Shanghai",
     month: "short",
     day: "numeric",
     hour: "2-digit",

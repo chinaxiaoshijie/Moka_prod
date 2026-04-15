@@ -554,7 +554,7 @@ function FeedbackContent() {
 
                       <p className="mt-3 text-xs text-slate-400">
                         提交时间:{" "}
-                        {new Date(feedback.createdAt).toLocaleString()}
+                        {new Date(feedback.createdAt).toLocaleString("zh-CN", { timeZone: "Asia/Shanghai" })}
                       </p>
                     </div>
                   ))}

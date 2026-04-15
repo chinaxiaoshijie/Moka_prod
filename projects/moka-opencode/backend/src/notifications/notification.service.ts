@@ -87,7 +87,7 @@ export class NotificationService {
       userId,
       type: NotificationType.INTERVIEW_REMINDER,
       title: "面试即将开始",
-      content: `您与 ${candidateName} 的面试将在 ${startTime.toLocaleString("zh-CN")} 开始`,
+      content: `您与 ${candidateName} 的面试将在 ${startTime.toLocaleString("zh-CN", { timeZone: "Asia/Shanghai", year: "numeric", month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })} 开始`,
       link: `/interviews/${interviewId}`,
     });
   }

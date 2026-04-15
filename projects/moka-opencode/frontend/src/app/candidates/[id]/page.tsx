@@ -264,7 +264,7 @@ export default function CandidateDetailPage() {
                       </p>
                       <p className="text-xs text-[#666] mt-0.5">
                         {formatFileSize(file.fileSize)} ·{" "}
-                        {new Date(file.uploadedAt).toLocaleDateString("zh-CN")}
+                        {new Date(file.uploadedAt).toLocaleDateString("zh-CN", { timeZone: "Asia/Shanghai" })}
                       </p>
                     </div>
                   </div>

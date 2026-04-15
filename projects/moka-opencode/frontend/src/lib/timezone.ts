@@ -82,8 +82,9 @@ export function formatUTCToLocal(utcStr: string): string {
 
   if (isNaN(date.getTime())) return "";
 
-  // toLocaleString 会自动将 UTC 转换为本地时间
+  // 使用固定的 Asia/Shanghai 时区，不依赖浏览器/服务器本地时区
   return date.toLocaleString("zh-CN", {
+    timeZone: "Asia/Shanghai",
     year: "numeric",
     month: "long",
     day: "numeric",
@@ -107,6 +108,7 @@ export function formatUTCToShort(utcStr: string): string {
   if (isNaN(date.getTime())) return "";
 
   return date.toLocaleString("zh-CN", {
+    timeZone: "Asia/Shanghai",
     month: "numeric",
     day: "numeric",
     hour: "2-digit",
@@ -129,6 +131,7 @@ export function formatDateOnly(utcStr: string): string {
   if (isNaN(date.getTime())) return "";
 
   return date.toLocaleDateString("zh-CN", {
+    timeZone: "Asia/Shanghai",
     year: "numeric",
     month: "long",
     day: "numeric",
@@ -149,6 +152,7 @@ export function formatTimeOnly(utcStr: string): string {
   if (isNaN(date.getTime())) return "";
 
   return date.toLocaleTimeString("zh-CN", {
+    timeZone: "Asia/Shanghai",
     hour: "2-digit",
     minute: "2-digit",
     hour12: false,

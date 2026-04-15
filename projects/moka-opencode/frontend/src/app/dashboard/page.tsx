@@ -224,6 +224,7 @@ export default function DashboardPage() {
           </h1>
           <p className="text-[13px] text-[#00000073]">
             {user?.role === "HR" ? "HR 管理员" : "面试官"} · {new Date().toLocaleDateString("zh-CN", {
+              timeZone: "Asia/Shanghai",
               weekday: "long",
               year: "numeric",
               month: "long",
@@ -352,7 +353,7 @@ export default function DashboardPage() {
                           </span>
                         </td>
                         <td className="px-4 py-2 text-[13px] text-[#00000073] hidden md:table-cell">
-                          {new Date(c.createdAt).toLocaleDateString("zh-CN")}
+                          {new Date(c.createdAt).toLocaleDateString("zh-CN", { timeZone: "Asia/Shanghai" })}
                         </td>
                       </tr>
                     );

@@ -567,7 +567,7 @@ export default function InterviewProcessDetailPage() {
               </div>
               <div>
                 <span className="text-[12px] text-[#00000073]">创建时间</span>
-                <p className="text-[#000000d9] mt-0.5">{new Date(process.createdAt).toLocaleDateString("zh-CN")}</p>
+                <p className="text-[#000000d9] mt-0.5">{new Date(process.createdAt).toLocaleDateString("zh-CN", { timeZone: "Asia/Shanghai" })}</p>
               </div>
             </div>
           </div>
@@ -785,7 +785,7 @@ export default function InterviewProcessDetailPage() {
                                         )}
                                         <div className="flex items-center justify-between mt-2">
                                           <p className="text-[11px] text-[#00000045]">
-                                            {fb.interviewerName} · {new Date(fb.createdAt).toLocaleString("zh-CN")}
+                                            {fb.interviewerName} · {new Date(fb.createdAt).toLocaleString("zh-CN", { timeZone: "Asia/Shanghai", year: "numeric", month: "numeric", day: "numeric", hour: "2-digit", minute: "2-digit" })}
                                           </p>
                                           {canEditNotes && (
                                             <button
