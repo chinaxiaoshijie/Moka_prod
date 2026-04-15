@@ -35,7 +35,7 @@ export class FeishuCalendarService {
     const endIso = this.toIso8601(endTime);
     const attendeeIds = attendeeOuIds.join(",");
 
-    const cmd = `lark-cli calendar +create --summary ${this.shellEscape(title)} --description ${this.shellEscape(description)} --start ${this.shellEscape(startIso)} --end ${this.shellEscape(endIso)} --attendee-ids ${this.shellEscape(attendeeIds)}`;
+    const cmd = `lark-cli calendar +create --as bot --summary ${this.shellEscape(title)} --description ${this.shellEscape(description)} --start ${this.shellEscape(startIso)} --end ${this.shellEscape(endIso)} --attendee-ids ${this.shellEscape(attendeeIds)}`;
 
     this.logger.log(`Creating calendar event: ${title}`);
     this.logger.debug(`Command: ${cmd}`);
@@ -61,7 +61,8 @@ export class FeishuCalendarService {
    * @param eventId 日程 ID
    */
   async deleteEvent(eventId: string): Promise<void> {
-    const cmd = `lark-cli calendar events delete --event-id ${this.shellEscape(eventId)}`;
+    const params = JSON.stringify({ calendar_id: "primary", event_id: eventId });
+    const cmd = `lark-cli calendar events delete --as bot --params ${this.shellEscape(params)}`;
 
     this.logger.log(`Deleting calendar event: ${eventId}`);
     this.logger.debug(`Command: ${cmd}`);
@@ -99,7 +100,7 @@ export class FeishuCalendarService {
     const endIso = this.toIso8601(endTime);
     const attendeeIds = attendeeOuIds.join(",");
 
-    const cmd = `lark-cli calendar events update --event-id ${this.shellEscape(eventId)} --summary ${this.shellEscape(title)} --description ${this.shellEscape(description)} --start ${this.shellEscape(startIso)} --end ${this.shellEscape(endIso)} --attendee-ids ${this.shellEscape(attendeeIds)}`;
+    const cmd = `lark-cli calendar events update --as bot --event-id ${this.shellEscape(eventId)} --summary ${this.shellEscape(title)} --description ${this.shellEscape(description)} --start ${this.shellEscape(startIso)} --end ${this.shellEscape(endIso)} --attendee-ids ${this.shellEscape(attendeeIds)}`;
 
     this.logger.log(`Updating calendar event: ${eventId}`);
     this.logger.debug(`Command: ${cmd}`);
