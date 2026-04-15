@@ -911,7 +911,7 @@ export default function InterviewDetailPage() {
 <p><br></p>
 <h3>面试信息</h3>
 <p><strong>职位：</strong>${interview.position.title}</p>
-<p><strong>时间：</strong><span style="color: #4371FF;">${formattedDate} ${formattedStartTime} - ${formattedEndTime}</span></p>
+<p><strong>时间：</strong><span style="color: #4371FF;">${formattedStartTime} - ${formattedEndTime}</span></p>
 <p><strong>形式：</strong>${getFormatText(interview.format)}</p>
 ${interview.location ? `<p><strong>面试地点：</strong>${interview.location}</p>` : ''}
 ${interview.meetingUrl ? `<p><strong>会议链接：</strong><a href="${interview.meetingUrl}">${interview.meetingUrl}</a></p>` : ''}
