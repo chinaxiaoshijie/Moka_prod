@@ -315,7 +315,7 @@ export class InterviewService {
       }
     }
 
-    // 飞书日历同步更新 — 时间变更且存在日程ID时更新
+    // 飞书日历同步更新 — 时间变更且存在日程ID时，先删后建
     if (timeChanged && updatedInterview.feishuEventId) {
       try {
         const interviewerOuId = updatedInterview.interviewer?.feishuOuId;
@@ -353,15 +353,25 @@ export class InterviewService {
             updatedInterview.roundNumber ? `轮次：第${updatedInterview.roundNumber}轮（${roundTypeLabel}）` : null,
           ].filter(Boolean).join("\n");
 
-          await this.feishuCalendarService.updateEvent(
-            updatedInterview.feishuEventId,
+          // 先删除旧日程
+          await this.feishuCalendarService.deleteEvent(updatedInterview.feishuEventId);
+          this.logger.log(`飞书日历旧日程已删除：eventId=${updatedInterview.feishuEventId}`);
+
+          // 创建新日程
+          const newEventId = await this.feishuCalendarService.createEvent(
             title,
             description,
             updatedInterview.startTime,
             updatedInterview.endTime,
             attendeeOuIds,
           );
-          this.logger.log(`飞书日历同步更新成功：eventId=${updatedInterview.feishuEventId}, interviewId=${id}`);
+          if (newEventId) {
+            await this.prisma.interview.update({
+              where: { id },
+              data: { feishuEventId: newEventId },
+            });
+          }
+          this.logger.log(`飞书日历重建成功：newEventId=${newEventId}, interviewId=${id}`);
         }
       } catch (error) {
         this.logger.warn(`飞书日历同步更新失败：interviewId=${id}, reason=${(error as Error).message}`);

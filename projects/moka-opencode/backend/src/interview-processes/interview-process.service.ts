@@ -282,32 +282,25 @@ export class InterviewProcessService {
         ].filter(Boolean).join("\n");
 
         if (interview.feishuEventId) {
-          // 已存在日程，更新时间信息
-          await this.feishuCalendarService.updateEvent(
-            interview.feishuEventId,
-            title,
-            description,
-            startTime,
-            endTime,
-            attendeeOuIds,
-          );
-          this.logger.log(`飞书日历同步更新成功：interviewId=${interview.id}`);
-        } else {
-          // 创建新日程
-          const eventId = await this.feishuCalendarService.createEvent(
-            title,
-            description,
-            startTime,
-            endTime,
-            attendeeOuIds,
-          );
-          if (eventId) {
-            await this.prisma.interview.update({
-              where: { id: interview.id },
-              data: { feishuEventId: eventId },
-            });
-            this.logger.log(`飞书日历同步创建成功：eventId=${eventId}, interviewId=${interview.id}`);
-          }
+          // 已存在日程，先删除再创建（确保变更完全同步）
+          await this.feishuCalendarService.deleteEvent(interview.feishuEventId);
+          this.logger.log(`飞书日历旧日程已删除：eventId=${interview.feishuEventId}`);
+        }
+
+        // 创建新日程
+        const eventId = await this.feishuCalendarService.createEvent(
+          title,
+          description,
+          startTime,
+          endTime,
+          attendeeOuIds,
+        );
+        if (eventId) {
+          await this.prisma.interview.update({
+            where: { id: interview.id },
+            data: { feishuEventId: eventId },
+          });
+          this.logger.log(`飞书日历同步创建成功：eventId=${eventId}, interviewId=${interview.id}`);
         }
       } else {
         this.logger.warn(
