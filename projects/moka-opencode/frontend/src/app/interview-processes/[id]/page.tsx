@@ -1,6 +1,7 @@
 "use client";
 import { apiFetch } from "@/lib/api";
 import { formatUTCToLocal, utcToLocalInput, localToUTC } from "@/lib/timezone";
+import AIDiagnosisCard from "./components/AIDiagnosisCard";
 
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
@@ -669,6 +670,12 @@ export default function InterviewProcessDetailPage() {
                               </div>
                             )}
                           </div>
+
+                          {/* AI Diagnosis Card - 在面试反馈之前 */}
+                          <AIDiagnosisCard
+                            process={process}
+                            user={user}
+                          />
 
                           {/* Feedbacks */}
                           {interview.feedbacks && interview.feedbacks.length > 0 && (

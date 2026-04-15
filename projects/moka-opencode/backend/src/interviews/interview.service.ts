@@ -3,6 +3,7 @@ import { PrismaService } from "../prisma/prisma.service";
 import { EmailService } from "../email/email.service";
 import { EmailLimitService } from "../email/email-limit.service";
 import { NotificationService } from "../notifications/notification.service";
+import { FeishuCalendarService } from "../feishu/feishu-calendar.service";
 import { NotificationType } from "@prisma/client";
 import {
   CreateInterviewDto,
@@ -20,6 +21,7 @@ export class InterviewService {
     private emailService: EmailService,
     private emailLimitService: EmailLimitService,
     private notificationService: NotificationService,
+    private feishuCalendarService: FeishuCalendarService,
   ) {}
 
   async create(createDto: CreateInterviewDto): Promise<InterviewResponseDto> {
@@ -262,7 +264,11 @@ export class InterviewService {
         candidate: true,
         position: true,
         interviewer: true,
-        process: true,
+        process: {
+          include: {
+            createdBy: true,
+          },
+        },
       },
     });
 
@@ -309,6 +315,59 @@ export class InterviewService {
       }
     }
 
+    // 飞书日历同步更新 — 时间变更且存在日程ID时更新
+    if (timeChanged && updatedInterview.feishuEventId) {
+      try {
+        const interviewerOuId = updatedInterview.interviewer?.feishuOuId;
+        const hrOuId = updatedInterview.process?.createdBy?.feishuOuId;
+
+        const attendeeOuIds: string[] = [];
+        if (interviewerOuId) attendeeOuIds.push(interviewerOuId);
+        if (hrOuId) attendeeOuIds.push(hrOuId);
+
+        if (attendeeOuIds.length > 0) {
+          const roundTypeLabel =
+            updatedInterview.type === "INTERVIEW_3"
+              ? "终试"
+              : updatedInterview.type === "INTERVIEW_1"
+              ? "初试"
+              : "复试";
+          const title = `[${roundTypeLabel}] 面试 - ${updatedInterview.candidate.name} - ${updatedInterview.position.title}`;
+
+          const formatLabel = updatedInterview.format === "ONLINE" ? "线上（腾讯会议）" : "线下";
+          const locationLines: string[] = [];
+          if (updatedInterview.format === "ONLINE") {
+            if (updatedInterview.meetingUrl) locationLines.push(`会议链接：${updatedInterview.meetingUrl}`);
+            if (updatedInterview.meetingNumber) locationLines.push(`会议号：${updatedInterview.meetingNumber}`);
+          } else {
+            if (updatedInterview.location) locationLines.push(`地点：${updatedInterview.location}`);
+          }
+
+          const description = [
+            `候选人：${updatedInterview.candidate.name}`,
+            updatedInterview.candidate.phone ? `电话：${updatedInterview.candidate.phone}` : null,
+            updatedInterview.candidate.email ? `邮箱：${updatedInterview.candidate.email}` : null,
+            `面试官：${updatedInterview.interviewer?.name || "未指定"}`,
+            `面试方式：${formatLabel}`,
+            ...locationLines,
+            updatedInterview.roundNumber ? `轮次：第${updatedInterview.roundNumber}轮（${roundTypeLabel}）` : null,
+          ].filter(Boolean).join("\n");
+
+          await this.feishuCalendarService.updateEvent(
+            updatedInterview.feishuEventId,
+            title,
+            description,
+            updatedInterview.startTime,
+            updatedInterview.endTime,
+            attendeeOuIds,
+          );
+          this.logger.log(`飞书日历同步更新成功：eventId=${updatedInterview.feishuEventId}, interviewId=${id}`);
+        }
+      } catch (error) {
+        this.logger.warn(`飞书日历同步更新失败：interviewId=${id}, reason=${(error as Error).message}`);
+      }
+    }
+
     return this.mapToResponseDto(updatedInterview);
   }
 
@@ -331,6 +390,27 @@ export class InterviewService {
     });
 
     return this.mapToResponseDto(deletedInterview);
+  }
+
+  /**
+   * 处理面试取消 — 同步删除飞书日历日程
+   * @param interviewId 面试ID
+   * @param feishuEventId 飞书日程ID
+   */
+  async handleInterviewCancel(interviewId: string, feishuEventId: string): Promise<void> {
+    if (!feishuEventId) {
+      this.logger.warn(`飞书日历取消跳过：无日程ID，interviewId=${interviewId}`);
+      return;
+    }
+
+    try {
+      await this.feishuCalendarService.deleteEvent(feishuEventId);
+      this.logger.log(`飞书日历同步删除成功：eventId=${feishuEventId}, interviewId=${interviewId}`);
+    } catch (error) {
+      this.logger.warn(
+        `飞书日历同步删除失败：interviewId=${interviewId}, eventId=${feishuEventId}, reason=${(error as Error).message}`,
+      );
+    }
   }
 
   /**

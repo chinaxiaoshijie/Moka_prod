@@ -171,7 +171,7 @@ export class EmailService {
     const html = `
 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
   ${data.content}
-  <p style="color: #999; margin-top: 30px;">Moka 面试系统</p>
+  <p style="color: #999; margin-top: 30px;">码隆智能面试系统</p>
 </div>
     `.trim();
 
@@ -204,7 +204,7 @@ export class EmailService {
 
 祝您面试顺利！
 
-Moka 面试系统
+码隆智能面试系统
     `.trim();
 
     const html = `
@@ -224,7 +224,7 @@ Moka 面试系统
   
   <p>请您准时参加。如有任何问题，请随时与我们联系。</p>
   <p>祝您面试顺利！</p>
-  <p style="color: #999; margin-top: 30px;">Moka 面试系统</p>
+  <p style="color: #999; margin-top: 30px;">码隆智能面试系统</p>
 </div>
     `.trim();
 
@@ -259,7 +259,7 @@ ${data.interviewerName} 您好：
 
 请在面试结束后及时填写面试反馈。
 
-Moka 面试系统
+码隆智能面试系统
     `.trim();
 
     const html = `
@@ -283,7 +283,7 @@ Moka 面试系统
   </div>
   
   <p>请在面试结束后及时填写面试反馈。</p>
-  <p style="color: #999; margin-top: 30px;">Moka 面试系统</p>
+  <p style="color: #999; margin-top: 30px;">码隆智能面试系统</p>
 </div>
     `.trim();
 
@@ -311,7 +311,7 @@ ${data.feedbackUrl}
 
 您的反馈对招聘决策非常重要，感谢您的配合！
 
-Moka 面试系统
+码隆智能面试系统
     `.trim();
 
     const html = `
@@ -328,7 +328,7 @@ Moka 面试系统
   <p style="background: #f5f5f5; padding: 10px; border-radius: 4px; word-break: break-all;">${data.feedbackUrl}</p>
   
   <p>您的反馈对招聘决策非常重要，感谢您的配合！</p>
-  <p style="color: #999; margin-top: 30px;">Moka 面试系统</p>
+  <p style="color: #999; margin-top: 30px;">码隆智能面试系统</p>
 </div>
     `.trim();
 
@@ -353,7 +353,7 @@ ${data.message ? `留言：${data.message}` : ""}
 请查看候选人详情：
 ${candidateUrl}
 
-Moka 面试系统
+码隆智能面试系统
     `.trim();
 
     const html = `
@@ -372,7 +372,7 @@ Moka 面试系统
     <a href="${candidateUrl}" style="background: #f59e0b; color: white; padding: 12px 30px; text-decoration: none; border-radius: 6px; display: inline-block;">查看候选人</a>
   </div>
   
-  <p style="color: #999; margin-top: 30px;">Moka 面试系统</p>
+  <p style="color: #999; margin-top: 30px;">码隆智能面试系统</p>
 </div>
     `.trim();
 
@@ -394,7 +394,7 @@ ${data.hrName || "HR"} 您好：
 
 请登录系统查看详细信息。
 
-Moka 面试系统
+码隆智能面试系统
     `.trim();
 
     const html = `
@@ -407,7 +407,7 @@ Moka 面试系统
     <p><strong>最终结果：</strong>${resultText}</p>
   </div>
   
-  <p style="color: #999; margin-top: 30px;">Moka 面试系统</p>
+  <p style="color: #999; margin-top: 30px;">码隆智能面试系统</p>
 </div>
     `.trim();
 
@@ -435,7 +435,7 @@ ${data.hrName || "HR"} 您好：
 
 请登录系统查看详细信息。
 
-Moka 面试系统
+码隆智能面试系统
     `.trim();
 
     const html = `
@@ -448,7 +448,7 @@ Moka 面试系统
     <p><strong>面试结果：</strong>${resultText}</p>
   </div>
   
-  <p style="color: #999; margin-top: 30px;">Moka 面试系统</p>
+  <p style="color: #999; margin-top: 30px;">码隆智能面试系统</p>
 </div>
     `.trim();
 

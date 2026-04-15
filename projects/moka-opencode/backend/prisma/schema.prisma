@@ -54,6 +54,9 @@ model User {
   
   // 创建的反馈Token
   feedbackTokens FeedbackToken[]
+  
+  // 飞书用户ID（用于日历同步）
+  feishuOuId String?  // 飞书用户open_id
 
   @@map("users")
 }
@@ -182,6 +185,9 @@ model Interview {
   
   // 反馈Token（免登录提交）
   feedbackToken FeedbackToken?
+  
+  // 飞书日历事件ID（用于同步更新/取消）
+  feishuEventId String?
 
   emailLogs    InterviewEmailLog[]
   
@@ -395,4 +401,32 @@ model InterviewEmailLog {
   @@index([interviewId])
   @@index([candidateId])
   @@index([sentAt])
+}
+
+// AI诊断结果（每轮面试前生成）
+model AIDiagnosis {
+  id           String   @id @default(uuid())
+  processId    String   // 面试流程ID
+  roundNumber  Int      // 针对第几轮的诊断
+  positionId   String?  // 关联职位
+  
+  // 诊断结果
+  matchScore   Int?     // 匹配度 0-100（仅HR轮）
+  matchLevel   String?  // high/medium/low
+  strengths    String[] // 优势
+  weaknesses   String[] // 不足/风险
+  suggestions  String[] // 面试建议/重点
+  questions    String[] // 建议面试问题（后续轮次）
+  summary      String   @default("") // 前轮反馈摘要（后续轮次）
+  rawOutput    String   @default("") // AI原始输出
+  
+  // 输入数据快照（用于重新分析时追溯）
+  inputSnapshot Json?   // 记录生成诊断时的输入数据
+  
+  analyzedAt   DateTime @default(now())
+  analyzedBy   String   @default("qwen-plus")
+  
+  @@unique([processId, roundNumber])  // 每轮只有一个诊断
+  @@index([processId])
+  @@map("ai_diagnoses")
 }

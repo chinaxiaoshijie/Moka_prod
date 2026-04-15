@@ -3,6 +3,7 @@ import { PrismaService } from "../prisma/prisma.service";
 import { EmailService } from "../email/email.service";
 import { CandidateStatusService } from "../candidates/candidate-status.service";
 import { NotificationService } from "../notifications/notification.service";
+import { FeishuCalendarService } from "../feishu/feishu-calendar.service";
 import {
   CreateInterviewProcessDto,
   CreateRoundInterviewDto,
@@ -24,6 +25,7 @@ export class InterviewProcessService {
     private emailService: EmailService,
     private candidateStatusService: CandidateStatusService,
     private notificationService: NotificationService,
+    private feishuCalendarService: FeishuCalendarService,
   ) {}
 
   // 创建面试流程（启动流程）
@@ -194,13 +196,14 @@ export class InterviewProcessService {
       this.logger.warn(`候选人状态更新跳过：candidateId=${process.candidateId}, reason=${(error as Error).message}`);
     }
 
+    // 获取面试官信息（用于邮件通知和飞书日历同步）
+    const interviewer = await this.prisma.user.findUnique({
+      where: { id: roundConfig.interviewerId },
+      select: { id: true, name: true, email: true, feishuOuId: true },
+    });
+
     // 自动发送邮件通知面试官 — 面试安排或时间调整时触发
     try {
-      const interviewer = await this.prisma.user.findUnique({
-        where: { id: roundConfig.interviewerId },
-        select: { id: true, name: true, email: true },
-      });
-      
       if (interviewer?.email) {
         await this.emailService.sendInterviewNotificationToInterviewer({
           candidateName: process.candidate.name,
@@ -244,6 +247,77 @@ export class InterviewProcessService {
       this.logger.log(`站内通知发送成功：interviewerId=${roundConfig.interviewerId}, processId=${processId}`);
     } catch (error) {
       this.logger.error(`站内通知发送失败：interviewerId=${roundConfig.interviewerId}`, error as Error);
+    }
+
+    // 飞书日历同步 — 失败不阻塞流程，仅记录 warning 日志
+    try {
+      const attendeeOuIds: string[] = [];
+      if (interviewer?.feishuOuId) {
+        attendeeOuIds.push(interviewer.feishuOuId);
+      }
+      if (process.createdBy?.feishuOuId) {
+        attendeeOuIds.push(process.createdBy.feishuOuId);
+      }
+
+      if (attendeeOuIds.length > 0) {
+        const title = `[${roundTypeLabel}] 面试 - ${process.candidate.name} - ${process.position.title}`;
+
+        const formatLabel = createDto.format === "ONLINE" ? "线上（腾讯会议）" : "线下";
+        const locationLines: string[] = [];
+        if (createDto.format === "ONLINE") {
+          if (createDto.meetingUrl) locationLines.push(`会议链接：${createDto.meetingUrl}`);
+          if (createDto.meetingNumber) locationLines.push(`会议号：${createDto.meetingNumber}`);
+        } else {
+          if (createDto.location) locationLines.push(`地点：${createDto.location}`);
+        }
+
+        const description = [
+          `候选人：${process.candidate.name}`,
+          process.candidate.phone ? `电话：${process.candidate.phone}` : null,
+          process.candidate.email ? `邮箱：${process.candidate.email}` : null,
+          `面试官：${interviewer?.name || "未指定"}`,
+          `面试方式：${formatLabel}`,
+          ...locationLines,
+          `轮次：第${roundNumber}轮（${roundTypeLabel}）`,
+        ].filter(Boolean).join("\n");
+
+        if (interview.feishuEventId) {
+          // 已存在日程，更新时间信息
+          await this.feishuCalendarService.updateEvent(
+            interview.feishuEventId,
+            title,
+            description,
+            startTime,
+            endTime,
+            attendeeOuIds,
+          );
+          this.logger.log(`飞书日历同步更新成功：interviewId=${interview.id}`);
+        } else {
+          // 创建新日程
+          const eventId = await this.feishuCalendarService.createEvent(
+            title,
+            description,
+            startTime,
+            endTime,
+            attendeeOuIds,
+          );
+          if (eventId) {
+            await this.prisma.interview.update({
+              where: { id: interview.id },
+              data: { feishuEventId: eventId },
+            });
+            this.logger.log(`飞书日历同步创建成功：eventId=${eventId}, interviewId=${interview.id}`);
+          }
+        }
+      } else {
+        this.logger.warn(
+          `飞书日历同步跳过：未配置飞书OuId，interviewerId=${roundConfig.interviewerId}, hrId=${process.createdById}`,
+        );
+      }
+    } catch (error) {
+      this.logger.warn(
+        `飞书日历同步失败：processId=${processId}, round=${roundNumber}, reason=${(error as Error).message}`,
+      );
     }
 
     return this.findOne(processId);

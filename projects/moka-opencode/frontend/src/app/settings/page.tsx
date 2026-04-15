@@ -10,6 +10,7 @@ interface UserProfile {
   name: string;
   email: string;
   role: string;
+  feishuOuId?: string;
 }
 
 export default function SettingsPage() {
@@ -23,6 +24,7 @@ export default function SettingsPage() {
   const [formData, setFormData] = useState({
     name: "",
     email: "",
+    feishuOuId: "",
     currentPassword: "",
     newPassword: "",
     confirmPassword: "",
@@ -37,6 +39,7 @@ export default function SettingsPage() {
         ...prev,
         name: parsed.name || "",
         email: parsed.email || "",
+        feishuOuId: parsed.feishuOuId || "",
       }));
     }
   }, []);
@@ -67,6 +70,39 @@ export default function SettingsPage() {
         setMessage("个人信息更新成功");
       } else {
         setMessage("更新失败，请重试");
+      }
+    } catch (error) {
+      setMessage("网络错误，请稍后重试");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleUpdateFeishuId = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setMessage("");
+
+    try {
+      const token = localStorage.getItem("token");
+      const response = await apiFetch(`/users/${user?.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          feishuOuId: formData.feishuOuId,
+        }),
+      });
+
+      if (response.ok) {
+        const updatedUser = await response.json();
+        localStorage.setItem("user", JSON.stringify(updatedUser));
+        setUser(updatedUser);
+        setMessage("飞书ID绑定成功");
+      } else {
+        setMessage("绑定失败，请重试");
       }
     } catch (error) {
       setMessage("网络错误，请稍后重试");
@@ -215,6 +251,31 @@ export default function SettingsPage() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                      飞书ID
+                    </label>
+                    <input
+                      type="text"
+                      value={formData.feishuOuId}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          feishuOuId: e.target.value,
+                        }))
+                      }
+                      placeholder="请输入飞书OuId"
+                      className="w-full rounded-lg border border-[#E8EBF0] px-3.5 py-2.5 text-sm focus:border-[#4371FF] focus:ring-2 focus:ring-[#4371FF]/10 outline-none"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleUpdateFeishuId}
+                    disabled={loading}
+                    className="bg-[#4371FF] hover:bg-[#3461E6] text-white rounded-lg px-4 py-2.5 text-sm font-medium shadow-sm disabled:opacity-50"
+                  >
+                    {loading ? "绑定中..." : "绑定飞书ID"}
+                  </button>
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1.5">
                       角色
                     </label>
                     <input
@@ -348,13 +409,13 @@ export default function SettingsPage() {
                 <span className="text-white text-2xl font-bold">M</span>
               </div>
               <h2 className="text-xl font-bold text-slate-900 mb-1">
-                Moka 面试管理系统
+                码隆智能面试系统
               </h2>
               <p className="text-slate-500 text-sm mb-6">智能化招聘管理平台</p>
               <div className="space-y-2 text-sm text-slate-500">
                 <p>版本: v2.0.0</p>
                 <p>技术栈: NestJS + Next.js + Prisma + PostgreSQL</p>
-                <p>© 2026 Moka Interview System. All rights reserved.</p>
+                <p>© 2026 码隆智能科技. All rights reserved.</p>
               </div>
             </div>
           )}

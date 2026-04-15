@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { apiFetch } from "@/lib/api";
 
-/* Moka mountain logo SVG */
+/* 码隆智能 Logo SVG */
 const MokaLogoSVG = ({ size = 36 }: { size?: number }) => (
   <svg width={size} height={size} viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
     <rect width="32" height="32" rx="8" fill="#4371FF" />
@@ -87,7 +87,7 @@ export default function LoginPage() {
           <div className="flex items-center gap-2.5">
             <MokaLogoSVG size={36} />
             <span className="text-white font-bold text-[17px] tracking-tight">
-              Moka 招聘
+              码隆智能面试
             </span>
           </div>
 
@@ -124,7 +124,7 @@ export default function LoginPage() {
             </div>
           </div>
 
-          <p className="text-white/30 text-xs">&copy; 2026 Moka</p>
+          <p className="text-white/30 text-xs">&copy; 2026 码隆智能科技</p>
         </div>
       </div>
 
@@ -135,13 +135,13 @@ export default function LoginPage() {
           <div className="flex items-center gap-2.5 mb-8">
             <MokaLogoSVG size={32} />
             <span className="text-[#1A1A1A] font-bold text-[16px] tracking-tight">
-              Moka 招聘
+              码隆智能面试
             </span>
           </div>
 
           <div className="mb-7">
             <h2 className="text-[22px] font-bold text-[#1A1A1A] tracking-tight mb-1">
-              欢迎使用 Moka
+              欢迎使用码隆智能面试系统
             </h2>
             <p className="text-[#999] text-sm">请登录您的账号</p>
           </div>
