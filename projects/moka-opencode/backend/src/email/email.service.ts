@@ -457,6 +457,7 @@ Moka 面试系统
 
   private formatDateTime(date: Date): string {
     return new Date(date).toLocaleString("zh-CN", {
+      timeZone: "Asia/Shanghai",
       year: "numeric",
       month: "long",
       day: "numeric",
@@ -467,6 +468,7 @@ Moka 面试系统
 
   private formatTime(date: Date): string {
     return new Date(date).toLocaleTimeString("zh-CN", {
+      timeZone: "Asia/Shanghai",
       hour: "2-digit",
       minute: "2-digit",
     });
