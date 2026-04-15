@@ -1,4 +1,8 @@
 import { Injectable, Logger } from "@nestjs/common";
+import { exec } from "child_process";
+import { promisify } from "util";
+
+const execAsync = promisify(exec);
 
 /**
  * FeishuCalendarService - 飞书日历服务
@@ -37,8 +41,8 @@ export class FeishuCalendarService {
     this.logger.debug(`Command: ${cmd}`);
 
     try {
-      const result = await Bun.$`${cmd}`.text();
-      const eventId = this.parseEventId(result);
+      const { stdout } = await execAsync(cmd);
+      const eventId = this.parseEventId(stdout);
       if (eventId) {
         this.logger.log(`Calendar event created: ${eventId}`);
       }
@@ -63,7 +67,7 @@ export class FeishuCalendarService {
     this.logger.debug(`Command: ${cmd}`);
 
     try {
-      await Bun.$`${cmd}`.text();
+      await execAsync(cmd);
       this.logger.log(`Calendar event deleted: ${eventId}`);
     } catch (error) {
       this.logger.error(
@@ -101,8 +105,8 @@ export class FeishuCalendarService {
     this.logger.debug(`Command: ${cmd}`);
 
     try {
-      const result = await Bun.$`${cmd}`.text();
-      const parsedId = this.parseEventId(result) || eventId;
+      const { stdout } = await execAsync(cmd);
+      const parsedId = this.parseEventId(stdout) || eventId;
       this.logger.log(`Calendar event updated: ${parsedId}`);
       return parsedId;
     } catch (error) {
