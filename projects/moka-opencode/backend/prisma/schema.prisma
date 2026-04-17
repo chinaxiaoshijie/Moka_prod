@@ -430,3 +430,13 @@ model AIDiagnosis {
   @@index([processId])
   @@map("ai_diagnoses")
 }
+
+// 系统设置（键值对）
+model SystemSetting {
+  key         String   @id
+  value       String
+  description String   @default("")
+  updatedAt   DateTime @updatedAt
+  
+  @@map("system_settings")
+}

@@ -30,6 +30,22 @@ export default function SettingsPage() {
     confirmPassword: "",
   });
 
+  // AI模型设置
+  const [aiModel, setAiModel] = useState("qwen-plus");
+  const [aiModelLoading, setAiModelLoading] = useState(false);
+  const [aiModelMessage, setAiModelMessage] = useState("");
+
+  const AI_MODELS = [
+    { value: "qwen-plus", label: "qwen-plus", desc: "默认模型，均衡性能" },
+    { value: "qwen-turbo", label: "qwen-turbo", desc: "更快更便宜" },
+    { value: "qwen-max", label: "qwen-max", desc: "更强推理能力" },
+    { value: "qwen-long", label: "qwen-long", desc: "长上下文支持" },
+    { value: "qwen-coder-plus", label: "qwen-coder-plus", desc: "代码能力强" },
+    { value: "qwen3-235b-a22b", label: "qwen3-235b-a22b", desc: "超大参数模型" },
+    { value: "qwen3-plus", label: "qwen3-plus", desc: "Qwen3 增强版" },
+    { value: "qwen3-max", label: "qwen3-max", desc: "Qwen3 最强版" },
+  ];
+
   useEffect(() => {
     const userData = localStorage.getItem("user");
     if (userData) {
@@ -42,7 +58,49 @@ export default function SettingsPage() {
         feishuOuId: parsed.feishuOuId || "",
       }));
     }
+    // 加载AI模型设置
+    loadAiModel();
   }, []);
+
+  const loadAiModel = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await apiFetch("/settings/ai-model", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setAiModel(data.model);
+      }
+    } catch (error) {
+      // 静默失败
+    }
+  };
+
+  const handleUpdateAiModel = async () => {
+    setAiModelLoading(true);
+    setAiModelMessage("");
+    try {
+      const token = localStorage.getItem("token");
+      const res = await apiFetch("/settings/ai-model", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ model: aiModel }),
+      });
+      if (res.ok) {
+        setAiModelMessage("AI模型已更新，下次诊断将使用新模型");
+      } else {
+        setAiModelMessage("更新失败，请重试");
+      }
+    } catch (error) {
+      setAiModelMessage("网络错误，请稍后重试");
+    } finally {
+      setAiModelLoading(false);
+    }
+  };
 
   const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -363,6 +421,53 @@ export default function SettingsPage() {
           {/* 系统信息 */}
           {activeTab === "system" && (
             <div className="space-y-5">
+              <div className="bg-white rounded-xl border border-[#E8EBF0] shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-6">
+                <h3 className="text-sm font-semibold text-slate-700 mb-5">
+                  AI诊断模型配置
+                </h3>
+                {aiModelMessage && (
+                  <div
+                    className={`mb-4 rounded-lg p-3 text-sm ${
+                      aiModelMessage.includes("成功") || aiModelMessage.includes("已更新")
+                        ? "bg-emerald-50 border border-emerald-200 text-emerald-700"
+                        : "bg-red-50 border border-red-200 text-red-600"
+                    }`}
+                  >
+                    {aiModelMessage}
+                  </div>
+                )}
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                      选择AI模型
+                    </label>
+                    <select
+                      value={aiModel}
+                      onChange={(e) => setAiModel(e.target.value)}
+                      className="w-full rounded-lg border border-[#E8EBF0] px-3.5 py-2.5 text-sm focus:border-[#4371FF] focus:ring-2 focus:ring-[#4371FF]/10 outline-none bg-white"
+                    >
+                      {AI_MODELS.map((m) => (
+                        <option key={m.value} value={m.value}>
+                          {m.label} - {m.desc}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={handleUpdateAiModel}
+                      disabled={aiModelLoading}
+                      className="bg-[#4371FF] hover:bg-[#3461E6] text-white rounded-lg px-4 py-2.5 text-sm font-medium shadow-sm disabled:opacity-50"
+                    >
+                      {aiModelLoading ? "保存中..." : "保存模型设置"}
+                    </button>
+                    <span className="text-xs text-slate-400">
+                      当前: {aiModel}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
               <div className="bg-white rounded-xl border border-[#E8EBF0] shadow-[0_1px_3px_rgba(0,0,0,0.04)] p-6">
                 <h3 className="text-sm font-semibold text-slate-700 mb-5">
                   系统信息

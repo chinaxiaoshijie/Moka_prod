@@ -1,6 +1,7 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
 import { PrismaService } from "../prisma/prisma.service";
+import { SettingsService } from "../settings/settings.service";
 import { TriggerDiagnosisResponseDto } from "./dto/ai-diagnosis.dto";
 
 export interface AIDiagnosisResult {
@@ -28,11 +29,11 @@ export class AIDiagnosisService {
   private readonly logger = new Logger(AIDiagnosisService.name);
   private readonly apiKey: string;
   private readonly apiBase = "https://dashscope.aliyuncs.com/compatible-mode/v1";
-  private readonly model = "qwen-plus";
 
   constructor(
     private configService: ConfigService,
     private prisma: PrismaService,
+    private settingsService: SettingsService,
   ) {
     this.apiKey =
       this.configService.get<string>("DASHSCOPE_API_KEY") ||
@@ -575,6 +576,11 @@ ${allPreviousFeedbacks}
    * 执行一次 API 调用
    */
   private async doCall(prompt: string): Promise<AIDiagnosisResult> {
+    // 动态获取模型，优先级: DB设置 > 环境变量 > 默认 qwen-plus
+    const model = await this.settingsService.get("ai_diagnosis_model")
+      || process.env.AI_DIAGNOSIS_MODEL
+      || "qwen-plus";
+
     const response = await fetch(`${this.apiBase}/chat/completions`, {
       method: "POST",
       headers: {
@@ -582,7 +588,7 @@ ${allPreviousFeedbacks}
         Authorization: `Bearer ${this.apiKey}`,
       },
       body: JSON.stringify({
-        model: this.model,
+        model,
         messages: [
           {
             role: "system",

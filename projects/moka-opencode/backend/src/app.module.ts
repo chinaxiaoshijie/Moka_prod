@@ -16,6 +16,7 @@ import { UsersModule } from "./users/users.module";
 import { HealthModule } from "./health/health.module";
 import { FeishuCalendarModule } from "./feishu/feishu-calendar.module";
 import { AIDiagnosisModule } from "./ai-diagnosis/ai-diagnosis.module";
+import { SettingsModule } from "./settings/settings.module";
 
 @Module({
   imports: [
@@ -42,6 +43,7 @@ import { AIDiagnosisModule } from "./ai-diagnosis/ai-diagnosis.module";
     HealthModule,
     FeishuCalendarModule,
     AIDiagnosisModule,
+    SettingsModule,
   ],
 })
 export class AppModule {}
