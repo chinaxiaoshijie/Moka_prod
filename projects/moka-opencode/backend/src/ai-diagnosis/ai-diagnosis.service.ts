@@ -11,6 +11,8 @@ export interface AIDiagnosisResult {
   summary: string;
 }
 
+export type DiagnosisRoundType = "first" | "second" | "final";
+
 const DEFAULT_RESULT: AIDiagnosisResult = {
   strengths: [],
   weaknesses: [],
@@ -70,6 +72,44 @@ export class AIDiagnosisService {
     );
 
     return this.callAI(prompt, `第${roundNumber}轮${roundType}诊断`);
+  }
+
+  /**
+   * 第二轮诊断：基于简历 + 岗位 + 第一轮面试官评价
+   */
+  async generateSecondRoundDiagnosis(
+    resumeText: string,
+    positionTitle: string,
+    positionRequirements: string,
+    firstRoundFeedback: string,
+  ): Promise<AIDiagnosisResult> {
+    const prompt = this.buildSecondRoundPrompt(
+      resumeText,
+      positionTitle,
+      positionRequirements,
+      firstRoundFeedback,
+    );
+
+    return this.callAI(prompt, "第二轮诊断");
+  }
+
+  /**
+   * 终面诊断：基于简历 + 岗位 + 全部前轮面试结果，给出终面专业评价和建议
+   */
+  async generateFinalRoundDiagnosis(
+    resumeText: string,
+    positionTitle: string,
+    positionRequirements: string,
+    allPreviousFeedbacks: string,
+  ): Promise<AIDiagnosisResult> {
+    const prompt = this.buildFinalRoundPrompt(
+      resumeText,
+      positionTitle,
+      positionRequirements,
+      allPreviousFeedbacks,
+    );
+
+    return this.callAI(prompt, "终面诊断");
   }
 
   // ==================== 内部方法 ====================
@@ -168,6 +208,109 @@ ${previousFeedbacks}
 - suggestions 是本轮面试的考察重点建议
 - questions 是建议在本轮面试中提问的问题（至少3个）
 - matchScore 和 matchLevel 在后续轮次中设为 0 和空字符串`;
+  }
+
+  /**
+   * 构建第二轮 Prompt — 简历 + 岗位 + 第一轮面试官评价
+   */
+  private buildSecondRoundPrompt(
+    resumeText: string,
+    positionTitle: string,
+    positionRequirements: string,
+    firstRoundFeedback: string,
+  ): string {
+    return `你是一个专业的招聘顾问。请结合候选人简历、岗位要求以及第一轮面试官的评价，为第二轮面试生成诊断分析和建议。
+
+## 候选人简历
+${resumeText}
+
+## 应聘职位
+职位名称: ${positionTitle}
+任职要求: ${positionRequirements}
+
+## 第一轮面试官评价
+${firstRoundFeedback}
+
+## 输出要求（JSON格式）
+请严格按照以下 JSON 格式输出，不要输出任何其他内容：
+{
+  "matchScore": 72,
+  "matchLevel": "medium",
+  "strengths": ["第一轮反馈中技术能力获认可", "简历显示有相关项目经验"],
+  "weaknesses": ["第一轮指出沟通表达需要提升", "某项技能深度待验证"],
+  "suggestions": [
+    "重点考察第一轮提到的薄弱点是否有改善",
+    "深入验证简历中的核心项目经验",
+    "评估与团队的协作适配度"
+  ],
+  "questions": [
+    "针对第一轮反馈中的某个问题，请详细描述你的解决思路",
+    "你在简历中提到的XX项目，具体承担了哪些职责？",
+    "如果工作中遇到意见分歧，你会如何处理？"
+  ],
+  "summary": "第一轮面试中候选人技术基础扎实，但沟通表达有待加强。本轮需重点验证其实际项目经验和团队协作能力。"
+}
+
+注意:
+- matchScore 为 0-100 的整数，综合简历与前轮反馈后的匹配度
+- matchLevel 为 "high"、"medium" 或 "low"
+- strengths 综合简历优势和第一轮正面评价
+- weaknesses 结合第一轮指出的不足和简历中的潜在风险
+- suggestions 针对第二轮面试的考察重点，要结合第一轮的反馈
+- questions 是建议在本轮面试中提问的问题（至少3个），要有针对性
+- summary 是对候选人当前状态的综合评价，要体现前轮反馈的影响`;
+  }
+
+  /**
+   * 构建终面 Prompt — 简历 + 岗位 + 全部前轮面试结果，给出终面专业评价
+   */
+  private buildFinalRoundPrompt(
+    resumeText: string,
+    positionTitle: string,
+    positionRequirements: string,
+    allPreviousFeedbacks: string,
+  ): string {
+    return `你是一个资深招聘顾问和 Hiring Manager。这是候选人的最后一轮面试（终面），请综合候选人简历、岗位要求以及前面所有轮次的面试结果，给出终面的专业评价和录用建议。
+
+## 候选人简历
+${resumeText}
+
+## 应聘职位
+职位名称: ${positionTitle}
+任职要求: ${positionRequirements}
+
+## 前轮面试结果汇总
+${allPreviousFeedbacks}
+
+## 输出要求（JSON格式）
+请严格按照以下 JSON 格式输出，不要输出任何其他内容：
+{
+  "matchScore": 78,
+  "matchLevel": "medium",
+  "strengths": ["多轮面试中技术能力一致获得好评", "项目经验丰富且与岗位高度匹配", "学习能力和成长潜力突出"],
+  "weaknesses": ["管理经验仍有待积累", "某项关键技术深度需进一步提升"],
+  "suggestions": [
+    "终面建议重点关注候选人的长期发展潜力和文化匹配度",
+    "评估其是否具备胜任岗位的综合能力",
+    "确认薪资预期和入职意愿"
+  ],
+  "questions": [
+    "你对未来3-5年的职业规划是什么？",
+    "你如何看待我们公司和这个岗位？",
+    "如果录用，你能为团队带来什么独特价值？"
+  ],
+  "summary": "经过前两轮面试，候选人技术能力扎实，项目经验丰富，与岗位匹配度较高。综合评估建议录用，定级为中高级工程师。终面建议重点考察文化匹配度和长期发展潜力。"
+}
+
+注意:
+- 这是终面，需要给出更加全面和权威的评价
+- matchScore 为 0-100 的整数，是综合所有轮次后的最终匹配度判断
+- matchLevel 为 "high"、"medium" 或 "low"
+- strengths 要总结前轮所有正面评价和候选人核心优势
+- weaknesses 要汇总前轮所有不足，评估是否构成录用障碍
+- suggestions 要针对终面的重点，包括录用建议、定级建议、入职注意事项
+- questions 是终面建议提问的问题（至少3个），侧重职业规划、文化匹配、入职意愿
+- summary 是终面的综合评价，要包含明确的录用建议（建议录用/建议观察/不建议录用）`;
   }
 
   /**

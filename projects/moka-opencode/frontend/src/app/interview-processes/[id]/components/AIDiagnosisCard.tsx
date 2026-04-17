@@ -2,6 +2,7 @@
 import { apiFetch } from "@/lib/api";
 import { useState, useCallback } from "react";
 import ShareDiagnosisModal from "./ShareDiagnosisModal";
+import FullReportModal from "./FullReportModal";
 
 /* ------------------------------------------------------------------ */
 /* Types                                                               */
@@ -9,9 +10,11 @@ import ShareDiagnosisModal from "./ShareDiagnosisModal";
 
 interface AIDiagnosis {
   matchScore: number;          // 0-100
+  matchLevel?: string;
   strengths: string[];
   weaknesses: string[];
   suggestions: string[];
+  questions: string[];
   summary: string;
   roundNumber: number;
   analyzedAt: string;
@@ -138,6 +141,7 @@ export default function AIDiagnosisCard({ process, user }: AIDiagnosisCardProps)
   const [analyzing, setAnalyzing] = useState(false);
   const [error, setError] = useState("");
   const [showShareModal, setShowShareModal] = useState(false);
+  const [showFullReport, setShowFullReport] = useState(false);
   const [interviewerOptions, setInterviewerOptions] = useState<UserOption[]>([]);
 
   /* ---- Fetch diagnosis ---- */
@@ -145,29 +149,39 @@ export default function AIDiagnosisCard({ process, user }: AIDiagnosisCardProps)
     setLoading(true);
     setError("");
     try {
+      const roundNum = diagnosis?.roundNumber ?? process.currentRound;
       const token = localStorage.getItem("token");
       const response = await apiFetch(
-        `/interview-processes/${process.id}/ai-diagnosis`,
+        `/interview-processes/${process.id}/rounds/${roundNum}/ai-diagnosis`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      if (!response.ok) throw new Error("获取 AI 诊断失败");
+      // 处理空响应（尚无诊断结果）
+      if (response.status === 204 || response.status === 200 && (await response.text()) === "") {
+        setDiagnosis(null);
+        return;
+      }
+      if (!response.ok) {
+        const errData = await response.json().catch(() => ({}));
+        throw new Error(errData.message || "获取 AI 诊断失败");
+      }
       const data = await response.json();
-      setDiagnosis(data);
+      if (data) setDiagnosis(data);
     } catch (err: any) {
       setError(err.message);
     } finally {
       setLoading(false);
     }
-  }, [process.id]);
+  }, [process.id, diagnosis?.roundNumber, process.currentRound]);
 
   /* ---- Re-analyze ---- */
   const handleReAnalyze = async () => {
     setAnalyzing(true);
     setError("");
     try {
+      const roundNum = diagnosis?.roundNumber ?? process.currentRound;
       const token = localStorage.getItem("token");
       const response = await apiFetch(
-        `/interview-processes/${process.id}/ai-diagnosis/analyze`,
+        `/interview-processes/${process.id}/rounds/${roundNum}/ai-diagnosis`,
         {
           method: "POST",
           headers: {
@@ -209,16 +223,17 @@ export default function AIDiagnosisCard({ process, user }: AIDiagnosisCardProps)
   /* ---- Send shared diagnosis ---- */
   const handleSendShare = async (recipientId: string) => {
     try {
+      const roundNum = diagnosis?.roundNumber ?? process.currentRound;
       const token = localStorage.getItem("token");
       const response = await apiFetch(
-        `/interview-processes/${process.id}/ai-diagnosis/share`,
+        `/interview-processes/${process.id}/rounds/${roundNum}/ai-diagnosis/share`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({ recipientId }),
+          body: JSON.stringify({ interviewerId: recipientId }),
         }
       );
       if (!response.ok) throw new Error("分享失败");
@@ -489,9 +504,7 @@ export default function AIDiagnosisCard({ process, user }: AIDiagnosisCardProps)
             {/* ---- Action buttons ---- */}
             <div className="flex gap-2 pt-3 border-t border-[#f0f0f0]">
               <button
-                onClick={() => {
-                  /* 查看完整报告 — 可路由跳转或弹窗，此处预留 */
-                }}
+                onClick={() => setShowFullReport(true)}
                 className="border border-[#d9d9d9] hover:border-[#1890ff] hover:text-[#1890ff] text-[#000000a6] rounded px-3 py-1.5 text-[12px] font-medium transition-colors"
               >
                 查看完整报告
@@ -542,6 +555,17 @@ export default function AIDiagnosisCard({ process, user }: AIDiagnosisCardProps)
           diagnosis={diagnosis}
           onSend={handleSendShare}
           onClose={() => setShowShareModal(false)}
+        />
+      )}
+
+      {/* ---- Full Report Modal ---- */}
+      {showFullReport && (
+        <FullReportModal
+          diagnosis={diagnosis}
+          candidateName={process.candidateName}
+          positionTitle={process.positionTitle}
+          isHRRound={isHRRound}
+          onClose={() => setShowFullReport(false)}
         />
       )}
     </div>

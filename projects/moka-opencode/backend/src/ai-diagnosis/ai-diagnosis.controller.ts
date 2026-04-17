@@ -91,19 +91,27 @@ export class AIDiagnosisController {
     }
 
     const isHRRound = roundConfig.isHRRound || roundNumber === 1;
+    const isFinalRound = roundConfig.roundType === "FINAL";
+    // Check if this is the last round (total rounds)
+    const maxRoundNumber = process.rounds.reduce(
+      (max, r) => Math.max(max, r.roundNumber),
+      0,
+    );
+    const isLastRound = roundNumber === maxRoundNumber;
 
     let diagnosisResult: AIDiagnosisResult;
 
-    if (isHRRound) {
-      // === HR轮：获取简历 + 职位要求 ===
-      const resumeText = await this.getResumeText(process.candidate);
+    // 获取简历文本（多个轮次可能需要）
+    const resumeText = await this.getResumeText(process.candidate);
 
+    if (isHRRound) {
+      // === 初面/HR轮：只看简历和岗位匹配度 ===
       if (!resumeText) {
         throw new BadRequestException("候选人暂无简历，无法进行AI诊断");
       }
 
       this.logger.log(
-        `HR轮诊断 - processId=${processId}, round=${roundNumber}, candidate=${process.candidate.name}`,
+        `初面诊断(简历+岗位) - processId=${processId}, round=${roundNumber}, candidate=${process.candidate.name}`,
       );
 
       diagnosisResult = await this.aiDiagnosisService.generateHRDiagnosis(
@@ -112,8 +120,50 @@ export class AIDiagnosisController {
         process.position.description || "",
         process.position.requirements || "",
       );
+    } else if (roundNumber === 2) {
+      // === 第二轮：简历 + 岗位 + 第一轮面试官评价 ===
+      if (!resumeText) {
+        throw new BadRequestException("候选人暂无简历，无法进行AI诊断");
+      }
+
+      const firstRoundFeedbacks = this.buildPreviousFeedbacks(process.interviews);
+      if (!firstRoundFeedbacks) {
+        throw new BadRequestException("暂无第一轮面试反馈，无法进行AI诊断");
+      }
+
+      this.logger.log(
+        `第二轮诊断(简历+岗位+首轮反馈) - processId=${processId}, candidate=${process.candidate.name}`,
+      );
+
+      diagnosisResult = await this.aiDiagnosisService.generateSecondRoundDiagnosis(
+        resumeText,
+        process.position.title,
+        process.position.requirements || "",
+        firstRoundFeedbacks,
+      );
+    } else if (isFinalRound || isLastRound) {
+      // === 终面：简历 + 岗位 + 全部前轮面试结果 ===
+      if (!resumeText) {
+        throw new BadRequestException("候选人暂无简历，无法进行AI诊断");
+      }
+
+      const allFeedbacks = this.buildPreviousFeedbacks(process.interviews);
+      if (!allFeedbacks) {
+        throw new BadRequestException("暂无前轮面试反馈，无法进行AI诊断");
+      }
+
+      this.logger.log(
+        `终面诊断(全面综合) - processId=${processId}, candidate=${process.candidate.name}`,
+      );
+
+      diagnosisResult = await this.aiDiagnosisService.generateFinalRoundDiagnosis(
+        resumeText,
+        process.position.title,
+        process.position.requirements || "",
+        allFeedbacks,
+      );
     } else {
-      // === 后续轮：获取前轮反馈 ===
+      // === 其他后续轮（兜底）：前轮反馈 + 岗位 ===
       const previousFeedbacks = this.buildPreviousFeedbacks(process.interviews);
 
       if (!previousFeedbacks) {

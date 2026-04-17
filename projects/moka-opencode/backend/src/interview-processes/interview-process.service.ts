@@ -202,6 +202,28 @@ export class InterviewProcessService {
       select: { id: true, name: true, email: true, feishuOuId: true },
     });
 
+    // 获取当前轮次的 AI 诊断结果（如果有）
+    let aiDiagnosisData: any = null;
+    try {
+      const existingDiagnosis = await this.prisma.aIDiagnosis.findUnique({
+        where: { processId_roundNumber: { processId: processId, roundNumber } },
+      });
+      if (existingDiagnosis) {
+        aiDiagnosisData = {
+          matchScore: existingDiagnosis.matchScore,
+          matchLevel: existingDiagnosis.matchLevel,
+          strengths: existingDiagnosis.strengths || [],
+          weaknesses: existingDiagnosis.weaknesses || [],
+          suggestions: existingDiagnosis.suggestions || [],
+          questions: existingDiagnosis.questions || [],
+          summary: existingDiagnosis.summary || "",
+        };
+        this.logger.log(`面试邮件将附带 AI 诊断结果 - round=${roundNumber}`);
+      }
+    } catch (error) {
+      this.logger.warn(`获取 AI 诊断结果失败，邮件将不包含诊断 - ${error instanceof Error ? error.message : String(error)}`);
+    }
+
     // 自动发送邮件通知面试官 — 面试安排或时间调整时触发
     try {
       if (interviewer?.email) {
@@ -218,6 +240,7 @@ export class InterviewProcessService {
           location: createDto.location,
           meetingUrl: createDto.meetingUrl,
           meetingNumber: createDto.meetingNumber,
+          aiDiagnosis: aiDiagnosisData,
         });
         this.logger.log(`面试官邮件通知发送成功：interviewerId=${interviewer.id}, round=${roundNumber}`);
       } else {
@@ -528,6 +551,25 @@ export class InterviewProcessService {
           });
 
           if (newInterviewer?.email) {
+            // 获取当前轮次的 AI 诊断结果（如果有）
+            let aiDiagnosisData: any = null;
+            try {
+              const existingDiagnosis = await this.prisma.aIDiagnosis.findUnique({
+                where: { processId_roundNumber: { processId, roundNumber } },
+              });
+              if (existingDiagnosis) {
+                aiDiagnosisData = {
+                  matchScore: existingDiagnosis.matchScore,
+                  matchLevel: existingDiagnosis.matchLevel,
+                  strengths: existingDiagnosis.strengths || [],
+                  weaknesses: existingDiagnosis.weaknesses || [],
+                  suggestions: existingDiagnosis.suggestions || [],
+                  questions: existingDiagnosis.questions || [],
+                  summary: existingDiagnosis.summary || "",
+                };
+              }
+            } catch { /* ignore */ }
+
             await this.emailService.sendInterviewNotificationToInterviewer({
               candidateName: process.candidate.name,
               candidateEmail: process.candidate.email || "",
@@ -541,6 +583,7 @@ export class InterviewProcessService {
               location: existingInterview.location || undefined,
               meetingUrl: existingInterview.meetingUrl || undefined,
               meetingNumber: existingInterview.meetingNumber || undefined,
+              aiDiagnosis: aiDiagnosisData,
             });
             this.logger.log(`面试官更换通知发送成功：oldRound=${roundNumber}, newInterviewerId=${newInterviewer.id}`);
           } else {

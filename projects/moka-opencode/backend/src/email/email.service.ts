@@ -16,6 +16,15 @@ interface InterviewEmailData {
   location?: string;
   meetingUrl?: string;
   meetingNumber?: string;
+  aiDiagnosis?: {
+    matchScore?: number;
+    matchLevel?: string;
+    strengths: string[];
+    weaknesses: string[];
+    suggestions: string[];
+    questions: string[];
+    summary: string;
+  };
 }
 
 interface FeedbackEmailData {
@@ -242,6 +251,36 @@ export class EmailService {
         : `面试地点：${data.location || "待定"}`;
     const roundInfo = data.roundNumber ? `第${data.roundNumber}轮` : "";
 
+    // Build AI diagnosis text section
+    let diagnosisText = "";
+    if (data.aiDiagnosis) {
+      const d = data.aiDiagnosis;
+      diagnosisText += `\n\n--- AI 诊断分析 ---\n`;
+      if (d.matchScore !== undefined && d.matchScore !== null) {
+        diagnosisText += `匹配度：${d.matchScore}%\n`;
+      }
+      if (d.summary) {
+        diagnosisText += `摘要：${d.summary}\n`;
+      }
+      if (d.strengths.length > 0) {
+        diagnosisText += `\n【优势】\n`;
+        d.strengths.forEach((s, i) => { diagnosisText += `  ${i + 1}. ${s}\n`; });
+      }
+      if (d.weaknesses.length > 0) {
+        diagnosisText += `\n【不足/风险】\n`;
+        d.weaknesses.forEach((w, i) => { diagnosisText += `  ${i + 1}. ${w}\n`; });
+      }
+      if (d.suggestions.length > 0) {
+        diagnosisText += `\n【面试建议】\n`;
+        d.suggestions.forEach((s, i) => { diagnosisText += `  ${i + 1}. ${s}\n`; });
+      }
+      if (d.questions.length > 0) {
+        diagnosisText += `\n【建议面试问题】\n`;
+        d.questions.forEach((q, i) => { diagnosisText += `  ${i + 1}. ${q}\n`; });
+      }
+      diagnosisText += `\n（以上内容由 AI 自动生成，仅供参考）\n`;
+    }
+
     const text = `
 ${data.interviewerName} 您好：
 
@@ -258,9 +297,57 @@ ${data.interviewerName} 您好：
 - ${locationInfo}
 
 请在面试结束后及时填写面试反馈。
-
+${diagnosisText}
 码隆智能面试系统
     `.trim();
+
+    // Build AI diagnosis HTML section
+    let diagnosisHtml = "";
+    if (data.aiDiagnosis) {
+      const d = data.aiDiagnosis;
+      const scoreBadge = d.matchScore !== undefined && d.matchScore !== null
+        ? `<div style="margin-bottom:12px;"><span style="background:${this.getMatchScoreColor(d.matchScore)};color:white;padding:4px 12px;border-radius:12px;font-size:13px;font-weight:bold;">匹配度 ${d.matchScore}%</span></div>`
+        : "";
+
+      diagnosisHtml += `
+  <div style="border-top:1px solid #e8e8e8; margin-top:20px; padding-top:20px;">
+    <h3 style="color:#1a73e8; margin-top:0; font-size:16px;">🤖 AI 诊断分析</h3>
+    ${scoreBadge}
+    ${d.summary ? `
+    <div style="background:#f0f7ff; padding:12px; border-radius:8px; margin-bottom:12px;">
+      <p style="margin:0; font-size:13px; color:#333;">${d.summary}</p>
+    </div>` : ""}
+    ${d.strengths.length > 0 ? `
+    <div style="background:#f0fff4; padding:12px; border-radius:8px; margin-bottom:8px;">
+      <p style="margin:0 0 6px; font-size:12px; font-weight:bold; color:#38a169;">✅ 优势</p>
+      <ul style="margin:0; padding-left:20px; font-size:13px; color:#555;">
+        ${d.strengths.map(s => `<li>${s}</li>`).join("")}
+      </ul>
+    </div>` : ""}
+    ${d.weaknesses.length > 0 ? `
+    <div style="background:#fff5f5; padding:12px; border-radius:8px; margin-bottom:8px;">
+      <p style="margin:0 0 6px; font-size:12px; font-weight:bold; color:#e53e3e;">⚠️ 不足/风险</p>
+      <ul style="margin:0; padding-left:20px; font-size:13px; color:#555;">
+        ${d.weaknesses.map(w => `<li>${w}</li>`).join("")}
+      </ul>
+    </div>` : ""}
+    ${d.suggestions.length > 0 ? `
+    <div style="background:#f5f5f5; padding:12px; border-radius:8px; margin-bottom:8px;">
+      <p style="margin:0 0 6px; font-size:12px; font-weight:bold; color:#666;">💡 面试建议</p>
+      <ul style="margin:0; padding-left:20px; font-size:13px; color:#555;">
+        ${d.suggestions.map(s => `<li>${s}</li>`).join("")}
+      </ul>
+    </div>` : ""}
+    ${d.questions.length > 0 ? `
+    <div style="background:#fefce8; padding:12px; border-radius:8px; margin-bottom:8px;">
+      <p style="margin:0 0 6px; font-size:12px; font-weight:bold; color:#ca8a04;">❓ 建议面试问题</p>
+      <ol style="margin:0; padding-left:20px; font-size:13px; color:#555;">
+        ${d.questions.map(q => `<li>${q}</li>`).join("")}
+      </ol>
+    </div>` : ""}
+    <p style="font-size:11px; color:#999; margin-top:8px;">以上内容由 AI 自动生成，仅供参考</p>
+  </div>`;
+    }
 
     const html = `
 <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
@@ -283,6 +370,7 @@ ${data.interviewerName} 您好：
   </div>
   
   <p>请在面试结束后及时填写面试反馈。</p>
+  ${diagnosisHtml}
   <p style="color: #999; margin-top: 30px;">码隆智能面试系统</p>
 </div>
     `.trim();
@@ -453,6 +541,15 @@ ${data.hrName || "HR"} 您好：
     `.trim();
 
     return { text, html };
+  }
+
+  /**
+   * 根据匹配度获取颜色
+   */
+  private getMatchScoreColor(score: number): string {
+    if (score >= 80) return "#38a169";
+    if (score >= 60) return "#ca8a04";
+    return "#e53e3e";
   }
 
   private formatDateTime(date: Date): string {

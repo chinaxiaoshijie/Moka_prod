@@ -277,6 +277,30 @@ export class InterviewService {
       try {
         const interviewer = updatedInterview.interviewer;
         if (interviewer?.email) {
+          // 获取当前轮次的 AI 诊断结果（如果有）
+          let aiDiagnosisData: any = null;
+          try {
+            const existingDiagnosis = await this.prisma.aIDiagnosis.findUnique({
+              where: {
+                processId_roundNumber: {
+                  processId: updatedInterview.processId,
+                  roundNumber: updatedInterview.roundNumber,
+                },
+              },
+            });
+            if (existingDiagnosis) {
+              aiDiagnosisData = {
+                matchScore: existingDiagnosis.matchScore,
+                matchLevel: existingDiagnosis.matchLevel,
+                strengths: existingDiagnosis.strengths || [],
+                weaknesses: existingDiagnosis.weaknesses || [],
+                suggestions: existingDiagnosis.suggestions || [],
+                questions: existingDiagnosis.questions || [],
+                summary: existingDiagnosis.summary || "",
+              };
+            }
+          } catch { /* ignore */ }
+
           await this.emailService.sendInterviewNotificationToInterviewer({
             candidateName: updatedInterview.candidate.name,
             candidateEmail: updatedInterview.candidate.email || "",
@@ -290,6 +314,7 @@ export class InterviewService {
             location: updatedInterview.location || undefined,
             meetingUrl: updatedInterview.meetingUrl || undefined,
             meetingNumber: updatedInterview.meetingNumber || undefined,
+            aiDiagnosis: aiDiagnosisData,
           });
           this.logger.log(`面试时间调整/面试官更换通知发送成功：interviewId=${id}, interviewerId=${interviewer.id}`);
         } else {
