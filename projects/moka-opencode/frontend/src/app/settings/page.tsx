@@ -616,7 +616,7 @@ export default function SettingsPage() {
               </h2>
               <p className="text-slate-500 text-sm mb-6">智能化招聘管理平台</p>
               <div className="space-y-2 text-sm text-slate-500">
-                <p>版本: v2.0.0</p>
+                <p>版本: v3.0.0</p>
                 <p>技术栈: NestJS + Next.js + Prisma + PostgreSQL</p>
                 <p>© 2026 码隆智能科技. All rights reserved.</p>
               </div>

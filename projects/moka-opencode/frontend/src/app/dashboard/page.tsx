@@ -24,11 +24,14 @@ interface CandidateItem {
 }
 
 const statusMap: Record<string, { label: string; color: string; bg: string }> = {
-  PENDING: { label: "待筛选", color: "text-[#d48806]", bg: "bg-[#fffbe6]" },
+  PENDING: { label: "待处理", color: "text-[#d48806]", bg: "bg-[#fffbe6]" },
   SCREENING: { label: "筛选中", color: "text-[#1890ff]", bg: "bg-[#e6f7ff]" },
+  INTERVIEW_1: { label: "初试", color: "text-[#722ed1]", bg: "bg-[#f9f0ff]" },
+  INTERVIEW_2: { label: "复试", color: "text-[#722ed1]", bg: "bg-[#f9f0ff]" },
+  INTERVIEW_3: { label: "终试", color: "text-[#722ed1]", bg: "bg-[#f9f0ff]" },
   INTERVIEW: { label: "面试中", color: "text-[#722ed1]", bg: "bg-[#f9f0ff]" },
   OFFER: { label: "已发Offer", color: "text-[#52c41a]", bg: "bg-[#f6ffed]" },
-  HIRED: { label: "已入职", color: "text-[#389e0d]", bg: "bg-[#f6ffed]" },
+  HIRED: { label: "已录用", color: "text-[#389e0d]", bg: "bg-[#f6ffed]" },
   REJECTED: { label: "已淘汰", color: "text-[#ff4d4f]", bg: "bg-[#fff2f0]" },
 };
 
