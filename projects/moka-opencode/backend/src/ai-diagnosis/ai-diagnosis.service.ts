@@ -117,6 +117,80 @@ export class AIDiagnosisService {
     return this.callAI(prompt, "终面诊断");
   }
 
+  /**
+   * 中间轮次诊断（4+ 轮流程中的第3轮、第4轮等）
+   * 基于简历 + 岗位 + 全部前轮面试结果
+   */
+  async generateIntermediateRoundDiagnosis(
+    resumeText: string,
+    positionTitle: string,
+    positionRequirements: string,
+    allPreviousFeedbacks: string,
+    roundNumber: number,
+  ): Promise<AIDiagnosisResult> {
+    const prompt = this.buildIntermediateRoundPrompt(
+      resumeText,
+      positionTitle,
+      positionRequirements,
+      allPreviousFeedbacks,
+      roundNumber,
+    );
+
+    return this.callAI(prompt, `第${roundNumber}轮中间轮诊断`);
+  }
+
+  /**
+   * 构建中间轮次 Prompt
+   */
+  private buildIntermediateRoundPrompt(
+    resumeText: string,
+    positionTitle: string,
+    positionRequirements: string,
+    allPreviousFeedbacks: string,
+    roundNumber: number,
+  ): string {
+    return `你是一个专业的招聘顾问。请结合候选人简历、岗位要求以及前几轮面试官的评价，为第${roundNumber}轮面试生成诊断分析和建议。
+
+## 候选人简历
+${resumeText}
+
+## 应聘职位
+职位名称: ${positionTitle}
+任职要求: ${positionRequirements}
+
+## 前几轮面试官评价汇总
+${allPreviousFeedbacks}
+
+## 输出要求（JSON格式）
+请严格按照以下 JSON 格式输出，不要输出任何其他内容：
+{
+  "matchScore": 75,
+  "matchLevel": "medium",
+  "strengths": ["多轮面试中技术能力一致获好评", "项目经验与岗位高度匹配"],
+  "weaknesses": ["某轮指出沟通表达待提升", "某项技能深度需进一步验证"],
+  "suggestions": [
+    "重点考察前轮提到的薄弱点是否有改善",
+    "深入验证核心项目经验和技术深度",
+    "评估与团队和文化的适配度"
+  ],
+  "questions": [
+    "针对前轮反馈中的某个问题，请分享你的最新思考",
+    "你在项目中遇到的最大技术挑战是什么，如何解决的？",
+    "你如何看待这个岗位和团队？"
+  ],
+  "summary": "前几轮面试中候选人表现稳定，技术能力扎实。本轮需进一步验证其综合能力和长期发展潜力。"
+}
+
+注意:
+- matchScore 为 0-100 的整数，综合前几轮反馈后的当前匹配度
+- matchLevel 为 "high"、"medium" 或 "low"
+- strengths 综合前几轮面试中的正面评价
+- weaknesses 汇总前几轮指出的不足和待验证项
+- suggestions 针对本轮的考察重点，要结合前轮反馈
+- questions 是建议在本轮面试中提问的问题（至少3个）
+- summary 是对候选人当前状态的综合评价`;
+  }
+
   // ==================== 自动生成入口 ====================
 
   /**
@@ -229,16 +303,20 @@ export class AIDiagnosisService {
         process.position.requirements || "", fb,
       );
     } else {
-      const fb = this._buildFeedbacks(process.interviews);
-      if (!fb) {
-        this.logger.log(`AI自动诊断跳过(无反馈): processId=${processId}`);
+      // 中间轮次（4轮流程中的第3轮等）：简历 + 岗位 + 全部前轮反馈
+      if (!resumeText) {
+        this.logger.log(`AI自动诊断跳过(中间轮无简历): processId=${processId}`);
         return null;
       }
-      this.logger.log(`AI自动诊断(第${roundNumber}轮) - processId=${processId}`);
-      result = await this.generateRoundDiagnosis(
-        fb, process.position.title,
-        process.position.requirements || "",
-        roundNumber, roundConfig.roundType,
+      const fb = this._buildFeedbacks(process.interviews);
+      if (!fb) {
+        this.logger.log(`AI自动诊断跳过(中间轮无反馈): processId=${processId}`);
+        return null;
+      }
+      this.logger.log(`AI自动诊断(第${roundNumber}轮/中间轮) - processId=${processId}`);
+      result = await this.generateIntermediateRoundDiagnosis(
+        resumeText, process.position.title,
+        process.position.requirements || "", fb, roundNumber,
       );
     }
 
