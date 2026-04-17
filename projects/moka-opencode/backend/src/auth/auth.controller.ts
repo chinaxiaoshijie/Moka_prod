@@ -165,8 +165,8 @@ export class AuthController {
     }
 
     // 检查 openId 是否已被其他用户绑定
-    const existingUser = await this.prisma.user.findUnique({
-      where: { feishuOuId: openId },
+    const existingUser = await this.prisma.user.findFirst({
+      where: { feishuOuId: { equals: openId } },
     });
     if (existingUser && existingUser.id !== userId) {
       return {

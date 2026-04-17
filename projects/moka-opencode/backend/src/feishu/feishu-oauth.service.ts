@@ -80,13 +80,13 @@ export class FeishuOAuthService {
         }),
       });
 
-      const appTokenData = await appTokenRes.json();
+      const appTokenData = await appTokenRes.json() as { code: number; app_access_token?: string; msg?: string };
       if (appTokenData.code !== 0) {
         this.logger.error(`获取 app_access_token 失败: ${JSON.stringify(appTokenData)}`);
         return null;
       }
 
-      const appAccessToken = appTokenData.app_access_token;
+      const appAccessToken = appTokenData.app_access_token!;
 
       // Step 2: Exchange code for user_access_token
       const userTokenRes = await fetch("https://open.feishu.cn/open-apis/authen/v1/oidc_access_token", {
@@ -101,15 +101,15 @@ export class FeishuOAuthService {
         }),
       });
 
-      const userTokenData = await userTokenRes.json();
+      const userTokenData = await userTokenRes.json() as { code: number; data?: { token?: string }; msg?: string };
       if (userTokenData.code !== 0) {
         this.logger.error(`获取 user_access_token 失败: ${JSON.stringify(userTokenData)}`);
         return null;
       }
 
-      const userAccessToken = userTokenData.data.token;
+      const userAccessToken = userTokenData.data!.token!;
 
-      // Step 3: Get user info (contact:v3 is the new API)
+      // Step 3: Get user info
       const userInfoRes = await fetch("https://open.feishu.cn/open-apis/contact/v3/users/me", {
         method: "GET",
         headers: {
@@ -117,13 +117,23 @@ export class FeishuOAuthService {
         },
       });
 
-      const userInfoData = await userInfoRes.json();
+      const userInfoData = await userInfoRes.json() as {
+        code: number;
+        data?: {
+          user?: {
+            open_id: string;
+            name: string;
+            avatar?: { avatar_origin?: string };
+          };
+        };
+        msg?: string;
+      };
       if (userInfoData.code !== 0) {
         this.logger.error(`获取用户信息失败: ${JSON.stringify(userInfoData)}`);
         return null;
       }
 
-      const user = userInfoData.data.user;
+      const user = userInfoData.data!.user!;
       const openId = user.open_id;
       const name = user.name;
       const avatarUrl = user.avatar?.avatar_origin;

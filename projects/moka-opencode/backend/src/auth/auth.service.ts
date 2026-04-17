@@ -45,7 +45,7 @@ export class AuthService {
         name: user.name,
         email: user.email,
         role: user.role,
-        feishuOuId: user.feishuOuId,
+        feishuOuId: user.feishuOuId ?? null,
       },
     };
   }
