@@ -233,6 +233,8 @@ export class AIDiagnosisController {
   /**
    * GET / - 获取诊断结果
    */
+  @Get()
+  @Roles("HR", "INTERVIEWER")
   @ApiParam({ name: "processId", description: "面试流程ID" })
   @ApiParam({ name: "roundNumber", description: "轮次编号", type: Number })
   async getDiagnosis(
