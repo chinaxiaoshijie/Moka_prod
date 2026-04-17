@@ -9,6 +9,7 @@ import { AuthController } from "./auth.controller";
 import { JwtStrategy } from "./strategies/jwt.strategy";
 import { JwtAuthGuard } from "./guards/jwt-auth.guard";
 import { RolesGuard } from "./guards/roles.guard";
+import { FeishuOAuthService } from "../feishu/feishu-oauth.service";
 
 @Module({
   imports: [
@@ -27,7 +28,7 @@ import { RolesGuard } from "./guards/roles.guard";
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy, JwtAuthGuard, RolesGuard, Reflector],
+  providers: [AuthService, FeishuOAuthService, JwtStrategy, JwtAuthGuard, RolesGuard, Reflector],
   exports: [AuthService, JwtAuthGuard, RolesGuard, JwtModule],
 })
 export class AuthModule {}

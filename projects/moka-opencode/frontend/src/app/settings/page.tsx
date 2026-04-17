@@ -35,6 +35,10 @@ export default function SettingsPage() {
   const [aiModelLoading, setAiModelLoading] = useState(false);
   const [aiModelMessage, setAiModelMessage] = useState("");
 
+  // 飞书绑定状态
+  const [feishuBinding, setFeishuBinding] = useState(false);
+  const [feishuBindMessage, setFeishuBindMessage] = useState("");
+
   const AI_MODELS = [
     { value: "qwen-plus", label: "qwen-plus", desc: "默认模型，均衡性能" },
     { value: "qwen-turbo", label: "qwen-turbo", desc: "更快更便宜" },
@@ -137,36 +141,104 @@ export default function SettingsPage() {
     }
   };
 
-  const handleUpdateFeishuId = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setMessage("");
+  // ==================== 飞书 OAuth 绑定 ====================
+
+  /**
+   * 打开飞书 OAuth 授权窗口
+   */
+  const handleFeishuBind = async () => {
+    setFeishuBinding(true);
+    setFeishuBindMessage("");
 
     try {
-      const token = localStorage.getItem("token");
-      const response = await apiFetch(`/users/${user?.id}`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          feishuOuId: formData.feishuOuId,
-        }),
+      // 1. 获取 OAuth URL
+      const res = await apiFetch("/auth/feishu/oauth-url", {
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
       });
 
-      if (response.ok) {
-        const updatedUser = await response.json();
-        localStorage.setItem("user", JSON.stringify(updatedUser));
-        setUser(updatedUser);
-        setMessage("飞书ID绑定成功");
+      if (!res.ok) {
+        setFeishuBindMessage("获取授权链接失败");
+        setFeishuBinding(false);
+        return;
+      }
+
+      const { url } = await res.json();
+
+      // 2. 监听 OAuth 窗口回调消息
+      const messageHandler = async (event: MessageEvent) => {
+        if (event.data?.type === "feishu-bind-success") {
+          window.removeEventListener("message", messageHandler);
+
+          // 3. OAuth 窗口关闭后，刷新用户信息
+          try {
+            const profileRes = await apiFetch("/auth/profile", {
+              headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+            });
+            if (profileRes.ok) {
+              const profile = await profileRes.json();
+              setUser(profile);
+              setFormData((prev) => ({
+                ...prev,
+                feishuOuId: profile.feishuOuId || "",
+              }));
+            }
+          } catch (e) {
+            console.error("刷新用户信息失败", e);
+          }
+
+          setFeishuBindMessage("飞书账号绑定成功！");
+          setFeishuBinding(false);
+        } else if (event.data?.type === "feishu-bind-error") {
+          window.removeEventListener("message", messageHandler);
+          setFeishuBindMessage("授权已取消或失败");
+          setFeishuBinding(false);
+        }
+      };
+      window.addEventListener("message", messageHandler);
+
+      // 3. 打开飞书授权窗口
+      const width = 600;
+      const height = 700;
+      const left = window.screenX + (window.outerWidth - width) / 2;
+      const top = window.screenY + (window.outerHeight - height) / 2;
+      window.open(
+        url,
+        "feishu-oauth",
+        `width=${width},height=${height},left=${left},top=${top},menubar=no,toolbar=no,location=no`,
+      );
+    } catch (error) {
+      setFeishuBindMessage("网络错误，请稍后重试");
+      setFeishuBinding(false);
+    }
+  };
+
+  /**
+   * 解绑飞书账号
+   */
+  const handleFeishuUnbind = async () => {
+    if (!confirm("确定要解绑飞书账号吗？解绑后将无法同步飞书日历。")) return;
+
+    try {
+      const res = await apiFetch("/auth/feishu/unbind", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+      });
+
+      if (res.ok) {
+        setFeishuBindMessage("飞书账号已解绑");
+        const profileRes = await apiFetch("/auth/profile", {
+          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+        });
+        if (profileRes.ok) {
+          const profile = await profileRes.json();
+          setUser(profile);
+          setFormData((prev) => ({ ...prev, feishuOuId: "" }));
+        }
       } else {
-        setMessage("绑定失败，请重试");
+        setFeishuBindMessage("解绑失败");
       }
     } catch (error) {
-      setMessage("网络错误，请稍后重试");
-    } finally {
-      setLoading(false);
+      setFeishuBindMessage("网络错误");
     }
   };
 
@@ -310,29 +382,54 @@ export default function SettingsPage() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-1.5">
-                      飞书ID
+                      飞书账号
                     </label>
-                    <input
-                      type="text"
-                      value={formData.feishuOuId}
-                      onChange={(e) =>
-                        setFormData((prev) => ({
-                          ...prev,
-                          feishuOuId: e.target.value,
-                        }))
-                      }
-                      placeholder="请输入飞书OuId"
-                      className="w-full rounded-lg border border-[#E8EBF0] px-3.5 py-2.5 text-sm focus:border-[#4371FF] focus:ring-2 focus:ring-[#4371FF]/10 outline-none"
-                    />
+                    {user?.feishuOuId ? (
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1 rounded-lg border border-[#E8EBF0] px-3.5 py-2.5 text-sm bg-slate-50 text-slate-600 flex items-center gap-2">
+                          <span className="text-green-600">●</span>
+                          <span className="truncate">已绑定: {user.feishuOuId}</span>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleFeishuUnbind}
+                          disabled={feishuBinding}
+                          className="bg-red-50 hover:bg-red-100 text-red-600 rounded-lg px-4 py-2.5 text-sm font-medium shadow-sm disabled:opacity-50 whitespace-nowrap"
+                        >
+                          解绑
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1 rounded-lg border border-[#E8EBF0] px-3.5 py-2.5 text-sm bg-slate-50 text-slate-400">
+                          未绑定
+                        </div>
+                        <button
+                          type="button"
+                          onClick={handleFeishuBind}
+                          disabled={feishuBinding}
+                          className="bg-[#3370FF] hover:bg-[#2860E0] text-white rounded-lg px-4 py-2.5 text-sm font-medium shadow-sm disabled:opacity-50 whitespace-nowrap flex items-center gap-1.5"
+                        >
+                          <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                          </svg>
+                          {feishuBinding ? "授权中..." : "绑定飞书"}
+                        </button>
+                      </div>
+                    )}
+                    {feishuBindMessage && (
+                      <p className={`mt-1.5 text-xs ${
+                        feishuBindMessage.includes("成功") || feishuBindMessage.includes("已解绑")
+                          ? "text-green-600"
+                          : "text-red-500"
+                      }`}>
+                        {feishuBindMessage}
+                      </p>
+                    )}
+                    <p className="mt-1 text-xs text-slate-400">
+                      绑定后可在飞书日历收到面试提醒
+                    </p>
                   </div>
-                  <button
-                    type="button"
-                    onClick={handleUpdateFeishuId}
-                    disabled={loading}
-                    className="bg-[#4371FF] hover:bg-[#3461E6] text-white rounded-lg px-4 py-2.5 text-sm font-medium shadow-sm disabled:opacity-50"
-                  >
-                    {loading ? "绑定中..." : "绑定飞书ID"}
-                  </button>
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-1.5">
                       角色
