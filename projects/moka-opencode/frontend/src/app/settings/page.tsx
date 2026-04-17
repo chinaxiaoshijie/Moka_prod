@@ -43,6 +43,7 @@ export default function SettingsPage() {
     { value: "qwen-coder-plus", label: "qwen-coder-plus", desc: "代码能力强" },
     { value: "qwen3-235b-a22b", label: "qwen3-235b-a22b", desc: "超大参数模型" },
     { value: "qwen3-plus", label: "qwen3-plus", desc: "Qwen3 增强版" },
+    { value: "qwen3.6-plus", label: "qwen3.6-plus", desc: "⭐ 最新旗舰，最强综合性能（推荐）" },
     { value: "qwen3-max", label: "qwen3-max", desc: "Qwen3 最强版" },
   ];
 
