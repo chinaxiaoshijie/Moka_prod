@@ -1,18 +1,16 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
 
 export default function FeishuCallbackPage() {
-  const searchParams = useSearchParams();
-  const router = useRouter();
   const [status, setStatus] = useState<'loading' | 'success' | 'error'>('loading');
   const [message, setMessage] = useState('');
 
   useEffect(() => {
-    const code = searchParams.get('code');
-    const state = searchParams.get('state');
-    const error = searchParams.get('error');
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get('code');
+    const state = params.get('state');
+    const error = params.get('error');
 
     if (error) {
       setStatus('error');
@@ -29,7 +27,7 @@ export default function FeishuCallbackPage() {
       return;
     }
 
-    // 调用后端 callback API
+    // Call backend callback API
     fetch('/api/auth/feishu/callback', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -57,7 +55,7 @@ export default function FeishuCallbackPage() {
         try { window.opener.postMessage({ type: 'feishu-bind-error' }, '*'); } catch (e) {}
         setTimeout(() => window.close(), 2000);
       });
-  }, [searchParams]);
+  }, []);
 
   return (
     <div style={{
