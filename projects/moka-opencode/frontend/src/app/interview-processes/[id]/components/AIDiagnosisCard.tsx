@@ -72,6 +72,8 @@ interface UserOption {
 interface AIDiagnosisCardProps {
   process: Process;
   user: User | null;
+  /** 该卡片所属的目标轮次，用于正确路由 fetch/re-analyze/share */
+  targetRound: number;
 }
 
 /** Score → colour helper matching Ant Design palette */
@@ -134,7 +136,7 @@ function RingProgress({
   );
 }
 
-export default function AIDiagnosisCard({ process, user }: AIDiagnosisCardProps) {
+export default function AIDiagnosisCard({ process, user, targetRound }: AIDiagnosisCardProps) {
   /* ---- State ---- */
   const [diagnosis, setDiagnosis] = useState<AIDiagnosis | null>(null);
   const [loading, setLoading] = useState(false);
@@ -149,14 +151,14 @@ export default function AIDiagnosisCard({ process, user }: AIDiagnosisCardProps)
     setLoading(true);
     setError("");
     try {
-      const roundNum = diagnosis?.roundNumber ?? process.currentRound;
+      const roundNum = targetRound;
       const token = localStorage.getItem("token");
       const response = await apiFetch(
         `/interview-processes/${process.id}/rounds/${roundNum}/ai-diagnosis`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       // 处理空响应（尚无诊断结果）
-      if (response.status === 204 || response.status === 200 && (await response.text()) === "") {
+      if (response.status === 204) {
         setDiagnosis(null);
         return;
       }
@@ -165,20 +167,25 @@ export default function AIDiagnosisCard({ process, user }: AIDiagnosisCardProps)
         throw new Error(errData.message || "获取 AI 诊断失败");
       }
       const data = await response.json();
+      // 200 但无数据
+      if (!data) {
+        setDiagnosis(null);
+        return;
+      }
       if (data) setDiagnosis(data);
     } catch (err: any) {
       setError(err.message);
     } finally {
       setLoading(false);
     }
-  }, [process.id, diagnosis?.roundNumber, process.currentRound]);
+  }, [process.id, targetRound]);
 
   /* ---- Re-analyze ---- */
   const handleReAnalyze = async () => {
     setAnalyzing(true);
     setError("");
     try {
-      const roundNum = diagnosis?.roundNumber ?? process.currentRound;
+      const roundNum = targetRound;
       const token = localStorage.getItem("token");
       const response = await apiFetch(
         `/interview-processes/${process.id}/rounds/${roundNum}/ai-diagnosis`,
@@ -223,7 +230,7 @@ export default function AIDiagnosisCard({ process, user }: AIDiagnosisCardProps)
   /* ---- Send shared diagnosis ---- */
   const handleSendShare = async (recipientId: string) => {
     try {
-      const roundNum = diagnosis?.roundNumber ?? process.currentRound;
+      const roundNum = targetRound;
       const token = localStorage.getItem("token");
       const response = await apiFetch(
         `/interview-processes/${process.id}/rounds/${roundNum}/ai-diagnosis/share`,
@@ -263,7 +270,7 @@ export default function AIDiagnosisCard({ process, user }: AIDiagnosisCardProps)
   };
 
   const isHR = user?.role === "HR";
-  const currentRound = diagnosis?.roundNumber ?? process.currentRound;
+  const currentRound = targetRound;
   const currentRoundInfo = process.rounds.find((r) => r.roundNumber === currentRound);
   const isHRRound = currentRoundInfo?.isHRRound ?? false;
 

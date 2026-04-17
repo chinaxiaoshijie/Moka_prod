@@ -675,6 +675,7 @@ export default function InterviewProcessDetailPage() {
                           <AIDiagnosisCard
                             process={process}
                             user={user}
+                            targetRound={round.roundNumber}
                           />
 
                           {/* Feedbacks */}
