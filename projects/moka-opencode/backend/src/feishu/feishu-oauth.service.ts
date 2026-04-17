@@ -32,7 +32,11 @@ export class FeishuOAuthService {
    */
   getAuthorizeUrl(state: string): string {
     const appId = this.configService.get<string>("LARK_APP_ID");
-    const redirectUri = this.configService.get<string>("FEISHU_OAUTH_REDIRECT_URI", "http://localhost:13000/settings");
+    const redirectUri = this.configService.get<string>("FEISHU_OAUTH_REDIRECT_URI", "");
+
+    if (!redirectUri) {
+      this.logger.warn("FEISHU_OAUTH_REDIRECT_URI 未配置，飞书 OAuth 将失败");
+    }
 
     const params = new URLSearchParams({
       app_id: appId!,
