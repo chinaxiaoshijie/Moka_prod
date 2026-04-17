@@ -436,7 +436,7 @@ model SystemSetting {
   key         String   @id
   value       String
   description String   @default("")
-  updatedAt   DateTime @updatedAt
+  updatedAt   DateTime @updatedAt @map("updated_at")
   
   @@map("system_settings")
 }
