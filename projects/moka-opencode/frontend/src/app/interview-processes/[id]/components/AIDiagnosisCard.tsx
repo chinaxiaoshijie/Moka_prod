@@ -511,8 +511,17 @@ export default function AIDiagnosisCard({ process, user, targetRound }: AIDiagno
             {/* ---- Action buttons ---- */}
             <div className="flex gap-2 pt-3 border-t border-[#f0f0f0]">
               <button
-                onClick={() => setShowFullReport(true)}
-                className="border border-[#d9d9d9] hover:border-[#1890ff] hover:text-[#1890ff] text-[#000000a6] rounded px-3 py-1.5 text-[12px] font-medium transition-colors"
+                onClick={() => {
+                  if (diagnosis) {
+                    setShowFullReport(true);
+                  }
+                }}
+                disabled={!diagnosis}
+                className={`border rounded px-3 py-1.5 text-[12px] font-medium transition-colors ${
+                  diagnosis
+                    ? "border-[#d9d9d9] hover:border-[#1890ff] hover:text-[#1890ff] text-[#000000a6] cursor-pointer"
+                    : "border-[#f0f0f0] text-[#00000040] cursor-not-allowed"
+                }`}
               >
                 查看完整报告
               </button>
