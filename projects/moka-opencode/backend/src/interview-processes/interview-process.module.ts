@@ -9,6 +9,7 @@ import { EmailModule } from "../email/email.module";
 import { CandidatesModule } from "../candidates/candidates.module";
 import { NotificationModule } from "../notifications/notification.module";
 import { FeishuCalendarModule } from "../feishu/feishu-calendar.module";
+import { AIDiagnosisModule } from "../ai-diagnosis/ai-diagnosis.module";
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { FeishuCalendarModule } from "../feishu/feishu-calendar.module";
     CandidatesModule,
     NotificationModule,
     FeishuCalendarModule,
+    AIDiagnosisModule,
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({

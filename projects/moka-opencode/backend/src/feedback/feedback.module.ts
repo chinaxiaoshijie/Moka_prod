@@ -10,11 +10,13 @@ import { InterviewProcessModule } from "../interview-processes/interview-process
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 import { EmailModule } from "../email/email.module";
 import { CandidatesModule } from "../candidates/candidates.module";
+import { AIDiagnosisModule } from "../ai-diagnosis/ai-diagnosis.module";
 
 @Module({
   imports: [
     PrismaModule,
     InterviewProcessModule,
+    AIDiagnosisModule,
     EmailModule,
     CandidatesModule,
     PassportModule.register({ defaultStrategy: "jwt" }),
