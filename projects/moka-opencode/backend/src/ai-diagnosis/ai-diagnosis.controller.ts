@@ -12,6 +12,7 @@ import {
   Logger,
   BadRequestException,
   NotFoundException,
+  HttpCode,
 } from "@nestjs/common";
 import { ApiTags, ApiOperation, ApiParam, ApiBody } from "@nestjs/swagger";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
@@ -251,7 +252,8 @@ export class AIDiagnosisController {
     });
 
     if (!diagnosis) {
-      return null;
+      // 返回空对象而非 null，避免 NestJS 序列化为空 body 导致前端 response.json() 报错
+      return {} as TriggerDiagnosisResponseDto;
     }
 
     return this.mapToResponseDto(diagnosis);
