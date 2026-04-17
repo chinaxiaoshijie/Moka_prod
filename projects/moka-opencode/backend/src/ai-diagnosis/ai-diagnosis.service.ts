@@ -1,5 +1,7 @@
 import { Injectable, Logger } from "@nestjs/common";
 import { ConfigService } from "@nestjs/config";
+import { PrismaService } from "../prisma/prisma.service";
+import { TriggerDiagnosisResponseDto } from "./dto/ai-diagnosis.dto";
 
 export interface AIDiagnosisResult {
   matchScore?: number;
@@ -28,10 +30,13 @@ export class AIDiagnosisService {
   private readonly apiBase = "https://dashscope.aliyuncs.com/compatible-mode/v1";
   private readonly model = "qwen-plus";
 
-  constructor(private configService: ConfigService) {
+  constructor(
+    private configService: ConfigService,
+    private prisma: PrismaService,
+  ) {
     this.apiKey =
       this.configService.get<string>("DASHSCOPE_API_KEY") ||
-      "sk-4ac26721ba2e4c54ba6e8a777e42e257";
+      "sk-4ac...e257";
   }
 
   /**
@@ -110,6 +115,159 @@ export class AIDiagnosisService {
     );
 
     return this.callAI(prompt, "终面诊断");
+  }
+
+  // ==================== 自动生成入口 ====================
+
+  /**
+   * 为指定轮次生成 AI 诊断（统一入口，供各业务事件自动调用）
+   * - 流程创建 → 生成第1轮
+   * - 反馈提交 → 生成下一轮
+   * - 简历上传 → 刷新初面
+   * 如果已有诊断且 24h 内生成过，则跳过
+   */
+  async generateForRound(
+    processId: string,
+    roundNumber: number,
+  ): Promise<TriggerDiagnosisResponseDto | null> {
+    const process = await this.prisma.interviewProcess.findUnique({
+      where: { id: processId },
+      include: {
+        candidate: {
+          include: {
+            resumeFiles: {
+              where: { isActive: true },
+              orderBy: { uploadedAt: "desc" },
+            },
+          },
+        },
+        position: true,
+        rounds: { orderBy: { roundNumber: "asc" } },
+        interviews: {
+          where: { roundNumber: { lt: roundNumber } },
+          include: { feedbacks: true },
+          orderBy: { roundNumber: "asc" },
+        },
+      },
+    });
+
+    if (!process) {
+      this.logger.warn(`AI自动诊断跳过 - 流程不存在: processId=${processId}`);
+      return null;
+    }
+
+    const roundConfig = process.rounds.find((r) => r.roundNumber === roundNumber);
+    if (!roundConfig) {
+      this.logger.warn(`AI自动诊断跳过 - 轮次未配置: round=${roundNumber}`);
+      return null;
+    }
+
+    // 已有诊断且 24h 内不重复
+    const existing = await this.prisma.aIDiagnosis.findUnique({
+      where: { processId_roundNumber: { processId, roundNumber } },
+    });
+    if (existing && existing.analyzedAt) {
+      const hoursSince = (Date.now() - new Date(existing.analyzedAt).getTime()) / (1000 * 60 * 60);
+      if (hoursSince < 24) {
+        this.logger.log(`AI自动诊断跳过 - 24h内已有: round=${roundNumber}`);
+        return this._mapToDto(existing);
+      }
+    }
+
+    const isHRRound = roundConfig.isHRRound || roundNumber === 1;
+    const isFinalRound = roundConfig.roundType === "FINAL";
+    const maxRound = process.rounds.reduce((m, r) => Math.max(m, r.roundNumber), 0);
+    const isLastRound = roundNumber === maxRound;
+
+    const resumeText = await this._getResumeText(process.candidate);
+    const roundTypeText = roundConfig.roundType === "HR_SCREENING" ? "HR初筛"
+      : roundConfig.roundType === "TECHNICAL" ? "技术面"
+      : roundConfig.roundType === "FINAL" ? "终面"
+      : `第${roundNumber}轮`;
+
+    let result: AIDiagnosisResult;
+
+    if (isHRRound) {
+      if (!resumeText) {
+        this.logger.log(`AI自动诊断跳过(初面无简历): processId=${processId}`);
+        return null;
+      }
+      this.logger.log(`AI自动诊断(初面) - processId=${processId}`);
+      result = await this.generateHRDiagnosis(
+        resumeText, process.position.title,
+        process.position.description || "",
+        process.position.requirements || "",
+      );
+    } else if (roundNumber === 2) {
+      if (!resumeText) {
+        this.logger.log(`AI自动诊断跳过(二轮无简历): processId=${processId}`);
+        return null;
+      }
+      const fb = this._buildFeedbacks(process.interviews);
+      if (!fb) {
+        this.logger.log(`AI自动诊断跳过(二轮无反馈): processId=${processId}`);
+        return null;
+      }
+      this.logger.log(`AI自动诊断(第二轮) - processId=${processId}`);
+      result = await this.generateSecondRoundDiagnosis(
+        resumeText, process.position.title,
+        process.position.requirements || "", fb,
+      );
+    } else if (isFinalRound || isLastRound) {
+      if (!resumeText) {
+        this.logger.log(`AI自动诊断跳过(终面无简历): processId=${processId}`);
+        return null;
+      }
+      const fb = this._buildFeedbacks(process.interviews);
+      if (!fb) {
+        this.logger.log(`AI自动诊断跳过(终面无反馈): processId=${processId}`);
+        return null;
+      }
+      this.logger.log(`AI自动诊断(终面) - processId=${processId}`);
+      result = await this.generateFinalRoundDiagnosis(
+        resumeText, process.position.title,
+        process.position.requirements || "", fb,
+      );
+    } else {
+      const fb = this._buildFeedbacks(process.interviews);
+      if (!fb) {
+        this.logger.log(`AI自动诊断跳过(无反馈): processId=${processId}`);
+        return null;
+      }
+      this.logger.log(`AI自动诊断(第${roundNumber}轮) - processId=${processId}`);
+      result = await this.generateRoundDiagnosis(
+        fb, process.position.title,
+        process.position.requirements || "",
+        roundNumber, roundConfig.roundType,
+      );
+    }
+
+    // 保存
+    const saved = await this.prisma.aIDiagnosis.upsert({
+      where: { processId_roundNumber: { processId, roundNumber } },
+      create: {
+        processId, roundNumber, positionId: process.positionId,
+        matchScore: result.matchScore, matchLevel: result.matchLevel,
+        strengths: result.strengths, weaknesses: result.weaknesses,
+        suggestions: result.suggestions, questions: result.questions,
+        summary: result.summary,
+        rawOutput: JSON.stringify(result),
+        inputSnapshot: { isHRRound, candidateId: process.candidateId, positionId: process.positionId, roundNumber },
+      },
+      update: {
+        matchScore: result.matchScore, matchLevel: result.matchLevel,
+        strengths: result.strengths, weaknesses: result.weaknesses,
+        suggestions: result.suggestions, questions: result.questions,
+        summary: result.summary,
+        rawOutput: JSON.stringify(result), analyzedAt: new Date(),
+      },
+    });
+
+    this.logger.log(
+      `AI诊断已保存(自动) - diagnosisId=${saved.id}, round=${roundNumber}, type=${roundTypeText}`,
+    );
+
+    return this._mapToDto(saved);
   }
 
   // ==================== 内部方法 ====================
@@ -424,5 +582,72 @@ ${allPreviousFeedbacks}
     };
 
     return result;
+  }
+
+  // ==================== 自动生成辅助方法 ====================
+
+  /**
+   * 获取候选人简历文本
+   */
+  private async _getResumeText(candidate: any): Promise<string | null> {
+    if (candidate.resumeFiles && candidate.resumeFiles.length > 0) {
+      const activeResume = candidate.resumeFiles[0];
+      try {
+        const fs = await import("fs");
+        if (fs.existsSync(activeResume.filePath)) {
+          const buffer = fs.readFileSync(activeResume.filePath);
+          // eslint-disable-next-line @typescript-eslint/no-var-requires
+          const pdfParse = require("pdf-parse");
+          const data = await pdfParse(buffer);
+          return data.text;
+        }
+      } catch (error) {
+        this.logger.warn(`简历文件解析失败: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    }
+    return null;
+  }
+
+  /**
+   * 构建前轮反馈摘要
+   */
+  private _buildFeedbacks(interviews: any[]): string | null {
+    if (!interviews || interviews.length === 0) return null;
+
+    const parts: string[] = [];
+    for (const interview of interviews) {
+      if (!interview.feedbacks || interview.feedbacks.length === 0) continue;
+      const roundNum = interview.roundNumber || "?";
+      for (const fb of interview.feedbacks) {
+        const interviewerName = fb.interviewer?.name || "未知面试官";
+        let text = `第${roundNum}轮 - ${interviewerName}：\n`;
+        text += `结论：${fb.result}\n`;
+        if (fb.overallRating) text += `评分：${fb.overallRating}/5\n`;
+        if (fb.strengths) text += `优势：${fb.strengths}\n`;
+        if (fb.weaknesses) text += `不足：${fb.weaknesses}\n`;
+        if (fb.notes) text += `评语：${fb.notes}\n`;
+        parts.push(text.trim());
+      }
+    }
+    return parts.length > 0 ? parts.join("\n\n") : null;
+  }
+
+  /**
+   * 映射到 DTO
+   */
+  private _mapToDto(diagnosis: any): TriggerDiagnosisResponseDto {
+    return {
+      id: diagnosis.id,
+      processId: diagnosis.processId,
+      roundNumber: diagnosis.roundNumber,
+      matchScore: diagnosis.matchScore,
+      matchLevel: diagnosis.matchLevel,
+      strengths: diagnosis.strengths || [],
+      weaknesses: diagnosis.weaknesses || [],
+      suggestions: diagnosis.suggestions || [],
+      questions: diagnosis.questions || [],
+      summary: diagnosis.summary || "",
+      analyzedAt: diagnosis.analyzedAt,
+    };
   }
 }

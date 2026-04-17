@@ -4,6 +4,7 @@ import { EmailService } from "../email/email.service";
 import { CandidateStatusService } from "../candidates/candidate-status.service";
 import { NotificationService } from "../notifications/notification.service";
 import { FeishuCalendarService } from "../feishu/feishu-calendar.service";
+import { AIDiagnosisService } from "../ai-diagnosis/ai-diagnosis.service";
 import {
   CreateInterviewProcessDto,
   CreateRoundInterviewDto,
@@ -26,6 +27,7 @@ export class InterviewProcessService {
     private candidateStatusService: CandidateStatusService,
     private notificationService: NotificationService,
     private feishuCalendarService: FeishuCalendarService,
+    private aiDiagnosisService: AIDiagnosisService,
   ) {}
 
   // 创建面试流程（启动流程）
@@ -81,6 +83,11 @@ export class InterviewProcessService {
         }),
       ),
     );
+
+    // 自动触发初面 AI 诊断（fire-and-forget，不阻塞返回）
+    this.aiDiagnosisService.generateForRound(process.id, 1)
+      .then(() => this.logger.log(`初面 AI 诊断自动生成完成 - processId=${process.id}`))
+      .catch((err) => this.logger.warn(`初面 AI 诊断自动生成失败: ${err?.message || err}`));
 
     return this.findOne(process.id);
   }
@@ -202,12 +209,21 @@ export class InterviewProcessService {
       select: { id: true, name: true, email: true, feishuOuId: true },
     });
 
-    // 获取当前轮次的 AI 诊断结果（如果有）
+    // 获取/生成当前轮次的 AI 诊断结果（邮件附带）
     let aiDiagnosisData: any = null;
     try {
-      const existingDiagnosis = await this.prisma.aIDiagnosis.findUnique({
+      let existingDiagnosis = await this.prisma.aIDiagnosis.findUnique({
         where: { processId_roundNumber: { processId: processId, roundNumber } },
       });
+      // 如果尚无诊断，尝试自动生成（阻塞调用，确保邮件有诊断内容）
+      if (!existingDiagnosis) {
+        this.logger.log(`面试邮件需要诊断但尚未生成，自动生成中 - processId=${processId}, round=${roundNumber}`);
+        const generated = await this.aiDiagnosisService.generateForRound(processId, roundNumber);
+        if (generated) {
+          existingDiagnosis = generated;
+          this.logger.log(`面试邮件 AI 诊断自动生成成功 - round=${roundNumber}`);
+        }
+      }
       if (existingDiagnosis) {
         aiDiagnosisData = {
           matchScore: existingDiagnosis.matchScore,

@@ -1,6 +1,7 @@
 import { Injectable, ForbiddenException, Logger } from "@nestjs/common";
 import { PrismaService } from "../prisma/prisma.service";
 import { InterviewProcessService } from "../interview-processes/interview-process.service";
+import { AIDiagnosisService } from "../ai-diagnosis/ai-diagnosis.service";
 import {
   CreateFeedbackDto,
   UpdateFeedbackDto,
@@ -16,6 +17,7 @@ export class FeedbackService {
   constructor(
     private prisma: PrismaService,
     private processService: InterviewProcessService,
+    private aiDiagnosisService: AIDiagnosisService,
   ) {}
 
   async create(
@@ -128,6 +130,12 @@ export class FeedbackService {
         } catch (error) {
           this.logger.error("流程状态更新通知失败", error as Error);
         }
+
+        // 自动触发下一轮 AI 诊断（fire-and-forget）
+        const nextRound = interview.roundNumber + 1;
+        this.aiDiagnosisService.generateForRound(interview.processId, nextRound)
+          .then(() => this.logger.log(`下一轮 AI 诊断自动生成完成 - round=${nextRound}`))
+          .catch((err) => this.logger.warn(`下一轮 AI 诊断自动生成失败: ${err?.message || err}`));
       }
     }
 
@@ -304,6 +312,14 @@ export class FeedbackService {
         interviewer: true,
       },
     });
+
+    // 自动刷新下一轮 AI 诊断（feedback 修改影响下一轮诊断输入）
+    if (updatedFeedback.interview.processId && updatedFeedback.interview.roundNumber) {
+      const nextRound = updatedFeedback.interview.roundNumber + 1;
+      this.aiDiagnosisService.generateForRound(updatedFeedback.interview.processId, nextRound)
+        .then(() => this.logger.log(`下一轮 AI 诊断自动刷新完成 - round=${nextRound}`))
+        .catch((err) => this.logger.warn(`下一轮 AI 诊断自动刷新失败: ${err?.message || err}`));
+    }
 
     return this.mapToResponseDto(updatedFeedback);
   }

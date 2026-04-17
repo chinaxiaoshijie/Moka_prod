@@ -16,6 +16,7 @@ import { ConfigService } from "@nestjs/config";
 import { randomBytes } from "crypto";
 import { CandidateStatusService } from "../candidates/candidate-status.service";
 import { InterviewProcessService } from "../interview-processes/interview-process.service";
+import { AIDiagnosisService } from "../ai-diagnosis/ai-diagnosis.service";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
 
 @Controller("feedback")
@@ -26,6 +27,7 @@ export class FeedbackPublicController {
     private configService: ConfigService,
     private candidateStatusService: CandidateStatusService,
     private processService: InterviewProcessService,
+    private aiDiagnosisService: AIDiagnosisService,
   ) {}
 
   @Post("generate-token/:interviewId")
@@ -255,6 +257,12 @@ export class FeedbackPublicController {
       } catch (error) {
         console.error("流程状态更新通知失败:", error);
       }
+
+      // 自动触发下一轮 AI 诊断（fire-and-forget）
+      const nextRound = interview.roundNumber + 1;
+      this.aiDiagnosisService.generateForRound(interview.processId, nextRound)
+        .then(() => console.log(`下一轮 AI 诊断自动生成完成 - round=${nextRound}`))
+        .catch((err) => console.warn(`下一轮 AI 诊断自动生成失败: ${err?.message || err}`));
     }
 
     return {
