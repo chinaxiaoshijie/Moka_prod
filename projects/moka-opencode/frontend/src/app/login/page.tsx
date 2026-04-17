@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { apiFetch } from "@/lib/api";
+import FeishuBindModal from "@/components/FeishuBindModal";
 
 /* 码隆智能 Logo SVG */
 const MokaLogoSVG = ({ size = 36 }: { size?: number }) => (
@@ -27,6 +28,8 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showFeishuBind, setShowFeishuBind] = useState(false);
+  const [loginUser, setLoginUser] = useState<any>(null);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,7 +59,15 @@ export default function LoginPage() {
       localStorage.setItem("token", data.access_token);
       localStorage.setItem("user", JSON.stringify(data.user));
       document.cookie = `token=${data.access_token}; path=/; max-age=${7 * 24 * 60 * 60}`;
-      window.location.href = "/dashboard";
+
+      // 检查是否已绑定飞书
+      if (!data.user.feishuOuId) {
+        setLoginUser(data.user);
+        setShowFeishuBind(true);
+        setLoading(false);
+      } else {
+        window.location.href = "/dashboard";
+      }
     } catch (err) {
       console.error("Login error:", err);
       setError("网络错误，请稍后重试");
@@ -251,6 +262,20 @@ export default function LoginPage() {
           </div>
         </div>
       </div>
+
+      {/* 飞书绑定弹窗 */}
+      <FeishuBindModal
+        isOpen={showFeishuBind}
+        onClose={() => setShowFeishuBind(false)}
+        onBound={() => {
+          setShowFeishuBind(false);
+          window.location.href = "/dashboard";
+        }}
+        onSkip={() => {
+          setShowFeishuBind(false);
+          window.location.href = "/dashboard";
+        }}
+      />
     </div>
   );
 }

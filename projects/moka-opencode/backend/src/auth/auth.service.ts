@@ -60,6 +60,7 @@ export class AuthService {
         email: true,
         role: true,
         avatarUrl: true,
+        feishuOuId: true,
       },
     });
 
