@@ -220,11 +220,20 @@ export class InterviewProcessService {
         this.logger.log(`面试邮件需要诊断但尚未生成，自动生成中 - processId=${processId}, round=${roundNumber}`);
         const generated = await this.aiDiagnosisService.generateForRound(processId, roundNumber);
         if (generated) {
-          existingDiagnosis = generated;
+          // generateForRound 返回 DTO，直接用其字段
+          aiDiagnosisData = {
+            matchScore: generated.matchScore,
+            matchLevel: generated.matchLevel,
+            strengths: generated.strengths || [],
+            weaknesses: generated.weaknesses || [],
+            suggestions: generated.suggestions || [],
+            questions: generated.questions || [],
+            summary: generated.summary || "",
+          };
           this.logger.log(`面试邮件 AI 诊断自动生成成功 - round=${roundNumber}`);
         }
       }
-      if (existingDiagnosis) {
+      if (existingDiagnosis && !aiDiagnosisData) {
         aiDiagnosisData = {
           matchScore: existingDiagnosis.matchScore,
           matchLevel: existingDiagnosis.matchLevel,
