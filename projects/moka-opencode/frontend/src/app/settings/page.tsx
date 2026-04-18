@@ -169,25 +169,44 @@ export default function SettingsPage() {
         if (event.data?.type === "feishu-bind-success") {
           window.removeEventListener("message", messageHandler);
 
-          // 3. OAuth 窗口关闭后，刷新用户信息
+          // 调用 bind 端点将 openId 保存到数据库
+          const openId = event.data.openId;
           try {
-            const profileRes = await apiFetch("/auth/profile", {
-              headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+            const bindRes = await apiFetch("/auth/feishu/bind", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${localStorage.getItem("token")}`,
+              },
+              body: JSON.stringify({ openId }),
             });
-            if (profileRes.ok) {
-              const profile = await profileRes.json();
-              setUser(profile);
-              setFormData((prev) => ({
-                ...prev,
-                feishuOuId: profile.feishuOuId || "",
-              }));
+            const bindData = await bindRes.json();
+            if (bindRes.ok && bindData.success) {
+              // 刷新用户信息
+              const profileRes = await apiFetch("/auth/profile", {
+                headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
+              });
+              if (profileRes.ok) {
+                const profile = await profileRes.json();
+                setUser(profile);
+                setFormData((prev) => ({
+                  ...prev,
+                  feishuOuId: profile.feishuOuId || "",
+                }));
+                // 同步更新 localStorage 中的 user
+                localStorage.setItem("user", JSON.stringify(profile));
+              }
+              setFeishuBindMessage("飞书账号绑定成功！");
+              setFeishuBinding(false);
+            } else {
+              setFeishuBindMessage(bindData.message || "绑定失败");
+              setFeishuBinding(false);
             }
           } catch (e) {
-            console.error("刷新用户信息失败", e);
+            console.error("保存绑定信息失败", e);
+            setFeishuBindMessage("保存绑定信息失败");
+            setFeishuBinding(false);
           }
-
-          setFeishuBindMessage("飞书账号绑定成功！");
-          setFeishuBinding(false);
         } else if (event.data?.type === "feishu-bind-error") {
           window.removeEventListener("message", messageHandler);
           setFeishuBindMessage("授权已取消或失败");
