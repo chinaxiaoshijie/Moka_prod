@@ -1,0 +1,46 @@
+# Moka Interview System - Docker Compose (兼容旧版本)
+version: '3.7'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: moka-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: moka
+      POSTGRES_PASSWORD: ac709f2731f2c284e83cd7721ffc400ef8048f176a65097485864b53e48266ad
+      POSTGRES_DB: moka_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - ./docker/postgres/data:/var/lib/postgresql/data
+
+  backend:
+    image: moka-opencode-backend
+    container_name: moka-backend
+    restart: unless-stopped
+    ports:
+      - "13001:3001"
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=postgresql://moka:ac709f2731f2c284e83cd7721ffc400ef8048f176a65097485864b53e48266ad@postgres:5432/moka_db
+      - JWT_SECRET=7bebcb9207fdfe3107e3d92cde1c825598ab8b8b5009a3733eba2155c3a3efc2037bc5aa8f593ef43eae5d78869dca1ef0ec3e0898921b461db1ede97c84d110
+      - JWT_EXPIRES_IN=7d
+      - PORT=3001
+      - FRONTEND_URL=http://localhost:13000
+    env_file: backend/.env
+    depends_on:
+      - postgres
+
+  frontend:
+    image: moka-opencode-frontend
+    container_name: moka-frontend
+    restart: unless-stopped
+    ports:
+      - "13000:3000"
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_API_URL=http://localhost:13001
+      - NEXT_PUBLIC_API_BASE=/api
+    depends_on:
+      - backend
