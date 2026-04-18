@@ -121,17 +121,6 @@ export default function DashboardPage() {
     init();
   }, [router]);
 
-  const handleFeishuBindClose = (bound?: boolean) => {
-    setShowFeishuBind(false);
-    if (bound) {
-      // 绑定成功后刷新用户信息
-      const userData = localStorage.getItem("user");
-      if (userData) {
-        setUser(JSON.parse(userData));
-      }
-    }
-  };
-
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#F5F7FA]">
@@ -395,7 +384,22 @@ export default function DashboardPage() {
       </div>
 
       {/* 飞书绑定引导弹窗 */}
-      <FeishuBindModal open={showFeishuBind} onClose={handleFeishuBindClose} />
+      <FeishuBindModal
+        isOpen={showFeishuBind}
+        onClose={() => setShowFeishuBind(false)}
+        onBound={() => {
+          setShowFeishuBind(false);
+          // 刷新用户信息
+          const userData = localStorage.getItem("user");
+          if (userData) {
+            setUser(JSON.parse(userData));
+          }
+        }}
+        onSkip={() => {
+          localStorage.setItem("moka_feishu_bind_dismissed", Date.now().toString());
+          setShowFeishuBind(false);
+        }}
+      />
     </MainLayout>
   );
 }
