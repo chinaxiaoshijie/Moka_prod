@@ -4,6 +4,7 @@ import { EmailService } from "../email/email.service";
 import { EmailLimitService } from "../email/email-limit.service";
 import { NotificationService } from "../notifications/notification.service";
 import { FeishuCalendarService } from "../feishu/feishu-calendar.service";
+import { FeishuMessageService } from "../feishu/feishu-message.service";
 import { NotificationType } from "@prisma/client";
 import {
   CreateInterviewDto,
@@ -22,6 +23,7 @@ export class InterviewService {
     private emailLimitService: EmailLimitService,
     private notificationService: NotificationService,
     private feishuCalendarService: FeishuCalendarService,
+    private feishuMessageService: FeishuMessageService,
   ) {}
 
   async create(createDto: CreateInterviewDto): Promise<InterviewResponseDto> {
@@ -337,6 +339,46 @@ export class InterviewService {
         });
       } catch (error) {
         this.logger.error(`站内通知发送失败：interviewId=${id}`, error as Error);
+      }
+    }
+
+    // 飞书消息通知新面试官（如果已绑定飞书）
+    if (timeChanged || interviewerChanged) {
+      try {
+        const interviewer = updatedInterview.interviewer;
+        if (interviewer?.feishuOuId) {
+          const existingDiagnosis = await this.prisma.aIDiagnosis.findUnique({
+            where: { processId_roundNumber: { processId: updatedInterview.processId, roundNumber: updatedInterview.roundNumber } },
+          }).catch(() => null);
+          
+          await this.feishuMessageService.sendInterviewReminder({
+            candidateName: updatedInterview.candidate.name,
+            positionTitle: updatedInterview.position.title,
+            interviewerName: interviewer.name,
+            interviewerFeishuOuId: interviewer.feishuOuId,
+            startTime: updatedInterview.startTime,
+            endTime: updatedInterview.endTime,
+            roundNumber: updatedInterview.roundNumber,
+            format: updatedInterview.format,
+            location: updatedInterview.location || undefined,
+            meetingUrl: updatedInterview.meetingUrl || undefined,
+            meetingNumber: updatedInterview.meetingNumber || undefined,
+            aiDiagnosis: existingDiagnosis ? {
+              matchScore: existingDiagnosis.matchScore,
+              matchLevel: existingDiagnosis.matchLevel,
+              strengths: existingDiagnosis.strengths || [],
+              weaknesses: existingDiagnosis.weaknesses || [],
+              suggestions: existingDiagnosis.suggestions || [],
+              questions: existingDiagnosis.questions || [],
+              summary: existingDiagnosis.summary || "",
+            } : undefined,
+          });
+          this.logger.log(`飞书消息通知发送成功：interviewId=${id}, interviewerId=${interviewer.id}`);
+        } else {
+          this.logger.warn(`面试官未绑定飞书账号，跳过消息通知：interviewerId=${interviewer?.id}`);
+        }
+      } catch (error) {
+        this.logger.error(`飞书消息通知发送失败：interviewId=${id}`, error as Error);
       }
     }
 
