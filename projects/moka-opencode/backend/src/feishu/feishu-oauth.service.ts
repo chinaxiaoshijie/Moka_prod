@@ -75,6 +75,7 @@ export class FeishuOAuthService {
 
     try {
       // Step 1: Get app_access_token
+      this.logger.log(`app_access_token request - appId: ${appId}, secret length: ${appSecret.length}`);
       const appTokenRes = await fetch("https://open.feishu.cn/open-apis/auth/v3/app_access_token/internal", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -84,7 +85,14 @@ export class FeishuOAuthService {
         }),
       });
 
-      const appTokenData = await appTokenRes.json() as { code: number; app_access_token?: string; msg?: string };
+      let appTokenRaw: string;
+      try {
+        appTokenRaw = await appTokenRes.text();
+      } catch {
+        appTokenRaw = "(failed to read response)";
+      }
+      this.logger.log(`app_access_token response (${appTokenRes.status}): ${appTokenRaw.substring(0, 500)}`);
+      const appTokenData = JSON.parse(appTokenRaw) as { code: number; app_access_token?: string; msg?: string };
       if (appTokenData.code !== 0) {
         this.logger.error(`获取 app_access_token 失败: ${JSON.stringify(appTokenData)}`);
         return null;
@@ -92,55 +100,74 @@ export class FeishuOAuthService {
 
       const appAccessToken = appTokenData.app_access_token!;
 
-      // Step 2: Exchange code for user_access_token
-      const userTokenRes = await fetch("https://open.feishu.cn/open-apis/authen/v1/oidc_access_token", {
+      // Step 2: Exchange code for user_access_token (Suite OAuth)
+      this.logger.log(`user_access_token request - appId: ${appId}`);
+      const userTokenRes = await fetch("https://passport.feishu.cn/suite/passport/oauth/token", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${appAccessToken}`,
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          grant_type: "authorization_code",
+          client_id: appId,
+          client_secret: appSecret,
           code,
+          grant_type: "authorization_code",
         }),
       });
 
-      const userTokenData = await userTokenRes.json() as { code: number; data?: { token?: string }; msg?: string };
-      if (userTokenData.code !== 0) {
+      const userTokenText = await userTokenRes.text();
+      this.logger.log(`user_access_token response (${userTokenRes.status}): ${userTokenText.substring(0, 300)}`);
+
+      if (userTokenRes.status !== 200) {
+        this.logger.error(`获取 user_access_token 失败 (HTTP ${userTokenRes.status}): ${userTokenText}`);
+        return null;
+      }
+
+      let userTokenData: any;
+      try {
+        userTokenData = JSON.parse(userTokenText);
+      } catch (e) {
+        this.logger.error(`user_access_token 响应非JSON: ${userTokenText}`);
+        return null;
+      }
+
+      if (userTokenData.error) {
         this.logger.error(`获取 user_access_token 失败: ${JSON.stringify(userTokenData)}`);
         return null;
       }
 
-      const userAccessToken = userTokenData.data!.token!;
-
-      // Step 3: Get user info
-      const userInfoRes = await fetch("https://open.feishu.cn/open-apis/contact/v3/users/me", {
-        method: "GET",
-        headers: {
-          Authorization: `Bearer ${userAccessToken}`,
-        },
-      });
-
-      const userInfoData = await userInfoRes.json() as {
-        code: number;
-        data?: {
-          user?: {
-            open_id: string;
-            name: string;
-            avatar?: { avatar_origin?: string };
-          };
-        };
-        msg?: string;
-      };
-      if (userInfoData.code !== 0) {
-        this.logger.error(`获取用户信息失败: ${JSON.stringify(userInfoData)}`);
+      const userAccessToken = userTokenData.access_token || userTokenData.data?.access_token;
+      if (!userAccessToken) {
+        this.logger.error(`user_access_token 响应中无 access_token: ${JSON.stringify(userTokenData)}`);
         return null;
       }
 
-      const user = userInfoData.data!.user!;
-      const openId = user.open_id;
-      const name = user.name;
-      const avatarUrl = user.avatar?.avatar_origin;
+      // Step 3: Get user info (Suite OAuth userinfo endpoint)
+      this.logger.log(`userinfo request - token length: ${userAccessToken.length}`);
+      const userInfoRes = await fetch("https://passport.feishu.cn/suite/passport/oauth/userinfo", {
+        method: "GET",
+        headers: { Authorization: `Bearer ${userAccessToken}` },
+      });
+
+      const userInfoText = await userInfoRes.text();
+      this.logger.log(`userinfo response (${userInfoRes.status}): ${userInfoText.substring(0, 300)}`);
+
+      if (userInfoRes.status !== 200) {
+        this.logger.error(`获取用户信息失败 (HTTP ${userInfoRes.status}): ${userInfoText}`);
+        return null;
+      }
+
+      let userInfoData: any;
+      try {
+        userInfoData = JSON.parse(userInfoText);
+      } catch (e) {
+        this.logger.error(`userinfo 响应非JSON: ${userInfoText}`);
+        return null;
+      }
+
+      const openId = userInfoData.open_id || userInfoData.union_id || userInfoData.sub || "";
+      const name = userInfoData.name || userInfoData.nickname || "";
+      const avatarUrl = userInfoData.avatar_url || "";
+
+      this.logger.log(`飞书 OAuth 成功 - openId=${openId}, name=${name}`);
 
       this.logger.log(`飞书 OAuth 成功 - openId=${openId}, name=${name}`);
 
