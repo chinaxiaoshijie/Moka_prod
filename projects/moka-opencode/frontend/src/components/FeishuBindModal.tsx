@@ -1,185 +1,187 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useCallback } from "react";
 import { apiFetch } from "@/lib/api";
 
-const LOCAL_STORAGE_KEY = "moka_feishu_bind_dismissed";
-
 interface FeishuBindModalProps {
-  /** Whether to show the modal */
-  open: boolean;
-  /** Called after successful binding or dismiss */
-  onClose: (bound?: boolean) => void;
+  isOpen: boolean;
+  onClose: () => void;
+  onBound: () => void;
+  onSkip: () => void;
 }
 
-/**
- * 飞书绑定引导弹窗
- * 在用户登录后检测 feishuOuId 为空时弹出，引导绑定飞书账号
- * 支持 OAuth 弹窗授权，也支持"稍后绑定"
- */
-export default function FeishuBindModal({ open, onClose }: FeishuBindModalProps) {
+export default function FeishuBindModal({ isOpen, onClose, onBound, onSkip }: FeishuBindModalProps) {
   const [binding, setBinding] = useState(false);
   const [message, setMessage] = useState("");
+  const [messageType, setMessageType] = useState<"error" | "success">("error");
 
-  // 当弹窗关闭时清空消息
-  useEffect(() => {
-    if (!open) {
-      setMessage("");
-      setBinding(false);
-    }
-  }, [open]);
-
-  const handleBind = async () => {
+  const handleBind = useCallback(async () => {
     setBinding(true);
     setMessage("");
-
     try {
-      const token = localStorage.getItem("token");
       const res = await apiFetch("/auth/feishu/oauth-url", {
-        headers: { Authorization: `Bearer ${token}` },
+        method: "GET",
       });
 
       if (!res.ok) {
         setMessage("获取授权链接失败");
+        setMessageType("error");
         setBinding(false);
         return;
       }
 
-      const { url } = await res.json();
+      const data = await res.json();
+      if (!data.url) {
+        setMessage("未获取到飞书授权链接，请检查配置");
+        setMessageType("error");
+        setBinding(false);
+        return;
+      }
 
-      // 监听 OAuth 窗口回调
-      const messageHandler = async (event: MessageEvent) => {
+      // 监听子窗口回调
+      const handleMessage = async (event: MessageEvent) => {
         if (event.data?.type === "feishu-bind-success") {
-          window.removeEventListener("message", messageHandler);
           const openId = event.data.openId;
+          if (!openId) {
+            setMessage("绑定失败：未获取到飞书账号信息");
+            setMessageType("error");
+            setBinding(false);
+            return;
+          }
 
-          // 调用 bind 端点保存到数据库
+          // 调用 bind 端点完成绑定
           try {
             const bindRes = await apiFetch("/auth/feishu/bind", {
               method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${token}`,
-              },
               body: JSON.stringify({ openId }),
             });
             const bindData = await bindRes.json();
-            if (bindRes.ok && bindData.success) {
-              // 刷新 localStorage 中的 user 信息
-              const profileRes = await apiFetch("/auth/profile", {
-                headers: { Authorization: `Bearer ${token}` },
-              });
-              if (profileRes.ok) {
-                const profile = await profileRes.json();
-                localStorage.setItem("user", JSON.stringify(profile));
-              }
-              localStorage.removeItem(LOCAL_STORAGE_KEY);
-              onClose(true);
+            if (bindData.success) {
+              setMessage("飞书账号绑定成功！");
+              setMessageType("success");
+              // 更新本地 user 信息
+              const user = JSON.parse(localStorage.getItem("user") || "{}");
+              user.feishuOuId = openId;
+              localStorage.setItem("user", JSON.stringify(user));
+              setTimeout(() => {
+                setBinding(false);
+                onBound();
+                onClose();
+              }, 1200);
             } else {
               setMessage(bindData.message || "绑定失败");
+              setMessageType("error");
               setBinding(false);
             }
-          } catch (e) {
-            console.error("绑定失败", e);
-            setMessage("保存绑定信息失败");
+          } catch (err) {
+            console.error("绑定请求异常:", err);
+            setMessage("绑定请求失败，请重试");
+            setMessageType("error");
             setBinding(false);
           }
         } else if (event.data?.type === "feishu-bind-error") {
-          window.removeEventListener("message", messageHandler);
-          setMessage("授权已取消或失败");
+          setMessage("飞书授权未完成，请重试");
+          setMessageType("error");
           setBinding(false);
         }
       };
-      window.addEventListener("message", messageHandler);
+
+      window.addEventListener("message", handleMessage);
 
       // 打开飞书授权窗口
-      const width = 600;
-      const height = 700;
-      const left = window.screenX + (window.outerWidth - width) / 2;
-      const top = window.screenY + (window.outerHeight - height) / 2;
-      window.open(
-        url,
-        "feishu-oauth",
-        `width=${width},height=${height},left=${left},top=${top},menubar=no,toolbar=no,location=no`,
-      );
-    } catch (error) {
+      const popup = window.open(data.url, "feishu-oauth", "width=600,height=700,menubar=no,toolbar=no");
+      if (!popup) {
+        // 弹窗被拦截，直接在当前页打开
+        window.removeEventListener("message", handleMessage);
+        window.location.href = data.url;
+        return;
+      }
+
+      // 轮询检查弹窗是否关闭
+      const checkClosed = setInterval(() => {
+        if (popup.closed) {
+          clearInterval(checkClosed);
+          window.removeEventListener("message", handleMessage);
+          // 如果还没收到绑定成功消息，认为用户放弃了
+          if (messageType !== "success" && !message) {
+            setMessage("授权窗口已关闭，如未完成绑定请重试");
+            setMessageType("error");
+            setBinding(false);
+          }
+        }
+      }, 500);
+
+    } catch (err) {
+      console.error("飞书绑定异常:", err);
       setMessage("网络错误，请稍后重试");
+      setMessageType("error");
       setBinding(false);
     }
-  };
+  }, [onBound, onClose]);
 
-  const handleDismiss = () => {
-    // 记录已跳过，避免每次登录都弹
-    localStorage.setItem(LOCAL_STORAGE_KEY, Date.now().toString());
-    onClose(false);
-  };
-
-  if (!open) return null;
+  if (!isOpen) return null;
 
   return (
-    <div
-      className="fixed inset-0 z-[100] flex items-center justify-center"
-      style={{ backgroundColor: "rgba(0,0,0,0.45)" }}
-      onClick={(e) => {
-        if (e.target === e.currentTarget) handleDismiss();
-      }}
-    >
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
-        {/* Header with gradient */}
-        <div className="relative px-6 pt-6 pb-4 text-center" style={{ background: "linear-gradient(135deg, #3370FF 0%, #5B8DEF 100%)" }}>
-          {/* Feishu icon */}
-          <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center mx-auto mb-4">
-            <svg width="36" height="36" viewBox="0 0 48 48" fill="none">
-              <path d="M24 4L6 14v20l18 10 18-10V14L24 4z" fill="white" fillOpacity="0.9" />
-              <path d="M16 24l5 5L32 18" stroke="#3370FF" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+      <div className="w-full max-w-md mx-4 bg-white rounded-2xl shadow-2xl overflow-hidden">
+        {/* Header */}
+        <div className="bg-gradient-to-r from-[#3370FF] to-[#4371FF] px-6 py-5">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                <path d="M12 2L2 7l10 5 10-5-10-5z" fill="white" fillOpacity="0.9"/>
+                <path d="M2 17l10 5 10-5" stroke="white" strokeWidth="1.5" fill="none"/>
+                <path d="M2 12l10 5 10-5" stroke="white" strokeWidth="1.5" fill="none"/>
+              </svg>
+            </div>
+            <div>
+              <h3 className="text-white font-semibold text-lg">绑定飞书账号</h3>
+              <p className="text-white/70 text-xs">享受更高效的面试管理体验</p>
+            </div>
           </div>
-          <h2 className="text-xl font-bold text-white mb-1">绑定飞书账号</h2>
-          <p className="text-white/70 text-sm">开启飞书日历面试提醒</p>
         </div>
 
         {/* Body */}
         <div className="px-6 py-5">
           <div className="space-y-3 mb-5">
             {[
-              { icon: "📅", title: "日历同步", desc: "面试安排自动同步到飞书日历" },
-              { icon: "🔔", title: "消息提醒", desc: "面试前自动收到飞书消息通知" },
-              { icon: "👤", title: "身份统一", desc: "一次绑定，全系统通用" },
+              { icon: "📅", title: "飞书日历自动同步", desc: "面试安排自动添加到你的飞书日历" },
+              { icon: "🔔", title: "面试提醒直达飞书", desc: "新面试安排实时推送到飞书消息" },
             ].map((item, i) => (
-              <div key={i} className="flex items-start gap-3 p-3 rounded-xl bg-[#F5F7FA]">
-                <span className="text-xl flex-shrink-0 mt-0.5">{item.icon}</span>
+              <div key={i} className="flex items-start gap-3 p-3 rounded-xl bg-slate-50">
+                <span className="text-xl flex-shrink-0">{item.icon}</span>
                 <div>
-                  <div className="text-sm font-medium text-[#1A1A1A]">{item.title}</div>
-                  <div className="text-xs text-[#00000073] mt-0.5">{item.desc}</div>
+                  <p className="text-sm font-medium text-slate-800">{item.title}</p>
+                  <p className="text-xs text-slate-500 mt-0.5">{item.desc}</p>
                 </div>
               </div>
             ))}
           </div>
 
+          {/* Message */}
           {message && (
-            <div className={`rounded-xl p-3 text-sm mb-4 ${
-              message.includes("成功") || message.includes("已绑定")
-                ? "bg-emerald-50 border border-emerald-200 text-emerald-700"
-                : "bg-red-50 border border-red-200 text-red-600"
+            <div className={`rounded-lg px-3.5 py-2.5 text-sm mb-4 ${
+              messageType === "success"
+                ? "bg-emerald-50 text-emerald-700 border border-emerald-100"
+                : "bg-red-50 text-red-600 border border-red-100"
             }`}>
               {message}
             </div>
           )}
 
+          {/* Buttons */}
           <div className="flex gap-3">
             <button
-              type="button"
-              onClick={handleDismiss}
+              onClick={onSkip}
               disabled={binding}
-              className="flex-1 rounded-xl border border-[#E8EBF0] bg-white hover:bg-[#F5F7FA] text-[#666] px-4 py-2.5 text-sm font-medium transition-colors disabled:opacity-50"
+              className="flex-1 rounded-lg border border-slate-200 px-4 py-2.5 text-sm font-medium text-slate-600 hover:bg-slate-50 transition-colors disabled:opacity-50"
             >
               稍后绑定
             </button>
             <button
-              type="button"
               onClick={handleBind}
               disabled={binding}
-              className="flex-1 rounded-xl bg-[#3370FF] hover:bg-[#2860E0] text-white px-4 py-2.5 text-sm font-medium shadow-sm transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              className="flex-1 rounded-lg bg-[#4371FF] hover:bg-[#3461E6] px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {binding ? (
                 <>
@@ -187,12 +189,7 @@ export default function FeishuBindModal({ open, onClose }: FeishuBindModalProps)
                   授权中...
                 </>
               ) : (
-                <>
-                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z" />
-                  </svg>
-                  立即绑定
-                </>
+                "立即绑定飞书"
               )}
             </button>
           </div>

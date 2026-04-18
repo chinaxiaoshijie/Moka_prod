@@ -4,6 +4,7 @@ import { EmailService } from "../email/email.service";
 import { CandidateStatusService } from "../candidates/candidate-status.service";
 import { NotificationService } from "../notifications/notification.service";
 import { FeishuCalendarService } from "../feishu/feishu-calendar.service";
+import { FeishuMessageService } from "../feishu/feishu-message.service";
 import { AIDiagnosisService } from "../ai-diagnosis/ai-diagnosis.service";
 import {
   CreateInterviewProcessDto,
@@ -27,6 +28,7 @@ export class InterviewProcessService {
     private candidateStatusService: CandidateStatusService,
     private notificationService: NotificationService,
     private feishuCalendarService: FeishuCalendarService,
+    private feishuMessageService: FeishuMessageService,
     private aiDiagnosisService: AIDiagnosisService,
   ) {}
 
@@ -273,6 +275,28 @@ export class InterviewProcessService {
       }
     } catch (error) {
       this.logger.error(`面试官邮件通知发送失败：interviewerId=${roundConfig.interviewerId}`, error as Error);
+    }
+
+    // Feature: 飞书消息提醒面试官（如果已绑定飞书）
+    try {
+      if (interviewer?.feishuOuId) {
+        await this.feishuMessageService.sendInterviewReminder({
+          candidateName: process.candidate.name,
+          positionTitle: process.position.title,
+          interviewerName: interviewer.name,
+          interviewerFeishuOuId: interviewer.feishuOuId,
+          startTime,
+          endTime,
+          roundNumber,
+          format: createDto.format,
+          location: createDto.location,
+          meetingUrl: createDto.meetingUrl,
+          meetingNumber: createDto.meetingNumber,
+          aiDiagnosis: aiDiagnosisData,
+        });
+      }
+    } catch (error) {
+      this.logger.warn(`飞书消息发送失败（不影响主流程）：interviewerId=${roundConfig.interviewerId}`);
     }
 
     // 更新流程状态为进行中（如果是从等待HR状态恢复的）
@@ -572,7 +596,7 @@ export class InterviewProcessService {
         if (existingInterview) {
           const newInterviewer = await this.prisma.user.findUnique({
             where: { id: updateDto.interviewerId },
-            select: { id: true, name: true, email: true },
+            select: { id: true, name: true, email: true, feishuOuId: true },
           });
 
           if (newInterviewer?.email) {
@@ -618,6 +642,34 @@ export class InterviewProcessService {
       } catch (error) {
         this.logger.error(`面试官更换邮件通知发送失败：interviewerId=${updateDto.interviewerId}`, error as Error);
       }
+
+      // Feature: 飞书消息通知新面试官（如果已绑定飞书）
+      try {
+        const newInterviewer2 = await this.prisma.user.findUnique({
+          where: { id: updateDto.interviewerId },
+          select: { id: true, name: true, feishuOuId: true },
+        });
+        if (newInterviewer2?.feishuOuId) {
+          const existingInterview2 = await this.prisma.interview.findFirst({
+            where: { processId, roundNumber, status: "SCHEDULED" },
+          });
+          if (existingInterview2) {
+            await this.feishuMessageService.sendInterviewReminder({
+              candidateName: process.candidate.name,
+              positionTitle: process.position.title,
+              interviewerName: newInterviewer2.name,
+              interviewerFeishuOuId: newInterviewer2.feishuOuId,
+              startTime: existingInterview2.startTime,
+              endTime: existingInterview2.endTime,
+              roundNumber,
+              format: existingInterview2.format,
+              location: existingInterview2.location || undefined,
+              meetingUrl: existingInterview2.meetingUrl || undefined,
+              meetingNumber: existingInterview2.meetingNumber || undefined,
+            });
+          }
+        }
+      } catch { /* 飞书消息不影响主流程 */ }
     }
 
     // 验证更新后仍至少3轮
