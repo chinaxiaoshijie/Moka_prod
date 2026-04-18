@@ -164,23 +164,26 @@ export class AIDiagnosisController {
         allFeedbacks,
       );
     } else {
-      // === 其他后续轮（兜底）：前轮反馈 + 岗位 ===
-      const previousFeedbacks = this.buildPreviousFeedbacks(process.interviews);
+      // === 中间轮次（4+轮流程中的第3轮等）：简历 + 岗位 + 全部前轮反馈 ===
+      if (!resumeText) {
+        throw new BadRequestException("候选人暂无简历，无法进行AI诊断");
+      }
 
-      if (!previousFeedbacks) {
+      const allFeedbacks = this.buildPreviousFeedbacks(process.interviews);
+      if (!allFeedbacks) {
         throw new BadRequestException("暂无前轮反馈，无法进行AI诊断");
       }
 
       this.logger.log(
-        `第${roundNumber}轮诊断 - processId=${processId}, candidate=${process.candidate.name}`,
+        `第${roundNumber}轮诊断(中间轮) - processId=${processId}, candidate=${process.candidate.name}`,
       );
 
-      diagnosisResult = await this.aiDiagnosisService.generateRoundDiagnosis(
-        previousFeedbacks,
+      diagnosisResult = await this.aiDiagnosisService.generateIntermediateRoundDiagnosis(
+        resumeText,
         process.position.title,
         process.position.requirements || "",
+        allFeedbacks,
         roundNumber,
-        roundConfig.roundType,
       );
     }
 

@@ -50,10 +50,10 @@ services:
       - FRONTEND_URL=${FRONTEND_URL}
       # Lark CLI Configuration for Feishu Calendar
       - LARK_APP_ID=${LARK_APP_ID:-}
-      - LARK_APP_SECRET=${LARK_APP_SECRET:-}
+      - LARK_APP_SECRET=${LARK_APP_SECRET}
       - LARK_USER_ID=${LARK_USER_ID:-}
       # Feishu OAuth (User Account Binding)
-      - FEISHU_OAUTH_REDIRECT_URI=${FEISHU_OAUTH_REDIRECT_URI:-}
+      - FEISHU_OAUTH_REDIRECT_URI=${FEISHU_OAUTH_REDIRECT_URI}
       # - SMTP_HOST=${SMTP_HOST}
       # - SMTP_PORT=${SMTP_PORT}
       # - SMTP_USER=${SMTP_USER}
@@ -136,3 +136,4 @@ volumes:
     driver: local
   backend-uploads:
     driver: local
+      - DASHSCOPE_API_KEY=${DASHSCOPE_API_KEY}

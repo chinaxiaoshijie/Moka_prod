@@ -4,6 +4,7 @@ import { EmailService } from "../email/email.service";
 import { EmailLimitService } from "../email/email-limit.service";
 import { NotificationService } from "../notifications/notification.service";
 import { FeishuCalendarService } from "../feishu/feishu-calendar.service";
+import { FeishuMessageService } from "../feishu/feishu-message.service";
 import { NotificationType } from "@prisma/client";
 import {
   CreateInterviewDto,
@@ -22,6 +23,7 @@ export class InterviewService {
     private emailLimitService: EmailLimitService,
     private notificationService: NotificationService,
     private feishuCalendarService: FeishuCalendarService,
+    private feishuMessageService: FeishuMessageService,
   ) {}
 
   async create(createDto: CreateInterviewDto): Promise<InterviewResponseDto> {
@@ -340,8 +342,51 @@ export class InterviewService {
       }
     }
 
-    // 飞书日历同步更新 — 时间变更且存在日程ID时，先删后建
-    if (timeChanged && updatedInterview.feishuEventId) {
+    // 飞书消息通知新面试官（如果已绑定飞书）
+    if (timeChanged || interviewerChanged) {
+      try {
+        const interviewer = updatedInterview.interviewer;
+        if (interviewer?.feishuOuId) {
+          let existingDiagnosis = null;
+          try {
+            existingDiagnosis = await this.prisma.aIDiagnosis.findUnique({
+              where: { processId_roundNumber: { processId: updatedInterview.processId, roundNumber: updatedInterview.roundNumber } },
+            });
+          } catch {}
+          
+          await this.feishuMessageService.sendInterviewReminder({
+            candidateName: updatedInterview.candidate.name,
+            positionTitle: updatedInterview.position.title,
+            interviewerName: interviewer.name,
+            interviewerFeishuOuId: interviewer.feishuOuId,
+            startTime: updatedInterview.startTime,
+            endTime: updatedInterview.endTime,
+            roundNumber: updatedInterview.roundNumber,
+            format: updatedInterview.format,
+            location: updatedInterview.location || undefined,
+            meetingUrl: updatedInterview.meetingUrl || undefined,
+            meetingNumber: updatedInterview.meetingNumber || undefined,
+            aiDiagnosis: existingDiagnosis ? {
+              matchScore: existingDiagnosis.matchScore,
+              matchLevel: existingDiagnosis.matchLevel,
+              strengths: existingDiagnosis.strengths || [],
+              weaknesses: existingDiagnosis.weaknesses || [],
+              suggestions: existingDiagnosis.suggestions || [],
+              questions: existingDiagnosis.questions || [],
+              summary: existingDiagnosis.summary || "",
+            } : undefined,
+          });
+          this.logger.log(`飞书消息通知发送成功：interviewId=${id}, interviewerId=${interviewer.id}`);
+        } else {
+          this.logger.warn(`面试官未绑定飞书账号，跳过消息通知：interviewerId=${interviewer?.id}`);
+        }
+      } catch (error) {
+        this.logger.error(`飞书消息通知发送失败：interviewId=${id}`, error as Error);
+      }
+    }
+
+    // 飞书日历同步 — 时间变更或首次创建日程
+    if (timeChanged) {
       try {
         const interviewerOuId = updatedInterview.interviewer?.feishuOuId;
         const hrOuId = updatedInterview.process?.createdBy?.feishuOuId;
@@ -378,8 +423,10 @@ export class InterviewService {
             updatedInterview.roundNumber ? `轮次：第${updatedInterview.roundNumber}轮（${roundTypeLabel}）` : null,
           ].filter(Boolean).join("\n");
 
-          // 先删除旧日程
+          // 先删除旧日程（如果存在）
+          if (updatedInterview.feishuEventId) {
           await this.feishuCalendarService.deleteEvent(updatedInterview.feishuEventId);
+          }
           this.logger.log(`飞书日历旧日程已删除：eventId=${updatedInterview.feishuEventId}`);
 
           // 创建新日程
