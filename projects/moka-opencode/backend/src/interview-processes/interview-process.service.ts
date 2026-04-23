@@ -47,55 +47,60 @@ export class InterviewProcessService {
 
     // 校验终面必须是最后一轮
 
-    // ✅ 防重复：同一候选人不允许有并行的 IN_PROGRESS / WAITING_HR 流程
-    const existingProcess = await this.prisma.interviewProcess.findFirst({
-      where: {
-        candidateId,
-        status: { in: ["IN_PROGRESS", "WAITING_HR"] },
-      },
-    });
-    if (existingProcess) {
-      throw new BadRequestException("该候选人已有进行中的面试流程，无法重复创建");
-    }
-
     // 校验最少3轮
     if (rounds.length < 3) {
       throw new BadRequestException("面试流程至少需要3轮（包括终面）");
     }
 
-    // 创建流程主记录
-    const process = await this.prisma.interviewProcess.create({
-      data: {
-        candidate: { connect: { id: candidateId } },
-        position: { connect: { id: positionId } },
-        hasHRRound,
-        totalRounds,
-        status: "IN_PROGRESS",
-        currentRound: 1,
-        createdBy: { connect: { id: hrUserId } },
-      },
-    });
+    // ✅ 事务保护：防重复检查 + 创建原子操作（修复并发竞态条件）
+    const process = await this.prisma.$transaction(async (tx) => {
+      const existing = await tx.interviewProcess.findFirst({
+        where: {
+          candidateId,
+          status: { in: ["IN_PROGRESS", "WAITING_HR"] },
+        },
+        select: { id: true },
+      });
+      if (existing) {
+        throw new BadRequestException("该候选人已有进行中的面试流程，无法重复创建");
+      }
 
-    // ✅ 同步更新候选人的 positionId
-    await this.prisma.candidate.update({
-      where: { id: candidateId },
-      data: { positionId },
-    });
+      // 创建流程主记录
+      const proc = await tx.interviewProcess.create({
+        data: {
+          candidate: { connect: { id: candidateId } },
+          position: { connect: { id: positionId } },
+          hasHRRound,
+          totalRounds,
+          status: "IN_PROGRESS",
+          currentRound: 1,
+          createdBy: { connect: { id: hrUserId } },
+        },
+      });
 
-    // 创建轮次配置
-    await Promise.all(
-      rounds.map((round) =>
-        this.prisma.interviewRound.create({
-          data: {
-            processId: process.id,
-            roundNumber: round.roundNumber,
-            interviewerId: round.interviewerId,
-            isHRRound: round.isHRRound,
-            roundType: round.roundType,
-          },
-        }),
-      ),
-    );
+      // 同步更新候选人的 positionId
+      await tx.candidate.update({
+        where: { id: candidateId },
+        data: { positionId },
+      });
+
+      // 创建轮次配置
+      await Promise.all(
+        rounds.map((round) =>
+          tx.interviewRound.create({
+            data: {
+              processId: proc.id,
+              roundNumber: round.roundNumber,
+              interviewerId: round.interviewerId,
+              isHRRound: round.isHRRound,
+              roundType: round.roundType,
+            },
+          }),
+        ),
+      );
+
+      return proc;
+    });
 
     // 自动触发初面 AI 诊断（fire-and-forget，不阻塞返回）
     this.aiDiagnosisService.generateForRound(process.id, 1)
@@ -148,19 +153,39 @@ export class InterviewProcessService {
         break;
     }
 
+    // ✅ 连续性校验：面试必须按轮次顺序创建，不能跳过轮次
+    const maxScheduledRound = await this.prisma.interview.aggregate({
+      where: { processId },
+      _max: { roundNumber: true },
+    });
+    const nextExpectedRound = (maxScheduledRound._max.roundNumber ?? 0) + 1;
+    if (roundNumber > nextExpectedRound) {
+      throw new BadRequestException(
+        `请按顺序创建面试：当前应安排第${nextExpectedRound}轮，而不是第${roundNumber}轮`
+      );
+    }
+
     // ✅ 防阻塞：检查前一轮是否有 PENDING 反馈未完成（面试官暂存了反馈但没标记完成）
     if (roundNumber > 1) {
       const prevRoundNumber = roundNumber - 1;
       const prevInterview = await this.prisma.interview.findFirst({
         where: { processId, roundNumber: prevRoundNumber },
-        include: { feedbacks: true },
+        select: {
+          id: true,
+          status: true,
+          feedbacks: {
+            where: { result: "PENDING" },
+            take: 1,
+            select: { id: true },
+          },
+        },
       });
       if (prevInterview) {
-        const hasPendingFeedback = prevInterview.feedbacks.some((f) => f.result === "PENDING");
+        const hasPendingFeedback = prevInterview.feedbacks.length > 0;
         const isPrevCompleted = prevInterview.status === "COMPLETED";
         if (hasPendingFeedback && !isPrevCompleted) {
           throw new BadRequestException(
-            `第${prevRoundNumber}轮面试官已提交暂存反馈（PENDING），但面试未标记完成。请先让该轮面试官完成反馈再安排后续轮次。`
+            `第${prevRoundNumber}轮面试官尚未完成最终反馈，无法安排第${roundNumber}轮面试。请先让该轮面试官确认结论（通过/不通过）。`
           );
         }
       }
