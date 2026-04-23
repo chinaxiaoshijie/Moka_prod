@@ -47,6 +47,17 @@ export class InterviewProcessService {
 
     // 校验终面必须是最后一轮
 
+    // ✅ 防重复：同一候选人不允许有并行的 IN_PROGRESS / WAITING_HR 流程
+    const existingProcess = await this.prisma.interviewProcess.findFirst({
+      where: {
+        candidateId,
+        status: { in: ["IN_PROGRESS", "WAITING_HR"] },
+      },
+    });
+    if (existingProcess) {
+      throw new BadRequestException("该候选人已有进行中的面试流程，无法重复创建");
+    }
+
     // 校验最少3轮
     if (rounds.length < 3) {
       throw new BadRequestException("面试流程至少需要3轮（包括终面）");
@@ -121,18 +132,37 @@ export class InterviewProcessService {
       throw new BadRequestException(`第${roundNumber}轮未配置`);
     }
 
-    // 确定面试类型：基于轮次类型而非轮次编号
+    // ✅ 确定面试类型：基于轮次编号（修复：多轮 TECHNICAL 都映射为 INTERVIEW_2 的缺陷）
     let interviewType: InterviewType;
-    switch (roundConfig.roundType) {
-      case "FINAL":
-        interviewType = InterviewType.INTERVIEW_3;
-        break;
-      case "HR_SCREENING":
+    switch (roundNumber) {
+      case 1:
         interviewType = InterviewType.INTERVIEW_1;
         break;
-      default:
+      case 2:
         interviewType = InterviewType.INTERVIEW_2;
         break;
+      default:
+        // 第3轮及以后（含 FINAL）统一为 INTERVIEW_3
+        interviewType = InterviewType.INTERVIEW_3;
+        break;
+    }
+
+    // ✅ 防阻塞：检查前一轮是否有 PENDING 反馈未完成（面试官暂存了反馈但没标记完成）
+    if (roundNumber > 1) {
+      const prevRoundNumber = roundNumber - 1;
+      const prevInterview = await this.prisma.interview.findFirst({
+        where: { processId, roundNumber: prevRoundNumber },
+        include: { feedbacks: true },
+      });
+      if (prevInterview) {
+        const hasPendingFeedback = prevInterview.feedbacks.some((f) => f.result === "PENDING");
+        const isPrevCompleted = prevInterview.status === "COMPLETED";
+        if (hasPendingFeedback && !isPrevCompleted) {
+          throw new BadRequestException(
+            `第${prevRoundNumber}轮面试官已提交暂存反馈（PENDING），但面试未标记完成。请先让该轮面试官完成反馈再安排后续轮次。`
+          );
+        }
+      }
     }
 
     // 校验日期有效性
