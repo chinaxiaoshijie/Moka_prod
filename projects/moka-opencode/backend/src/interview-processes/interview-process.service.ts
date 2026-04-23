@@ -132,18 +132,19 @@ export class InterviewProcessService {
       throw new BadRequestException(`第${roundNumber}轮未配置`);
     }
 
-    // ✅ 确定面试类型：基于轮次编号（修复：多轮 TECHNICAL 都映射为 INTERVIEW_2 的缺陷）
+    // ✅ 确定面试类型：基于 roundType，但区分 TECHNICAL 的先后顺序
+    // 修复：之前基于 roundNumber 导致第3轮 TECHNICAL 被误映射为 INTERVIEW_3（终试）
     let interviewType: InterviewType;
-    switch (roundNumber) {
-      case 1:
+    switch (roundConfig.roundType) {
+      case "FINAL":
+        interviewType = InterviewType.INTERVIEW_3;
+        break;
+      case "HR_SCREENING":
         interviewType = InterviewType.INTERVIEW_1;
         break;
-      case 2:
-        interviewType = InterviewType.INTERVIEW_2;
-        break;
       default:
-        // 第3轮及以后（含 FINAL）统一为 INTERVIEW_3
-        interviewType = InterviewType.INTERVIEW_3;
+        // TECHNICAL 统一映射为 INTERVIEW_2（复试阶段，多个技术面都属于复试）
+        interviewType = InterviewType.INTERVIEW_2;
         break;
     }
 
