@@ -16,6 +16,13 @@ import {
 @Injectable()
 export class InterviewService {
   private readonly logger = new Logger(InterviewService.name);
+
+  // ✅ 仅限 HR 角色进行写操作（创建/更新/删除面试安排）
+  checkHROnly(userRole?: string) {
+    if (userRole !== "HR") {
+      throw new Error("仅 HR 可执行此操作");
+    }
+  }
   
   constructor(
     private prisma: PrismaService,

@@ -97,7 +97,9 @@ export class CandidateController {
   @ApiOperation({ summary: "创建候选人" })
   async create(
     @Body() createDto: CreateCandidateDto,
+    @Req() req?: any,
   ): Promise<CandidateResponseDto> {
+    this.candidateService.checkHROnly(req?.user?.role);
     return await this.candidateService.create(createDto);
   }
 
@@ -106,8 +108,10 @@ export class CandidateController {
   async update(
     @Param("id") id: string,
     @Body() updateDto: UpdateCandidateDto,
+    @Req() req?: any,
   ): Promise<CandidateResponseDto> {
     try {
+      this.candidateService.checkHROnly(req?.user?.role);
       return await this.candidateService.update(id, updateDto);
     } catch (error: any) {
       throw new HttpException(error.message, HttpStatus.NOT_FOUND);
@@ -116,8 +120,9 @@ export class CandidateController {
 
   @Delete(":id")
   @ApiOperation({ summary: "删除候选人" })
-  async remove(@Param("id") id: string): Promise<CandidateResponseDto> {
+  async remove(@Param("id") id: string, @Req() req?: any): Promise<CandidateResponseDto> {
     try {
+      this.candidateService.checkHROnly(req?.user?.role);
       return await this.candidateService.remove(id);
     } catch (error: any) {
       throw new HttpException(error.message, HttpStatus.NOT_FOUND);
@@ -190,6 +195,7 @@ export class CandidateController {
       throw new HttpException("文件大小不能超过10MB", HttpStatus.BAD_REQUEST);
     }
 
+    this.candidateService.checkHROnly(req?.user?.role);
     const uploadedBy = req.user?.sub;
     return await this.candidateService.uploadResume(
       candidateId,
@@ -255,7 +261,8 @@ export class CandidateController {
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()
   @ApiOperation({ summary: "删除简历文件" })
-  async deleteResume(@Param("resumeId") resumeId: string) {
+  async deleteResume(@Param("resumeId") resumeId: string, @Req() req?: any) {
+    this.candidateService.checkHROnly(req?.user?.role);
     return await this.candidateService.deleteResume(resumeId);
   }
 

@@ -63,7 +63,9 @@ export class InterviewController {
   @ApiOperation({ summary: "创建面试" })
   async create(
     @Body() createDto: CreateInterviewDto,
+    @Req() req?: any,
   ): Promise<InterviewResponseDto> {
+    this.interviewService.checkHROnly(req?.user?.role);
     return await this.interviewService.create(createDto);
   }
 
@@ -72,8 +74,10 @@ export class InterviewController {
   async update(
     @Param("id") id: string,
     @Body() updateDto: UpdateInterviewDto,
+    @Req() req?: any,
   ): Promise<InterviewResponseDto> {
     try {
+      this.interviewService.checkHROnly(req?.user?.role);
       return await this.interviewService.update(id, updateDto);
     } catch (error: any) {
       throw new HttpException(error.message, HttpStatus.NOT_FOUND);
@@ -82,8 +86,9 @@ export class InterviewController {
 
   @Delete(":id")
   @ApiOperation({ summary: "删除面试" })
-  async remove(@Param("id") id: string): Promise<InterviewResponseDto> {
+  async remove(@Param("id") id: string, @Req() req?: any): Promise<InterviewResponseDto> {
     try {
+      this.interviewService.checkHROnly(req?.user?.role);
       return await this.interviewService.remove(id);
     } catch (error: any) {
       throw new HttpException(error.message, HttpStatus.NOT_FOUND);

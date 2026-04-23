@@ -18,6 +18,13 @@ export class CandidateService {
     private emailService: EmailService,
   ) {}
 
+  // ✅ 仅限 HR 角色进行写操作（创建/更新/删除/简历管理）
+  checkHROnly(userRole?: string) {
+    if (userRole !== "HR") {
+      throw new Error("仅 HR 可执行此操作");
+    }
+  }
+
   // ✅ 检查用户对候选人的访问权限（面试官只能访问自己有面试安排的候选人）
   private async checkCandidateAccess(candidateId: string, userId?: string, userRole?: string) {
     if (userRole === "INTERVIEWER" && userId) {

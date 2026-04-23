@@ -191,6 +191,7 @@ model Interview {
 
   emailLogs    InterviewEmailLog[]
   
+  @@index([candidateId, interviewerId])
   @@unique([processId, roundNumber])
   @@map("interviews")
 }
