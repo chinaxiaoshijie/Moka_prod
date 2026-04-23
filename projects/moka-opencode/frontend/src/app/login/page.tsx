@@ -226,7 +226,8 @@ export default function LoginPage() {
             </span>
           </div>
 
-          {/* Test accounts */}
+          {/* Test accounts - 生产环境隐藏 */}
+          {process.env.NEXT_PUBLIC_SHOW_TEST_ACCOUNTS === "true" && (
           <div className="mt-8 pt-6 border-t border-[#F0F2F5]">
             <p className="text-xs text-[#999] text-center mb-3">测试账号</p>
             <div className="grid grid-cols-2 gap-2">
@@ -260,6 +261,7 @@ export default function LoginPage() {
               </button>
             </div>
           </div>
+          )}
         </div>
       </div>
 

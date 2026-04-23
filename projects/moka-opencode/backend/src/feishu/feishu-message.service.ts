@@ -102,8 +102,26 @@ ${diag.summary || "暂无摘要"}
 `;
     }
 
-    // 构建卡片 JSON
-    const card = {
+    // 构建卡片内容行
+    const contentLines: string[] = [];
+    contentLines.push(`**候选人**: ${data.candidateName}`);
+    contentLines.push(`**职位**: ${data.positionTitle}`);
+    contentLines.push(`**面试官**: ${data.interviewerName}`);
+    contentLines.push(`**时间**: ${timeStr} - ${endTimeStr}`);
+
+    if (data.format === "ONLINE") {
+      let onlineText = "**方式**: 线上";
+      if (data.meetingUrl) onlineText += ` | [点击进入](${data.meetingUrl})`;
+      if (data.meetingNumber) onlineText += ` | 会议号: ${data.meetingNumber}`;
+      contentLines.push(onlineText);
+    } else {
+      contentLines.push(`**方式**: 线下 | **地点**: ${data.location || "待定"}`);
+    }
+
+    const mdContent = contentLines.join("\n");
+
+    // 构建飞书卡片 JSON
+    const card: any = {
       config: { wide_screen_mode: true },
       header: {
         title: {
@@ -117,16 +135,7 @@ ${diag.summary || "暂无摘要"}
           tag: "div",
           text: {
             tag: "lark_md",
-            content: [
-              `**候选人**: ${data.candidateName}`,
-              `**职位**: ${data.positionTitle}`,
-              `**面试官**: ${data.interviewerName}`,
-              `**时间**: ${timeStr} - ${endTimeStr}`,
-              data.format === "ONLINE"
-                ? `**方式**: 线上${data.meetingUrl ? ` | [点击进入](${data.meetingUrl})` : ""}${data.meetingNumber ? ` | 会议号: ${data.meetingNumber}` : ""}`
-                : `**方式**: 线下 | **地点**: ${data.location || "待定"}`,
-              aiSection ? "" : "",
-            ].filter(Boolean).join("\n"),
+            content: mdContent,
           },
         },
         ...(aiSection ? [{
@@ -136,18 +145,16 @@ ${diag.summary || "暂无摘要"}
         { tag: "hr" },
         {
           tag: "note",
-          elements: [
-            {
-              tag: "plain_text",
-              content: "码隆智能面试系统",
-            },
-          ],
+          elements: [{ tag: "plain_text", content: "码隆智能面试系统" }],
         },
       ],
     };
 
+    this.logger.log(`飞书消息卡片内容: ${JSON.stringify(card).substring(0, 500)}`);
+
+
     try {
-      const res = await fetch(`${this.apiBase}/im/v1/messages`, {
+      const res = await fetch(`${this.apiBase}/im/v1/messages?receive_id_type=open_id`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -155,7 +162,6 @@ ${diag.summary || "暂无摘要"}
         },
         body: JSON.stringify({
           receive_id: data.interviewerFeishuOuId,
-          receive_id_type: "open_id",
           msg_type: "interactive",
           content: JSON.stringify(card),
         }),

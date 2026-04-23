@@ -347,9 +347,12 @@ export class InterviewService {
       try {
         const interviewer = updatedInterview.interviewer;
         if (interviewer?.feishuOuId) {
-          const existingDiagnosis = await this.prisma.aIDiagnosis.findUnique({
-            where: { processId_roundNumber: { processId: updatedInterview.processId, roundNumber: updatedInterview.roundNumber } },
-          }).catch(() => null);
+          let existingDiagnosis = null;
+          try {
+            existingDiagnosis = await this.prisma.aIDiagnosis.findUnique({
+              where: { processId_roundNumber: { processId: updatedInterview.processId, roundNumber: updatedInterview.roundNumber } },
+            });
+          } catch {}
           
           await this.feishuMessageService.sendInterviewReminder({
             candidateName: updatedInterview.candidate.name,
@@ -382,8 +385,8 @@ export class InterviewService {
       }
     }
 
-    // 飞书日历同步更新 — 时间变更且存在日程ID时，先删后建
-    if (timeChanged && updatedInterview.feishuEventId) {
+    // 飞书日历同步 — 时间变更或首次创建日程
+    if (timeChanged) {
       try {
         const interviewerOuId = updatedInterview.interviewer?.feishuOuId;
         const hrOuId = updatedInterview.process?.createdBy?.feishuOuId;
@@ -420,8 +423,10 @@ export class InterviewService {
             updatedInterview.roundNumber ? `轮次：第${updatedInterview.roundNumber}轮（${roundTypeLabel}）` : null,
           ].filter(Boolean).join("\n");
 
-          // 先删除旧日程
+          // 先删除旧日程（如果存在）
+          if (updatedInterview.feishuEventId) {
           await this.feishuCalendarService.deleteEvent(updatedInterview.feishuEventId);
+          }
           this.logger.log(`飞书日历旧日程已删除：eventId=${updatedInterview.feishuEventId}`);
 
           // 创建新日程
@@ -451,18 +456,11 @@ export class InterviewService {
   async remove(id: string): Promise<InterviewResponseDto> {
     const interview = await this.prisma.interview.findUnique({
       where: { id },
-      include: {
-        process: true,
-      },
     });
 
     if (!interview) {
       throw new Error("面试安排不存在");
     }
-
-    // Save process info before delete for status cleanup
-    const processId = interview.processId;
-    const candidateId = interview.candidateId;
 
     const deletedInterview = await this.prisma.interview.delete({
       where: { id },
@@ -472,36 +470,6 @@ export class InterviewService {
         interviewer: true,
       },
     });
-
-    // After delete: if no interviews remain in this process, reset candidate status to PENDING
-    if (processId) {
-      const remainingInterviews = await this.prisma.interview.count({
-        where: { processId },
-      });
-
-      if (remainingInterviews === 0) {
-        this.logger.log(`Process ${processId} has no interviews left, resetting candidate status`);
-
-        // Reset candidate status to PENDING (bypass transition check)
-        await this.prisma.candidate.update({
-          where: { id: candidateId },
-          data: { status: "PENDING" },
-        });
-
-        // Record status change history
-        await this.prisma.candidateStatusHistory.create({
-          data: {
-            candidateId,
-            oldStatus: deletedInterview.candidate.status as any,
-            newStatus: "PENDING",
-            changedBy: "system",
-            reason: "All interviews deleted, reset to pending",
-          },
-        });
-
-        this.logger.log(`Candidate ${candidateId} status reset to PENDING`);
-      }
-    }
 
     return this.mapToResponseDto(deletedInterview);
   }
