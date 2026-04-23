@@ -67,6 +67,7 @@ export class CandidateController {
     @Query("search") search?: string,
     @Query("status") status?: string,
     @Query("positionId") positionId?: string,
+    @Req() req?: any,
   ): Promise<CandidateListResponseDto> {
     return this.candidateService.findAll(
       page,
@@ -74,15 +75,20 @@ export class CandidateController {
       search,
       status,
       positionId,
+      req?.user?.sub,
+      req?.user?.role,
     );
   }
 
   @Get(":id")
   @ApiOperation({ summary: "获取单个候选人" })
-  async findOne(@Param("id") id: string): Promise<CandidateResponseDto> {
+  async findOne(@Param("id") id: string, @Req() req?: any): Promise<CandidateResponseDto> {
     try {
-      return await this.candidateService.findOne(id);
+      return await this.candidateService.findOne(id, req?.user?.sub, req?.user?.role);
     } catch (error: any) {
+      if (error.message === "无权查看该候选人信息") {
+        throw new HttpException(error.message, HttpStatus.FORBIDDEN);
+      }
       throw new HttpException(error.message, HttpStatus.NOT_FOUND);
     }
   }
@@ -194,8 +200,15 @@ export class CandidateController {
 
   @Get(":id/resumes")
   @ApiOperation({ summary: "获取候选人的简历文件列表" })
-  async getResumes(@Param("id") candidateId: string) {
-    return await this.candidateService.getResumes(candidateId);
+  async getResumes(@Param("id") candidateId: string, @Req() req?: any) {
+    try {
+      return await this.candidateService.getResumes(candidateId, req?.user?.sub, req?.user?.role);
+    } catch (error: any) {
+      if (error.message === "无权查看该候选人信息") {
+        throw new HttpException(error.message, HttpStatus.FORBIDDEN);
+      }
+      throw new HttpException(error.message, HttpStatus.NOT_FOUND);
+    }
   }
 
   @Get("public/resumes/:resumeId")
@@ -341,7 +354,14 @@ export class CandidateController {
 
   @Get(":id/status-history")
   @ApiOperation({ summary: "获取候选人状态变更历史" })
-  async getStatusHistory(@Param("id") candidateId: string) {
-    return await this.candidateService.getStatusHistory(candidateId);
+  async getStatusHistory(@Param("id") candidateId: string, @Req() req?: any) {
+    try {
+      return await this.candidateService.getStatusHistory(candidateId, req?.user?.sub, req?.user?.role);
+    } catch (error: any) {
+      if (error.message === "无权查看该候选人信息") {
+        throw new HttpException(error.message, HttpStatus.FORBIDDEN);
+      }
+      throw new HttpException(error.message, HttpStatus.NOT_FOUND);
+    }
   }
 }

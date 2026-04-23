@@ -18,6 +18,19 @@ export class CandidateService {
     private emailService: EmailService,
   ) {}
 
+  // ✅ 检查用户对候选人的访问权限（面试官只能访问自己有面试安排的候选人）
+  private async checkCandidateAccess(candidateId: string, userId?: string, userRole?: string) {
+    if (userRole === "INTERVIEWER" && userId) {
+      const hasAccess = await this.prisma.interview.findFirst({
+        where: { candidateId, interviewerId: userId },
+        select: { id: true },
+      });
+      if (!hasAccess) {
+        throw new Error("无权查看该候选人信息");
+      }
+    }
+  }
+
   async create(createDto: CreateCandidateDto): Promise<CandidateResponseDto> {
     const candidate = await this.prisma.candidate.create({
       data: {
@@ -41,6 +54,8 @@ export class CandidateService {
     search?: string,
     status?: string,
     positionId?: string,
+    userId?: string,
+    userRole?: string,
   ): Promise<CandidateListResponseDto> {
     const skip = (page - 1) * pageSize;
     const where: any = {};
@@ -59,6 +74,13 @@ export class CandidateService {
 
     if (positionId) {
       where.positionId = positionId;
+    }
+
+    // ✅ 角色权限过滤：面试官只能看到自己有面试安排的候选人
+    if (userRole === "INTERVIEWER" && userId) {
+      where.interviews = {
+        some: { interviewerId: userId },
+      };
     }
 
     const [items, total] = await Promise.all([
@@ -80,7 +102,7 @@ export class CandidateService {
     };
   }
 
-  async findOne(id: string): Promise<CandidateResponseDto> {
+  async findOne(id: string, userId?: string, userRole?: string): Promise<CandidateResponseDto> {
     if (!/^[a-zA-Z0-9-]+$/.test(id)) {
       throw new Error("无效的候选人 ID 格式");
     }
@@ -92,6 +114,20 @@ export class CandidateService {
 
     if (!candidate) {
       throw new Error("候选人不存在");
+    }
+
+    // ✅ 角色权限校验：面试官只能查看自己有面试安排的候选人
+    if (userRole === "INTERVIEWER" && userId) {
+      const hasAccess = await this.prisma.interview.findFirst({
+        where: {
+          candidateId: id,
+          interviewerId: userId,
+        },
+        select: { id: true },
+      });
+      if (!hasAccess) {
+        throw new Error("无权查看该候选人信息");
+      }
     }
 
     return this.mapToResponseDto(candidate);
@@ -225,7 +261,9 @@ export class CandidateService {
     return resumeFile;
   }
 
-  async getResumes(candidateId: string) {
+  async getResumes(candidateId: string, userId?: string, userRole?: string) {
+    await this.checkCandidateAccess(candidateId, userId, userRole);
+
     const candidate = await this.prisma.candidate.findUnique({
       where: { id: candidateId },
     });
@@ -495,7 +533,9 @@ export class CandidateService {
     };
   }
 
-  async getStatusHistory(candidateId: string) {
+  async getStatusHistory(candidateId: string, userId?: string, userRole?: string) {
+    await this.checkCandidateAccess(candidateId, userId, userRole);
+
     const history = await this.prisma.candidateStatusHistory.findMany({
       where: { candidateId },
       orderBy: { createdAt: "desc" },

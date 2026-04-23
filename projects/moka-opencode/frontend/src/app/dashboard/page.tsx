@@ -50,6 +50,12 @@ export default function DashboardPage() {
     pending: 0,
   });
   const [candidates, setCandidates] = useState<CandidateItem[]>([]);
+  const [interviewerStats, setInterviewerStats] = useState({
+    total: 0,
+    upcoming: 0,
+    completed: 0,
+    pendingFeedback: 0,
+  });
 
   // 飞书绑定引导
   const [showFeishuBind, setShowFeishuBind] = useState(false);
@@ -111,6 +117,31 @@ export default function DashboardPage() {
         });
 
         setCandidates(candData.items?.slice(0, 10) || []);
+
+        // ✅ 面试官专属：加载"我的面试"统计
+        if (parsedUser?.role === "INTERVIEWER") {
+          try {
+            const myIntRes = await apiFetch("/interviews", {
+              headers: { Authorization: `Bearer ${token}` },
+            });
+            const myIntData = await myIntRes.json();
+            const myInterviews = myIntData.items || [];
+            const upcomingCount = myInterviews.filter((i: any) => i.status === "SCHEDULED").length;
+            const completedCount = myInterviews.filter((i: any) => i.status === "COMPLETED").length;
+            const pendingFeedbackCount = myInterviews.filter(
+              (i: any) => i.status === "COMPLETED" && i.feedbackResult === "PENDING"
+            ).length;
+
+            setInterviewerStats({
+              total: myIntData.total || 0,
+              upcoming: upcomingCount,
+              completed: completedCount,
+              pendingFeedback: pendingFeedbackCount,
+            });
+          } catch (err) {
+            console.error("加载面试官统计失败", err);
+          }
+        }
       } catch (error) {
         console.error("加载统计数据失败", error);
       } finally {
@@ -251,7 +282,39 @@ export default function DashboardPage() {
           </p>
         </div>
 
-        {/* === AntD Statistic Cards === */}
+        {/* === Statistic Cards === */}
+        {/* 面试官专属统计 */}
+        {user?.role === "INTERVIEWER" && (
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+            {[
+              { label: "我的面试", value: interviewerStats.total, iconBg: "#e6f7ff", valueColor: "#1890ff", icon: (
+                <svg width="24" height="24" fill="none" stroke="#1890ff" strokeWidth="1.5" viewBox="0 0 24 24"><path d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+              )},
+              { label: "待面试", value: interviewerStats.upcoming, iconBg: "#f6ffed", valueColor: "#52c41a", icon: (
+                <svg width="24" height="24" fill="none" stroke="#52c41a" strokeWidth="1.5" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" /><path d="M12 6v6l4 2" /></svg>
+              )},
+              { label: "已完成", value: interviewerStats.completed, iconBg: "#f9f0ff", valueColor: "#722ed1", icon: (
+                <svg width="24" height="24" fill="none" stroke="#722ed1" strokeWidth="1.5" viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" /></svg>
+              )},
+              { label: "待反馈", value: interviewerStats.pendingFeedback, iconBg: "#fff7e6", valueColor: "#fa8c16", icon: (
+                <svg width="24" height="24" fill="none" stroke="#fa8c16" strokeWidth="1.5" viewBox="0 0 24 24"><path d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5M15 3h6v6M10 14L21 3" /></svg>
+              )},
+            ].map((card) => (
+              <div
+                key={card.label}
+                className="bg-white rounded-lg border border-[#f0f0f0] p-5 hover:shadow-md transition-shadow duration-200"
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-[13px] text-[#00000073]">{card.label}</span>
+                  <div className="w-10 h-10 rounded-lg flex items-center justify-center" style={{ backgroundColor: card.iconBg }}>{card.icon}</div>
+                </div>
+                <div className="text-[30px] font-semibold leading-none font-mono" style={{ color: card.valueColor }}>{card.value}</div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* HR 统计卡片 */}
         {user?.role === "HR" && (
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
             {statCards.map((card) => (

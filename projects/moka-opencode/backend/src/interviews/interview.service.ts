@@ -188,8 +188,16 @@ export class InterviewService {
     positionId?: string,
   ): Promise<InterviewListResponseDto> {
     const skip = (page - 1) * pageSize;
+
+    // ✅ 角色权限过滤：面试官只能看到自己的面试
+    const where: any = {};
+    if (userRole === "INTERVIEWER" && userId) {
+      where.interviewerId = userId;
+    }
+
     const [items, total] = await Promise.all([
       this.prisma.interview.findMany({
+        where,
         skip,
         take: pageSize,
         orderBy: { startTime: "asc" },
@@ -205,7 +213,7 @@ export class InterviewService {
           feedbacks: true,
         },
       }),
-      this.prisma.interview.count(),
+      this.prisma.interview.count({ where }),
     ]);
 
     return {
@@ -216,7 +224,7 @@ export class InterviewService {
     };
   }
 
-  async findOne(id: string): Promise<InterviewResponseDto> {
+  async findOne(id: string, userId?: string, userRole?: string): Promise<InterviewResponseDto> {
     const interview = await this.prisma.interview.findUnique({
       where: { id },
       include: {
@@ -233,6 +241,11 @@ export class InterviewService {
 
     if (!interview) {
       throw new Error("面试安排不存在");
+    }
+
+    // ✅ 角色权限校验：面试官只能查看自己的面试
+    if (userRole === "INTERVIEWER" && userId && interview.interviewerId !== userId) {
+      throw new Error("无权查看该面试安排");
     }
 
     return this.mapToResponseDto(interview);
