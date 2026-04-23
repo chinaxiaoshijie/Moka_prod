@@ -215,40 +215,7 @@ export default function LoginPage() {
             </span>
           </div>
 
-          {/* Test accounts */}
-          <div className="mt-8 pt-6 border-t border-[#F0F2F5]">
-            <p className="text-xs text-[#999] text-center mb-3">测试账号</p>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setUsername("hr");
-                  setPassword("hr123456");
-                }}
-                className="px-3 py-2 bg-[#F5F7FA] border border-[#E8EBF0] rounded-lg text-xs text-[#666] hover:border-[#4371FF]/30 hover:bg-[#EFF3FF] transition-colors text-center"
-              >
-                <span className="font-semibold text-[#4371FF] block text-[11px]">
-                  HR
-                </span>
-                <span className="text-[#999] text-[11px]">
-                  hr / hr123456
-                </span>
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setUsername("interviewer");
-                  setPassword("interviewer123");
-                }}
-                className="px-3 py-2 bg-[#F5F7FA] border border-[#E8EBF0] rounded-lg text-xs text-[#666] hover:border-[#4371FF]/30 hover:bg-[#EFF3FF] transition-colors text-center"
-              >
-                <span className="font-semibold text-[#4371FF] block text-[11px]">
-                  面试官
-                </span>
-                <span className="text-[#999] text-[11px]">interviewer</span>
-              </button>
-            </div>
-          </div>
+
         </div>
       </div>
     </div>
