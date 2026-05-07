@@ -36,8 +36,7 @@ export class AIDiagnosisService {
     private settingsService: SettingsService,
   ) {
     this.apiKey =
-      this.configService.get<string>("DASHSCOPE_API_KEY") ||
-      "sk-4ac...e257";
+      this.configService.get<string>("DASHSCOPE_API_KEY") || "";
   }
 
   /**
