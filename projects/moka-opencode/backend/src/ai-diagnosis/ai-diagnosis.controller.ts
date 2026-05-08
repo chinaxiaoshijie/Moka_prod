@@ -13,6 +13,7 @@ import {
   BadRequestException,
   NotFoundException,
   HttpCode,
+  Res,
 } from "@nestjs/common";
 import { ApiTags, ApiOperation, ApiParam, ApiBody } from "@nestjs/swagger";
 import { JwtAuthGuard } from "../auth/guards/jwt-auth.guard";
@@ -244,6 +245,7 @@ export class AIDiagnosisController {
   async getDiagnosis(
     @Param("processId") processId: string,
     @Param("roundNumber", ParseIntPipe) roundNumber: number,
+    @Res({ passthrough: true }) res: any,
   ): Promise<TriggerDiagnosisResponseDto | null> {
     const diagnosis = await this.prisma.aIDiagnosis.findUnique({
       where: {
@@ -255,8 +257,9 @@ export class AIDiagnosisController {
     });
 
     if (!diagnosis) {
-      // 返回空对象而非 null，避免 NestJS 序列化为空 body 导致前端 response.json() 报错
-      return {} as TriggerDiagnosisResponseDto;
+      // 无诊断数据时返回 204 No Content，前端通过 response.status === 204 处理
+      res.status(204);
+      return null;
     }
 
     return this.mapToResponseDto(diagnosis);

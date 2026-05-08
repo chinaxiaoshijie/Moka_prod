@@ -43,8 +43,8 @@ services:
       - "${BACKEND_PORT}:3001"
     environment:
       - NODE_ENV=production
-      - DATABASE_URL=postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
-      - JWT_SECRET=${JWT_SECRET}
+      - DATABASE_URL=postgresql://moka:ac709f2731f2c284e83cd7721ffc400ef8048f176a65097485864b53e48266ad@172.17.0.1:5433/moka_db
+      - JWT_SECRET=moka-secret-2026-production-key
       - JWT_EXPIRES_IN=${JWT_EXPIRES_IN}
       - PORT=3001
       - FRONTEND_URL=${FRONTEND_URL}
@@ -53,15 +53,12 @@ services:
       - LARK_APP_SECRET=${LARK_APP_SECRET}
       - LARK_USER_ID=${LARK_USER_ID:-}
       # Feishu OAuth (User Account Binding)
-      - FEISHU_OAUTH_REDIRECT_URI=${FEISHU_OAUTH_REDIRECT_URI}
+      - FEISHU_OAUTH_REDIRECT_URI=http://10.10.2.131:13000/feishu/callback
       # - SMTP_HOST=${SMTP_HOST}
       # - SMTP_PORT=${SMTP_PORT}
       # - SMTP_USER=${SMTP_USER}
       # - SMTP_PASS=${SMTP_PASS}
       # - SMTP_FROM=${SMTP_FROM}
-    depends_on:
-      postgres:
-        condition: service_healthy
     healthcheck:
       test: ["CMD", "node", "-e", "require('http').get('http://localhost:3001/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1))"]
       interval: 30s

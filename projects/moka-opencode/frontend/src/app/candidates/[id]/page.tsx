@@ -35,6 +35,9 @@ export default function CandidateDetailPage() {
   const [resumeFiles, setResumeFiles] = useState<ResumeFile[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [editingEmail, setEditingEmail] = useState(false);
+  const [newEmail, setNewEmail] = useState("");
+  const [savingEmail, setSavingEmail] = useState(false);
 
   useEffect(() => {
     if (candidateId) {
@@ -57,6 +60,27 @@ export default function CandidateDetailPage() {
       setError(err.message);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const saveEmail = async () => {
+    if (!candidate || !newEmail.trim()) return;
+    setSavingEmail(true);
+    try {
+      const token = localStorage.getItem("token");
+      const response = await apiFetch(`/candidates/${candidate.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ email: newEmail.trim() }),
+      });
+      if (!response.ok) throw new Error("保存失败");
+      const updated = await response.json();
+      setCandidate(updated);
+      setEditingEmail(false);
+    } catch (err: any) {
+      setError(err.message || "保存邮箱失败");
+    } finally {
+      setSavingEmail(false);
     }
   };
 
@@ -194,9 +218,46 @@ export default function CandidateDetailPage() {
             </div>
             <div>
               <p className="text-sm text-[#666] mb-1">邮箱地址</p>
-              <p className="text-base text-[#1A1A1A]">
-                {candidate.email || "未填写"}
-              </p>
+              {editingEmail ? (
+                <div className="flex items-center gap-2">
+                  <input
+                    type="email"
+                    value={newEmail}
+                    onChange={(e) => setNewEmail(e.target.value)}
+                    className="flex-1 px-3 py-1.5 border border-[#4371FF] rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#4371FF]/20"
+                    placeholder="请输入邮箱"
+                    autoFocus
+                  />
+                  <button
+                    onClick={saveEmail}
+                    disabled={savingEmail}
+                    className="bg-[#4371FF] hover:bg-[#3461E6] text-white rounded-lg px-3 py-1.5 text-xs font-medium disabled:opacity-50"
+                  >
+                    {savingEmail ? "保存中" : "保存"}
+                  </button>
+                  <button
+                    onClick={() => { setEditingEmail(false); setNewEmail(""); }}
+                    className="border border-slate-200 hover:bg-slate-50 text-slate-600 rounded-lg px-3 py-1.5 text-xs"
+                  >
+                    取消
+                  </button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <p className="text-base text-[#1A1A1A]">
+                    {candidate.email || "未填写"}
+                  </p>
+                  <button
+                    onClick={() => { setEditingEmail(true); setNewEmail(candidate.email || ""); }}
+                    className="text-[#4371FF] hover:text-[#3461E6] text-xs font-medium flex items-center gap-1"
+                  >
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                    编辑
+                  </button>
+                </div>
+              )}
             </div>
             <div>
               <p className="text-sm text-[#666] mb-1">应聘职位</p>

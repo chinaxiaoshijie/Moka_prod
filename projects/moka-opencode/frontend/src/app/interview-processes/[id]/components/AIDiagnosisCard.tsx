@@ -167,12 +167,12 @@ export default function AIDiagnosisCard({ process, user, targetRound }: AIDiagno
         throw new Error(errData.message || "获取 AI 诊断失败");
       }
       const data = await response.json();
-      // 200 但无数据
-      if (!data) {
+      // 200 但无数据或数据不完整（后端可能返回空对象）
+      if (!data || typeof data.matchScore !== 'number') {
         setDiagnosis(null);
         return;
       }
-      if (data) setDiagnosis(data);
+      setDiagnosis(data);
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -445,14 +445,14 @@ export default function AIDiagnosisCard({ process, user, targetRound }: AIDiagno
             )}
 
             {/* ---- Strengths ---- */}
-            {diagnosis.strengths.length > 0 && (
+            {diagnosis.strengths?.length > 0 && (
               <div>
                 <h3 className="text-[12px] font-semibold text-[#000000d9] mb-2 flex items-center gap-1.5">
                   <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#52c41a]" />
                   优势
                 </h3>
                 <div className="space-y-1.5">
-                  {diagnosis.strengths.map((s, i) => (
+                  {diagnosis.strengths?.map((s, i) => (
                     <div key={i} className="flex gap-2 items-start">
                       <span className="text-[#52c41a] mt-0.5 flex-shrink-0">
                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -467,14 +467,14 @@ export default function AIDiagnosisCard({ process, user, targetRound }: AIDiagno
             )}
 
             {/* ---- Weaknesses ---- */}
-            {diagnosis.weaknesses.length > 0 && (
+            {diagnosis.weaknesses?.length > 0 && (
               <div>
                 <h3 className="text-[12px] font-semibold text-[#000000d9] mb-2 flex items-center gap-1.5">
                   <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#ff4d4f]" />
                   不足
                 </h3>
                 <div className="space-y-1.5">
-                  {diagnosis.weaknesses.map((w, i) => (
+                  {diagnosis.weaknesses?.map((w, i) => (
                     <div key={i} className="flex gap-2 items-start">
                       <span className="text-[#ff4d4f] mt-0.5 flex-shrink-0">
                         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -489,14 +489,14 @@ export default function AIDiagnosisCard({ process, user, targetRound }: AIDiagno
             )}
 
             {/* ---- Suggestions ---- */}
-            {diagnosis.suggestions.length > 0 && (
+            {diagnosis.suggestions?.length > 0 && (
               <div>
                 <h3 className="text-[12px] font-semibold text-[#000000d9] mb-2 flex items-center gap-1.5">
                   <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#1890ff]" />
                   建议
                 </h3>
                 <div className="space-y-1.5">
-                  {diagnosis.suggestions.map((s, i) => (
+                  {diagnosis.suggestions?.map((s, i) => (
                     <div key={i} className="flex gap-2 items-start">
                       <span className="text-[#1890ff] mt-0.5 flex-shrink-0 font-medium text-[12px]">
                         {i + 1}.

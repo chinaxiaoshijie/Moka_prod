@@ -68,6 +68,20 @@ function getStepLineColor(status: string): string {
   return "bg-slate-200";
 }
 
+function getRoundTypeLabel(roundNum: number, totalRounds: number): string {
+  if (roundNum === 1) return "初试";
+  if (roundNum === totalRounds) return "终试";
+  return "复试";
+}
+
+function getPastStepColor(): string {
+  return "bg-slate-300 text-slate-500 border-slate-300";
+}
+
+function getOtherStepColor(): string {
+  return "bg-amber-500 text-white border-amber-500";
+}
+
 function getProcessStatusBadge(group: CandidateGroup): { text: string; color: string } {
   if (!group.processId) {
     const iv = group.interviews[0];
@@ -276,76 +290,124 @@ export default function MyInterviewsPage() {
                       )}
                     </div>
 
-                    {/* Timeline Steps */}
-                    <div className="flex items-start gap-0 mb-4">
-                      {group.interviews.map((iv, idx) => (
-                        <div key={iv.id} className="flex items-start">
-                          <div
-                            className="flex flex-col items-center cursor-pointer group"
-                            onClick={() => router.push(`/interviews/${iv.id}`)}
-                          >
-                            <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center text-xs font-bold ${getStepColor(iv.status)}`}>
-                              {iv.roundNumber || idx + 1}
-                            </div>
-                            <div className="mt-2 text-center min-w-[80px]">
-                              <p className="text-xs font-medium text-[#1A1A1A] group-hover:text-[#4371FF] transition-colors">
-                                {getTypeStatusText(iv.type, iv.status)}
-                              </p>
-                              <p className="text-[11px] text-[#999] mt-0.5">
-                                {iv.interviewer.name}
-                              </p>
-                              <p className="text-[11px] text-[#999]">
-                                {formatDateTime(iv.startTime)}
-                              </p>
-                            </div>
-                          </div>
+                                        {/* Timeline Steps */}
+                    {group.processId && group.interviews[0]?.process ? (
+                      <div className="flex items-start gap-0 mb-4">
+                        {Array.from({ length: group.interviews[0].process.totalRounds }, (_, i) => {
+                          const roundNum = i + 1;
+                          const process = group.interviews[0].process!;
+                          const iv = group.interviews.find((iv: Interview) => iv.roundNumber === roundNum);
 
-                          {idx < group.interviews.length - 1 && (
-                            <div className="flex items-center pt-3.5 px-1">
-                              <div className={`w-8 h-0.5 ${getStepLineColor(iv.status)}`} />
-                              <svg className="w-2.5 h-2.5 text-slate-300 -ml-0.5" fill="currentColor" viewBox="0 0 24 24">
-                                <path d="M8 4l8 8-8 8" />
-                              </svg>
-                            </div>
-                          )}
-                        </div>
-                      ))}
-
-                      {/* Future rounds placeholder */}
-                      {group.processId && group.interviews[0]?.process && (() => {
-                        const total = group.interviews[0].process!.totalRounds;
-                        const existing = group.interviews.length;
-                        const remaining = total - existing;
-                        if (remaining <= 0) return null;
-                        return Array.from({ length: remaining }, (_, i) => {
-                          const roundNum = existing + i + 1;
-                          const roundType = roundNum === 1 ? "INTERVIEW_1" : roundNum === 2 ? "INTERVIEW_2" : "INTERVIEW_3";
-                          return (
-                            <div key={`future-${roundNum}`} className="flex items-start">
-                              <div className="flex items-center pt-3.5 px-1">
-                                <div className="w-8 h-0.5 bg-slate-200" />
-                                <svg className="w-2.5 h-2.5 text-slate-300 -ml-0.5" fill="currentColor" viewBox="0 0 24 24">
-                                  <path d="M8 4l8 8-8 8" />
-                                </svg>
+                          if (iv) {
+                            return (
+                              <div key={`round-${roundNum}`} className="flex items-start">
+                                <div
+                                  className="flex flex-col items-center cursor-pointer group"
+                                  onClick={() => router.push(`/interviews/${iv.id}`)}
+                                >
+                                  <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center text-xs font-bold ${getStepColor(iv.status)}`}>
+                                    {roundNum}
+                                  </div>
+                                  <div className="mt-2 text-center min-w-[80px]">
+                                    <p className="text-xs font-medium text-[#1A1A1A] group-hover:text-[#4371FF] transition-colors">
+                                      {getTypeStatusText(iv.type, iv.status)}
+                                    </p>
+                                    <p className="text-[11px] text-[#999] mt-0.5">
+                                      {iv.interviewer.name}
+                                    </p>
+                                    <p className="text-[11px] text-[#999]">
+                                      {formatDateTime(iv.startTime)}
+                                    </p>
+                                  </div>
+                                </div>
+                                {roundNum < process.totalRounds && (
+                                  <div className="flex items-center pt-3.5 px-1">
+                                    <div className={`w-8 h-0.5 ${getStepLineColor(iv.status)}`} />
+                                    <svg className="w-2.5 h-2.5 text-slate-300 -ml-0.5" fill="currentColor" viewBox="0 0 24 24">
+                                      <path d="M8 4l8 8-8 8" />
+                                    </svg>
+                                  </div>
+                                )}
                               </div>
+                            );
+                          }
+
+                          const isPast = roundNum < process.currentRound;
+                          const isCurrent = roundNum === process.currentRound;
+                          const roundLabel = getRoundTypeLabel(roundNum, process.totalRounds);
+
+                          const circleClass = isPast
+                            ? "bg-slate-300 text-slate-500 border-slate-300"
+                            : isCurrent
+                            ? "bg-amber-500 text-white border-amber-500"
+                            : "bg-white border-2 border-dashed border-slate-300 text-slate-400";
+                          const lineClass = isPast ? "bg-slate-300" : isCurrent ? "bg-amber-300" : "bg-slate-200";
+                          const statusText = isPast ? `${roundLabel}完成` : isCurrent ? `${roundLabel}进行中` : `${roundLabel}待安排`;
+                          const subText = isPast ? "已完成" : isCurrent ? "其他面试官" : "未安排";
+
+                          return (
+                            <div key={`round-${roundNum}`} className="flex items-start">
                               <div className="flex flex-col items-center">
-                                <div className="w-8 h-8 rounded-full border-2 border-dashed border-slate-300 flex items-center justify-center text-xs font-bold text-slate-400">
+                                <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center text-xs font-bold ${circleClass}`}>
                                   {roundNum}
                                 </div>
                                 <div className="mt-2 text-center min-w-[80px]">
                                   <p className="text-xs font-medium text-slate-400">
-                                    {getTypeText(roundType)}待安排
+                                    {statusText}
                                   </p>
-                                  <p className="text-[11px] text-[#ccc] mt-0.5">未安排</p>
+                                  <p className="text-[11px] text-[#ccc] mt-0.5">{subText}</p>
                                 </div>
                               </div>
+                              {roundNum < process.totalRounds && (
+                                <div className="flex items-center pt-3.5 px-1">
+                                  <div className={`w-8 h-0.5 ${lineClass}`} />
+                                  <svg className="w-2.5 h-2.5 text-slate-300 -ml-0.5" fill="currentColor" viewBox="0 0 24 24">
+                                    <path d="M8 4l8 8-8 8" />
+                                  </svg>
+                                </div>
+                              )}
                             </div>
                           );
-                        });
-                      })()}
-                    </div>
+                        })}
+                      </div>
+                    ) : (
+                      <div className="flex items-start gap-0 mb-4">
+                        {group.interviews.map((iv, idx) => (
+                          <div key={iv.id} className="flex items-start">
+                            <div
+                              className="flex flex-col items-center cursor-pointer group"
+                              onClick={() => router.push(`/interviews/${iv.id}`)}
+                            >
+                              <div className={`w-8 h-8 rounded-full border-2 flex items-center justify-center text-xs font-bold ${getStepColor(iv.status)}`}>
+                                {iv.roundNumber || idx + 1}
+                              </div>
+                              <div className="mt-2 text-center min-w-[80px]">
+                                <p className="text-xs font-medium text-[#1A1A1A] group-hover:text-[#4371FF] transition-colors">
+                                  {getTypeStatusText(iv.type, iv.status)}
+                                </p>
+                                <p className="text-[11px] text-[#999] mt-0.5">
+                                  {iv.interviewer.name}
+                                </p>
+                                <p className="text-[11px] text-[#999]">
+                                  {formatDateTime(iv.startTime)}
+                                </p>
+                              </div>
+                            </div>
 
-                    {/* Action buttons for the latest interview */}
+                            {idx < group.interviews.length - 1 && (
+                              <div className="flex items-center pt-3.5 px-1">
+                                <div className={`w-8 h-0.5 ${getStepLineColor(iv.status)}`} />
+                                <svg className="w-2.5 h-2.5 text-slate-300 -ml-0.5" fill="currentColor" viewBox="0 0 24 24">
+                                  <path d="M8 4l8 8-8 8" />
+                                </svg>
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    )}
+
+{/* Action buttons for the latest interview */}
                     {(() => {
                       const latestIv = group.interviews[group.interviews.length - 1];
                       return (

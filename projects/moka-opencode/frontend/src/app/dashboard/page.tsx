@@ -70,8 +70,9 @@ export default function DashboardPage() {
         return;
       }
 
+      let parsedUser: any;
       try {
-        const parsedUser = JSON.parse(userData);
+        parsedUser = JSON.parse(userData);
         setUser(parsedUser);
 
         // 检查是否需要弹出飞书绑定引导
