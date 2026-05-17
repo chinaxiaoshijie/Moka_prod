@@ -441,3 +441,22 @@ model SystemSetting {
   
   @@map("system_settings")
 }
+
+// 登录审计日志
+model LoginLog {
+  id          String   @id @default(uuid())
+  userId      String
+  username    String
+  userName    String   @default("") @map("user_name")
+  userRole    String   @default("") @map("user_role")
+  ipAddress   String   @default("") @map("ip_address")
+  userAgent   String   @default("") @map("user_agent")
+  success     Boolean
+  failReason  String?  @map("fail_reason")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("login_logs")
+  @@index([userId])
+  @@index([username])
+  @@index([createdAt])
+}

@@ -1,4 +1,5 @@
-import { Injectable, UnauthorizedException, BadRequestException } from "@nestjs/common";
+import { Injectable, UnauthorizedException, BadRequestException, Inject } from "@nestjs/common";
+import { REQUEST } from "@nestjs/core";
 import { JwtService } from "@nestjs/jwt";
 import { PrismaService } from "../prisma/prisma.service";
 import { LoginDto, AuthResponseDto } from "./dto/login.dto";
@@ -9,10 +10,13 @@ export class AuthService {
   constructor(
     private prisma: PrismaService,
     private jwtService: JwtService,
+    @Inject(REQUEST) private req: any,
   ) {}
 
   async login(loginDto: LoginDto): Promise<AuthResponseDto> {
     const { username, password } = loginDto;
+    const ip = (this.req?.ip || this.req?.connection?.remoteAddress || "").replace(/^::ffff:/, "");
+    const ua = this.req?.headers?.["user-agent"] || "";
 
     const user = await this.prisma.user.findUnique({
       where: { username },
@@ -24,8 +28,34 @@ export class AuthService {
       : false;
 
     if (!isPasswordValid) {
+      // Log failed login attempt (fire-and-forget, don't block response)
+      this.prisma.loginLog.create({
+        data: {
+          userId: user?.id || username,
+          username,
+          userName: user?.name || "",
+          userRole: user?.role || "",
+          ipAddress: ip,
+          userAgent: ua,
+          success: false,
+          failReason: user ? "密码错误" : "用户不存在",
+        },
+      }).catch(() => {});
       throw new UnauthorizedException("用户名或密码错误");
     }
+
+    // Log successful login (fire-and-forget)
+    this.prisma.loginLog.create({
+      data: {
+        userId: user.id,
+        username: user.username,
+        userName: user.name || "",
+        userRole: user.role,
+        ipAddress: ip,
+        userAgent: ua,
+        success: true,
+      },
+    }).catch(() => {});
 
     const payload = {
       sub: user.id,
