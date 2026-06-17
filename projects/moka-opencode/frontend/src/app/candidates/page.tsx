@@ -45,6 +45,9 @@ export default function CandidatesPage() {
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
   const [positionFilter, setPositionFilter] = useState("");
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const pageSize = 20;
 
   const [showImportModal, setShowImportModal] = useState(false);
   const [importFile, setImportFile] = useState<File | null>(null);
@@ -98,10 +101,19 @@ export default function CandidatesPage() {
     if (userData) {
       setUser(JSON.parse(userData));
     }
-    fetchCandidates();
     fetchPositions();
     fetchInterviewers();
   }, []);
+
+  // 筛选条件变化时重置到第一页
+  useEffect(() => {
+    setPage(1);
+  }, [search, statusFilter, positionFilter]);
+
+  // 页码变化时重新获取
+  useEffect(() => {
+    fetchCandidates();
+  }, [page]);
 
   const fetchInterviewers = async () => {
     try {
@@ -140,6 +152,8 @@ export default function CandidatesPage() {
     try {
       const token = localStorage.getItem("token");
       const params = new URLSearchParams();
+      params.append("page", String(page));
+      params.append("pageSize", String(pageSize));
       if (search) params.append("search", search);
       if (statusFilter) params.append("status", statusFilter);
       if (positionFilter) params.append("positionId", positionFilter);
@@ -152,6 +166,7 @@ export default function CandidatesPage() {
       if (!response.ok) throw new Error("获取候选人列表失败");
       const data = await response.json();
       setCandidates(data.items || []);
+      setTotal(data.total || 0);
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -1101,6 +1116,45 @@ export default function CandidatesPage() {
                 ))}
               </tbody>
             </table>
+
+            {/* 分页控件 */}
+            {total > pageSize && (
+              <div className="flex items-center justify-between px-6 py-3 border-t border-slate-100">
+                <span className="text-sm text-slate-500">
+                  共 {total} 条，第 {page} / {Math.ceil(total / pageSize)} 页
+                </span>
+                <div className="flex gap-1">
+                  <button
+                    onClick={() => setPage(p => Math.max(1, p - 1))}
+                    disabled={page === 1}
+                    className="px-3 py-1.5 text-sm rounded-lg border border-slate-200 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    上一页
+                  </button>
+                  {Array.from({ length: Math.min(5, Math.ceil(total / pageSize)) }, (_, i) => {
+                    const start = Math.max(1, Math.min(page - 2, Math.ceil(total / pageSize) - 4));
+                    const p = start + i;
+                    if (p > Math.ceil(total / pageSize)) return null;
+                    return (
+                      <button
+                        key={p}
+                        onClick={() => setPage(p)}
+                        className={`w-8 h-8 text-sm rounded-lg ${p === page ? 'bg-blue-600 text-white' : 'border border-slate-200 hover:bg-slate-50'}`}
+                      >
+                        {p}
+                      </button>
+                    );
+                  })}
+                  <button
+                    onClick={() => setPage(p => Math.min(Math.ceil(total / pageSize), p + 1))}
+                    disabled={page >= Math.ceil(total / pageSize)}
+                    className="px-3 py-1.5 text-sm rounded-lg border border-slate-200 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    下一页
+                  </button>
+                </div>
+              </div>
+            )}
 
             {candidates.length === 0 && (
               <div className="text-center py-20">

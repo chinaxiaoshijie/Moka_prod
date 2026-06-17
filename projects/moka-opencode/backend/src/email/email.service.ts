@@ -366,7 +366,7 @@ ${diagnosisText}
     <p><strong>轮次：</strong>${data.roundNumber ? `第${data.roundNumber}轮` : "待定"}</p>
     <p><strong>时间：</strong>${this.formatDateTime(data.startTime)} - ${this.formatTime(data.endTime)}</p>
     <p><strong>形式：</strong>${formatText}</p>
-    <p><strong>${data.format === "ONLINE" ? "会议链接" : "面试地点"}：</strong>${data.format === "ONLINE" ? data.meetingUrl : data.location}</p>
+    <p><strong>${data.format === "ONLINE" ? "会议链接" : "面试地点"}：</strong>${data.format === "ONLINE" ? `<a href="${data.meetingUrl}">${data.meetingUrl}</a>` : data.location}</p>
   </div>
   
   <p>请在面试结束后及时填写面试反馈。</p>

@@ -2,9 +2,8 @@
 
 import { useState } from "react";
 import { apiFetch } from "@/lib/api";
-import FeishuBindModal from "@/components/FeishuBindModal";
 
-/* 码隆智能 Logo SVG */
+/* Moka mountain logo SVG */
 const MokaLogoSVG = ({ size = 36 }: { size?: number }) => (
   <svg width={size} height={size} viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
     <rect width="32" height="32" rx="8" fill="#4371FF" />
@@ -28,8 +27,6 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [showFeishuBind, setShowFeishuBind] = useState(false);
-  const [loginUser, setLoginUser] = useState<any>(null);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,15 +56,7 @@ export default function LoginPage() {
       localStorage.setItem("token", data.access_token);
       localStorage.setItem("user", JSON.stringify(data.user));
       document.cookie = `token=${data.access_token}; path=/; max-age=${7 * 24 * 60 * 60}`;
-
-      // 检查是否已绑定飞书
-      if (!data.user.feishuOuId) {
-        setLoginUser(data.user);
-        setShowFeishuBind(true);
-        setLoading(false);
-      } else {
-        window.location.href = "/dashboard";
-      }
+      window.location.href = "/dashboard";
     } catch (err) {
       console.error("Login error:", err);
       setError("网络错误，请稍后重试");
@@ -98,7 +87,7 @@ export default function LoginPage() {
           <div className="flex items-center gap-2.5">
             <MokaLogoSVG size={36} />
             <span className="text-white font-bold text-[17px] tracking-tight">
-              码隆智能面试
+              Moka 招聘
             </span>
           </div>
 
@@ -135,7 +124,7 @@ export default function LoginPage() {
             </div>
           </div>
 
-          <p className="text-white/30 text-xs">&copy; 2026 码隆智能科技</p>
+          <p className="text-white/30 text-xs">&copy; 2026 Moka</p>
         </div>
       </div>
 
@@ -146,13 +135,13 @@ export default function LoginPage() {
           <div className="flex items-center gap-2.5 mb-8">
             <MokaLogoSVG size={32} />
             <span className="text-[#1A1A1A] font-bold text-[16px] tracking-tight">
-              码隆智能面试
+              Moka 招聘
             </span>
           </div>
 
           <div className="mb-7">
             <h2 className="text-[22px] font-bold text-[#1A1A1A] tracking-tight mb-1">
-              欢迎使用码隆智能面试系统
+              欢迎使用 Moka
             </h2>
             <p className="text-[#999] text-sm">请登录您的账号</p>
           </div>
@@ -226,58 +215,9 @@ export default function LoginPage() {
             </span>
           </div>
 
-          {/* Test accounts - 生产环境隐藏 */}
-          {process.env.NEXT_PUBLIC_SHOW_TEST_ACCOUNTS === "true" && (
-          <div className="mt-8 pt-6 border-t border-[#F0F2F5]">
-            <p className="text-xs text-[#999] text-center mb-3">测试账号</p>
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setUsername("hr");
-                  setPassword("hr123456");
-                }}
-                className="px-3 py-2 bg-[#F5F7FA] border border-[#E8EBF0] rounded-lg text-xs text-[#666] hover:border-[#4371FF]/30 hover:bg-[#EFF3FF] transition-colors text-center"
-              >
-                <span className="font-semibold text-[#4371FF] block text-[11px]">
-                  HR
-                </span>
-                <span className="text-[#999] text-[11px]">
-                  hr / hr123456
-                </span>
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setUsername("interviewer");
-                  setPassword("interviewer123");
-                }}
-                className="px-3 py-2 bg-[#F5F7FA] border border-[#E8EBF0] rounded-lg text-xs text-[#666] hover:border-[#4371FF]/30 hover:bg-[#EFF3FF] transition-colors text-center"
-              >
-                <span className="font-semibold text-[#4371FF] block text-[11px]">
-                  面试官
-                </span>
-                <span className="text-[#999] text-[11px]">interviewer</span>
-              </button>
-            </div>
-          </div>
-          )}
+
         </div>
       </div>
-
-      {/* 飞书绑定弹窗 */}
-      <FeishuBindModal
-        isOpen={showFeishuBind}
-        onClose={() => setShowFeishuBind(false)}
-        onBound={() => {
-          setShowFeishuBind(false);
-          window.location.href = "/dashboard";
-        }}
-        onSkip={() => {
-          setShowFeishuBind(false);
-          window.location.href = "/dashboard";
-        }}
-      />
     </div>
   );
 }
