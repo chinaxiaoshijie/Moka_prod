@@ -14,6 +14,9 @@ import { NotificationModule } from "./notifications/notification.module";
 import { AnalyticsModule } from "./analytics/analytics.module";
 import { UsersModule } from "./users/users.module";
 import { HealthModule } from "./health/health.module";
+import { FeishuCalendarModule } from "./feishu/feishu-calendar.module";
+import { AIDiagnosisModule } from "./ai-diagnosis/ai-diagnosis.module";
+import { SettingsModule } from "./settings/settings.module";
 
 @Module({
   imports: [
@@ -38,6 +41,9 @@ import { HealthModule } from "./health/health.module";
     AnalyticsModule,
     UsersModule,
     HealthModule,
+    FeishuCalendarModule,
+    AIDiagnosisModule,
+    SettingsModule,
   ],
 })
 export class AppModule {}

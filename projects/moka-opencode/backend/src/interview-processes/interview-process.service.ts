@@ -3,6 +3,9 @@ import { PrismaService } from "../prisma/prisma.service";
 import { EmailService } from "../email/email.service";
 import { CandidateStatusService } from "../candidates/candidate-status.service";
 import { NotificationService } from "../notifications/notification.service";
+import { FeishuCalendarService } from "../feishu/feishu-calendar.service";
+import { FeishuMessageService } from "../feishu/feishu-message.service";
+import { AIDiagnosisService } from "../ai-diagnosis/ai-diagnosis.service";
 import {
   CreateInterviewProcessDto,
   CreateRoundInterviewDto,
@@ -24,6 +27,9 @@ export class InterviewProcessService {
     private emailService: EmailService,
     private candidateStatusService: CandidateStatusService,
     private notificationService: NotificationService,
+    private feishuCalendarService: FeishuCalendarService,
+    private feishuMessageService: FeishuMessageService,
+    private aiDiagnosisService: AIDiagnosisService,
   ) {}
 
   // 创建面试流程（启动流程）
@@ -46,39 +52,60 @@ export class InterviewProcessService {
       throw new BadRequestException("面试流程至少需要3轮（包括终面）");
     }
 
-    // 创建流程主记录
-    const process = await this.prisma.interviewProcess.create({
-      data: {
-        candidate: { connect: { id: candidateId } },
-        position: { connect: { id: positionId } },
-        hasHRRound,
-        totalRounds,
-        status: "IN_PROGRESS",
-        currentRound: 1,
-        createdBy: { connect: { id: hrUserId } },
-      },
+    // ✅ 事务保护：防重复检查 + 创建原子操作（修复并发竞态条件）
+    const process = await this.prisma.$transaction(async (tx) => {
+      const existing = await tx.interviewProcess.findFirst({
+        where: {
+          candidateId,
+          status: { in: ["IN_PROGRESS", "WAITING_HR"] },
+        },
+        select: { id: true },
+      });
+      if (existing) {
+        throw new BadRequestException("该候选人已有进行中的面试流程，无法重复创建");
+      }
+
+      // 创建流程主记录
+      const proc = await tx.interviewProcess.create({
+        data: {
+          candidate: { connect: { id: candidateId } },
+          position: { connect: { id: positionId } },
+          hasHRRound,
+          totalRounds,
+          status: "IN_PROGRESS",
+          currentRound: 1,
+          createdBy: { connect: { id: hrUserId } },
+        },
+      });
+
+      // 同步更新候选人的 positionId
+      await tx.candidate.update({
+        where: { id: candidateId },
+        data: { positionId },
+      });
+
+      // 创建轮次配置
+      await Promise.all(
+        rounds.map((round) =>
+          tx.interviewRound.create({
+            data: {
+              processId: proc.id,
+              roundNumber: round.roundNumber,
+              interviewerId: round.interviewerId,
+              isHRRound: round.isHRRound,
+              roundType: round.roundType,
+            },
+          }),
+        ),
+      );
+
+      return proc;
     });
 
-    // ✅ 同步更新候选人的 positionId
-    await this.prisma.candidate.update({
-      where: { id: candidateId },
-      data: { positionId },
-    });
-
-    // 创建轮次配置
-    await Promise.all(
-      rounds.map((round) =>
-        this.prisma.interviewRound.create({
-          data: {
-            processId: process.id,
-            roundNumber: round.roundNumber,
-            interviewerId: round.interviewerId,
-            isHRRound: round.isHRRound,
-            roundType: round.roundType,
-          },
-        }),
-      ),
-    );
+    // 自动触发初面 AI 诊断（fire-and-forget，不阻塞返回）
+    this.aiDiagnosisService.generateForRound(process.id, 1)
+      .then(() => this.logger.log(`初面 AI 诊断自动生成完成 - processId=${process.id}`))
+      .catch((err) => this.logger.warn(`初面 AI 诊断自动生成失败: ${err?.message || err}`));
 
     return this.findOne(process.id);
   }
@@ -110,7 +137,8 @@ export class InterviewProcessService {
       throw new BadRequestException(`第${roundNumber}轮未配置`);
     }
 
-    // 确定面试类型：基于轮次类型而非轮次编号
+    // ✅ 确定面试类型：基于 roundType，但区分 TECHNICAL 的先后顺序
+    // 修复：之前基于 roundNumber 导致第3轮 TECHNICAL 被误映射为 INTERVIEW_3（终试）
     let interviewType: InterviewType;
     switch (roundConfig.roundType) {
       case "FINAL":
@@ -120,8 +148,47 @@ export class InterviewProcessService {
         interviewType = InterviewType.INTERVIEW_1;
         break;
       default:
+        // TECHNICAL 统一映射为 INTERVIEW_2（复试阶段，多个技术面都属于复试）
         interviewType = InterviewType.INTERVIEW_2;
         break;
+    }
+
+    // ✅ 连续性校验：面试必须按轮次顺序创建，不能跳过轮次
+    const maxScheduledRound = await this.prisma.interview.aggregate({
+      where: { processId },
+      _max: { roundNumber: true },
+    });
+    const nextExpectedRound = (maxScheduledRound._max.roundNumber ?? 0) + 1;
+    if (roundNumber > nextExpectedRound) {
+      throw new BadRequestException(
+        `请按顺序创建面试：当前应安排第${nextExpectedRound}轮，而不是第${roundNumber}轮`
+      );
+    }
+
+    // ✅ 防阻塞：检查前一轮是否有 PENDING 反馈未完成（面试官暂存了反馈但没标记完成）
+    if (roundNumber > 1) {
+      const prevRoundNumber = roundNumber - 1;
+      const prevInterview = await this.prisma.interview.findFirst({
+        where: { processId, roundNumber: prevRoundNumber },
+        select: {
+          id: true,
+          status: true,
+          feedbacks: {
+            where: { result: "PENDING" },
+            take: 1,
+            select: { id: true },
+          },
+        },
+      });
+      if (prevInterview) {
+        const hasPendingFeedback = prevInterview.feedbacks.length > 0;
+        const isPrevCompleted = prevInterview.status === "COMPLETED";
+        if (hasPendingFeedback && !isPrevCompleted) {
+          throw new BadRequestException(
+            `第${prevRoundNumber}轮面试官尚未完成最终反馈，无法安排第${roundNumber}轮面试。请先让该轮面试官确认结论（通过/不通过）。`
+          );
+        }
+      }
     }
 
     // 校验日期有效性
@@ -194,13 +261,54 @@ export class InterviewProcessService {
       this.logger.warn(`候选人状态更新跳过：candidateId=${process.candidateId}, reason=${(error as Error).message}`);
     }
 
+    // 获取面试官信息（用于邮件通知和飞书日历同步）
+    const interviewer = await this.prisma.user.findUnique({
+      where: { id: roundConfig.interviewerId },
+      select: { id: true, name: true, email: true, feishuOuId: true },
+    });
+
+    // 获取/生成当前轮次的 AI 诊断结果（邮件附带）
+    let aiDiagnosisData: any = null;
+    try {
+      let existingDiagnosis = await this.prisma.aIDiagnosis.findUnique({
+        where: { processId_roundNumber: { processId: processId, roundNumber } },
+      });
+      // 如果尚无诊断，尝试自动生成（阻塞调用，确保邮件有诊断内容）
+      if (!existingDiagnosis) {
+        this.logger.log(`面试邮件需要诊断但尚未生成，自动生成中 - processId=${processId}, round=${roundNumber}`);
+        const generated = await this.aiDiagnosisService.generateForRound(processId, roundNumber);
+        if (generated) {
+          // generateForRound 返回 DTO，直接用其字段
+          aiDiagnosisData = {
+            matchScore: generated.matchScore,
+            matchLevel: generated.matchLevel,
+            strengths: generated.strengths || [],
+            weaknesses: generated.weaknesses || [],
+            suggestions: generated.suggestions || [],
+            questions: generated.questions || [],
+            summary: generated.summary || "",
+          };
+          this.logger.log(`面试邮件 AI 诊断自动生成成功 - round=${roundNumber}`);
+        }
+      }
+      if (existingDiagnosis && !aiDiagnosisData) {
+        aiDiagnosisData = {
+          matchScore: existingDiagnosis.matchScore,
+          matchLevel: existingDiagnosis.matchLevel,
+          strengths: existingDiagnosis.strengths || [],
+          weaknesses: existingDiagnosis.weaknesses || [],
+          suggestions: existingDiagnosis.suggestions || [],
+          questions: existingDiagnosis.questions || [],
+          summary: existingDiagnosis.summary || "",
+        };
+        this.logger.log(`面试邮件将附带 AI 诊断结果 - round=${roundNumber}`);
+      }
+    } catch (error) {
+      this.logger.warn(`获取 AI 诊断结果失败，邮件将不包含诊断 - ${error instanceof Error ? error.message : String(error)}`);
+    }
+
     // 自动发送邮件通知面试官 — 面试安排或时间调整时触发
     try {
-      const interviewer = await this.prisma.user.findUnique({
-        where: { id: roundConfig.interviewerId },
-        select: { id: true, name: true, email: true },
-      });
-      
       if (interviewer?.email) {
         await this.emailService.sendInterviewNotificationToInterviewer({
           candidateName: process.candidate.name,
@@ -215,6 +323,7 @@ export class InterviewProcessService {
           location: createDto.location,
           meetingUrl: createDto.meetingUrl,
           meetingNumber: createDto.meetingNumber,
+          aiDiagnosis: aiDiagnosisData,
         });
         this.logger.log(`面试官邮件通知发送成功：interviewerId=${interviewer.id}, round=${roundNumber}`);
       } else {
@@ -222,6 +331,28 @@ export class InterviewProcessService {
       }
     } catch (error) {
       this.logger.error(`面试官邮件通知发送失败：interviewerId=${roundConfig.interviewerId}`, error as Error);
+    }
+
+    // Feature: 飞书消息提醒面试官（如果已绑定飞书）
+    try {
+      if (interviewer?.feishuOuId) {
+        await this.feishuMessageService.sendInterviewReminder({
+          candidateName: process.candidate.name,
+          positionTitle: process.position.title,
+          interviewerName: interviewer.name,
+          interviewerFeishuOuId: interviewer.feishuOuId,
+          startTime,
+          endTime,
+          roundNumber,
+          format: createDto.format,
+          location: createDto.location,
+          meetingUrl: createDto.meetingUrl,
+          meetingNumber: createDto.meetingNumber,
+          aiDiagnosis: aiDiagnosisData,
+        });
+      }
+    } catch (error) {
+      this.logger.warn(`飞书消息发送失败（不影响主流程）：interviewerId=${roundConfig.interviewerId}`);
     }
 
     // 更新流程状态为进行中（如果是从等待HR状态恢复的）
@@ -244,6 +375,70 @@ export class InterviewProcessService {
       this.logger.log(`站内通知发送成功：interviewerId=${roundConfig.interviewerId}, processId=${processId}`);
     } catch (error) {
       this.logger.error(`站内通知发送失败：interviewerId=${roundConfig.interviewerId}`, error as Error);
+    }
+
+    // 飞书日历同步 — 失败不阻塞流程，仅记录 warning 日志
+    try {
+      const attendeeOuIds: string[] = [];
+      if (interviewer?.feishuOuId) {
+        attendeeOuIds.push(interviewer.feishuOuId);
+      }
+      if (process.createdBy?.feishuOuId) {
+        attendeeOuIds.push(process.createdBy.feishuOuId);
+      }
+
+      if (attendeeOuIds.length > 0) {
+        const title = `[${roundTypeLabel}] 面试 - ${process.candidate.name} - ${process.position.title}`;
+
+        const formatLabel = createDto.format === "ONLINE" ? "线上（腾讯会议）" : "线下";
+        const locationLines: string[] = [];
+        if (createDto.format === "ONLINE") {
+          if (createDto.meetingUrl) locationLines.push(`会议链接：${createDto.meetingUrl}`);
+          if (createDto.meetingNumber) locationLines.push(`会议号：${createDto.meetingNumber}`);
+        } else {
+          if (createDto.location) locationLines.push(`地点：${createDto.location}`);
+        }
+
+        const description = [
+          `候选人：${process.candidate.name}`,
+          process.candidate.phone ? `电话：${process.candidate.phone}` : null,
+          process.candidate.email ? `邮箱：${process.candidate.email}` : null,
+          `面试官：${interviewer?.name || "未指定"}`,
+          `面试方式：${formatLabel}`,
+          ...locationLines,
+          `轮次：第${roundNumber}轮（${roundTypeLabel}）`,
+        ].filter(Boolean).join("\n");
+
+        if (interview.feishuEventId) {
+          // 已存在日程，先删除再创建（确保变更完全同步）
+          await this.feishuCalendarService.deleteEvent(interview.feishuEventId);
+          this.logger.log(`飞书日历旧日程已删除：eventId=${interview.feishuEventId}`);
+        }
+
+        // 创建新日程
+        const eventId = await this.feishuCalendarService.createEvent(
+          title,
+          description,
+          startTime,
+          endTime,
+          attendeeOuIds,
+        );
+        if (eventId) {
+          await this.prisma.interview.update({
+            where: { id: interview.id },
+            data: { feishuEventId: eventId },
+          });
+          this.logger.log(`飞书日历同步创建成功：eventId=${eventId}, interviewId=${interview.id}`);
+        }
+      } else {
+        this.logger.warn(
+          `飞书日历同步跳过：未配置飞书OuId，interviewerId=${roundConfig.interviewerId}, hrId=${process.createdById}`,
+        );
+      }
+    } catch (error) {
+      this.logger.warn(
+        `飞书日历同步失败：processId=${processId}, round=${roundNumber}, reason=${(error as Error).message}`,
+      );
     }
 
     return this.findOne(processId);
@@ -457,10 +652,29 @@ export class InterviewProcessService {
         if (existingInterview) {
           const newInterviewer = await this.prisma.user.findUnique({
             where: { id: updateDto.interviewerId },
-            select: { id: true, name: true, email: true },
+            select: { id: true, name: true, email: true, feishuOuId: true },
           });
 
           if (newInterviewer?.email) {
+            // 获取当前轮次的 AI 诊断结果（如果有）
+            let aiDiagnosisData: any = null;
+            try {
+              const existingDiagnosis = await this.prisma.aIDiagnosis.findUnique({
+                where: { processId_roundNumber: { processId, roundNumber } },
+              });
+              if (existingDiagnosis) {
+                aiDiagnosisData = {
+                  matchScore: existingDiagnosis.matchScore,
+                  matchLevel: existingDiagnosis.matchLevel,
+                  strengths: existingDiagnosis.strengths || [],
+                  weaknesses: existingDiagnosis.weaknesses || [],
+                  suggestions: existingDiagnosis.suggestions || [],
+                  questions: existingDiagnosis.questions || [],
+                  summary: existingDiagnosis.summary || "",
+                };
+              }
+            } catch { /* ignore */ }
+
             await this.emailService.sendInterviewNotificationToInterviewer({
               candidateName: process.candidate.name,
               candidateEmail: process.candidate.email || "",
@@ -474,6 +688,7 @@ export class InterviewProcessService {
               location: existingInterview.location || undefined,
               meetingUrl: existingInterview.meetingUrl || undefined,
               meetingNumber: existingInterview.meetingNumber || undefined,
+              aiDiagnosis: aiDiagnosisData,
             });
             this.logger.log(`面试官更换通知发送成功：oldRound=${roundNumber}, newInterviewerId=${newInterviewer.id}`);
           } else {
@@ -483,6 +698,34 @@ export class InterviewProcessService {
       } catch (error) {
         this.logger.error(`面试官更换邮件通知发送失败：interviewerId=${updateDto.interviewerId}`, error as Error);
       }
+
+      // Feature: 飞书消息通知新面试官（如果已绑定飞书）
+      try {
+        const newInterviewer2 = await this.prisma.user.findUnique({
+          where: { id: updateDto.interviewerId },
+          select: { id: true, name: true, feishuOuId: true },
+        });
+        if (newInterviewer2?.feishuOuId) {
+          const existingInterview2 = await this.prisma.interview.findFirst({
+            where: { processId, roundNumber, status: "SCHEDULED" },
+          });
+          if (existingInterview2) {
+            await this.feishuMessageService.sendInterviewReminder({
+              candidateName: process.candidate.name,
+              positionTitle: process.position.title,
+              interviewerName: newInterviewer2.name,
+              interviewerFeishuOuId: newInterviewer2.feishuOuId,
+              startTime: existingInterview2.startTime,
+              endTime: existingInterview2.endTime,
+              roundNumber,
+              format: existingInterview2.format,
+              location: existingInterview2.location || undefined,
+              meetingUrl: existingInterview2.meetingUrl || undefined,
+              meetingNumber: existingInterview2.meetingNumber || undefined,
+            });
+          }
+        }
+      } catch { /* 飞书消息不影响主流程 */ }
     }
 
     // 验证更新后仍至少3轮

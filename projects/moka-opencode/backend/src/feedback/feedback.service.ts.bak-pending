@@ -108,11 +108,13 @@ export class FeedbackService {
         },
       });
 
-      // 提交反馈即视为面试完成，始终更新状态（不再受 PENDING 限制）
-      await tx.interview.update({
-        where: { id: createDto.interviewId },
-        data: { status: "COMPLETED" },
-      });
+      // 更新面试状态为已完成（在同一事务内）
+      if (createDto.result !== "PENDING") {
+        await tx.interview.update({
+          where: { id: createDto.interviewId },
+          data: { status: "COMPLETED" },
+        });
+      }
 
       return fb;
     });

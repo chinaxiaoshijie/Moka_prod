@@ -63,6 +63,13 @@ COPY prisma ./prisma
 COPY docker-entrypoint.sh ./
 RUN chmod +x docker-entrypoint.sh
 
+# Install lark-cli for Feishu calendar integration
+# Configure npm to use domestic registry first
+RUN npm config set registry https://registry.npmmirror.com/ && \
+    npm install -g @larksuite/cli && \
+    mkdir -p /root/.lark-cli/cache && \
+    chmod -R 755 /root/.lark-cli
+
 # Expose port
 EXPOSE 3001
 

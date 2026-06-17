@@ -3,6 +3,8 @@ import { PrismaService } from "../prisma/prisma.service";
 import { EmailService } from "../email/email.service";
 import { EmailLimitService } from "../email/email-limit.service";
 import { NotificationService } from "../notifications/notification.service";
+import { FeishuCalendarService } from "../feishu/feishu-calendar.service";
+import { FeishuMessageService } from "../feishu/feishu-message.service";
 import { NotificationType } from "@prisma/client";
 import {
   CreateInterviewDto,
@@ -14,12 +16,21 @@ import {
 @Injectable()
 export class InterviewService {
   private readonly logger = new Logger(InterviewService.name);
+
+  // ✅ 仅限 HR 角色进行写操作（创建/更新/删除面试安排）
+  checkHROnly(userRole?: string) {
+    if (userRole !== "HR") {
+      throw new Error("仅 HR 可执行此操作");
+    }
+  }
   
   constructor(
     private prisma: PrismaService,
     private emailService: EmailService,
     private emailLimitService: EmailLimitService,
     private notificationService: NotificationService,
+    private feishuCalendarService: FeishuCalendarService,
+    private feishuMessageService: FeishuMessageService,
   ) {}
 
   async create(createDto: CreateInterviewDto): Promise<InterviewResponseDto> {
@@ -184,8 +195,16 @@ export class InterviewService {
     positionId?: string,
   ): Promise<InterviewListResponseDto> {
     const skip = (page - 1) * pageSize;
+
+    // ✅ 角色权限过滤：面试官只能看到自己的面试
+    const where: any = {};
+    if (userRole === "INTERVIEWER" && userId) {
+      where.interviewerId = userId;
+    }
+
     const [items, total] = await Promise.all([
       this.prisma.interview.findMany({
+        where,
         skip,
         take: pageSize,
         orderBy: { startTime: "asc" },
@@ -201,7 +220,7 @@ export class InterviewService {
           feedbacks: true,
         },
       }),
-      this.prisma.interview.count(),
+      this.prisma.interview.count({ where }),
     ]);
 
     return {
@@ -212,7 +231,7 @@ export class InterviewService {
     };
   }
 
-  async findOne(id: string): Promise<InterviewResponseDto> {
+  async findOne(id: string, userId?: string, userRole?: string): Promise<InterviewResponseDto> {
     const interview = await this.prisma.interview.findUnique({
       where: { id },
       include: {
@@ -229,6 +248,11 @@ export class InterviewService {
 
     if (!interview) {
       throw new Error("面试安排不存在");
+    }
+
+    // ✅ 角色权限校验：面试官只能查看自己的面试
+    if (userRole === "INTERVIEWER" && userId && interview.interviewerId !== userId) {
+      throw new Error("无权查看该面试安排");
     }
 
     return this.mapToResponseDto(interview);
@@ -262,7 +286,11 @@ export class InterviewService {
         candidate: true,
         position: true,
         interviewer: true,
-        process: true,
+        process: {
+          include: {
+            createdBy: true,
+          },
+        },
       },
     });
 
@@ -271,6 +299,30 @@ export class InterviewService {
       try {
         const interviewer = updatedInterview.interviewer;
         if (interviewer?.email) {
+          // 获取当前轮次的 AI 诊断结果（如果有）
+          let aiDiagnosisData: any = null;
+          try {
+            const existingDiagnosis = await this.prisma.aIDiagnosis.findUnique({
+              where: {
+                processId_roundNumber: {
+                  processId: updatedInterview.processId,
+                  roundNumber: updatedInterview.roundNumber,
+                },
+              },
+            });
+            if (existingDiagnosis) {
+              aiDiagnosisData = {
+                matchScore: existingDiagnosis.matchScore,
+                matchLevel: existingDiagnosis.matchLevel,
+                strengths: existingDiagnosis.strengths || [],
+                weaknesses: existingDiagnosis.weaknesses || [],
+                suggestions: existingDiagnosis.suggestions || [],
+                questions: existingDiagnosis.questions || [],
+                summary: existingDiagnosis.summary || "",
+              };
+            }
+          } catch { /* ignore */ }
+
           await this.emailService.sendInterviewNotificationToInterviewer({
             candidateName: updatedInterview.candidate.name,
             candidateEmail: updatedInterview.candidate.email || "",
@@ -284,6 +336,7 @@ export class InterviewService {
             location: updatedInterview.location || undefined,
             meetingUrl: updatedInterview.meetingUrl || undefined,
             meetingNumber: updatedInterview.meetingNumber || undefined,
+            aiDiagnosis: aiDiagnosisData,
           });
           this.logger.log(`面试时间调整/面试官更换通知发送成功：interviewId=${id}, interviewerId=${interviewer.id}`);
         } else {
@@ -309,24 +362,125 @@ export class InterviewService {
       }
     }
 
+    // 飞书消息通知新面试官（如果已绑定飞书）
+    if (timeChanged || interviewerChanged) {
+      try {
+        const interviewer = updatedInterview.interviewer;
+        if (interviewer?.feishuOuId) {
+          let existingDiagnosis = null;
+          try {
+            existingDiagnosis = await this.prisma.aIDiagnosis.findUnique({
+              where: { processId_roundNumber: { processId: updatedInterview.processId, roundNumber: updatedInterview.roundNumber } },
+            });
+          } catch {}
+          
+          await this.feishuMessageService.sendInterviewReminder({
+            candidateName: updatedInterview.candidate.name,
+            positionTitle: updatedInterview.position.title,
+            interviewerName: interviewer.name,
+            interviewerFeishuOuId: interviewer.feishuOuId,
+            startTime: updatedInterview.startTime,
+            endTime: updatedInterview.endTime,
+            roundNumber: updatedInterview.roundNumber,
+            format: updatedInterview.format,
+            location: updatedInterview.location || undefined,
+            meetingUrl: updatedInterview.meetingUrl || undefined,
+            meetingNumber: updatedInterview.meetingNumber || undefined,
+            aiDiagnosis: existingDiagnosis ? {
+              matchScore: existingDiagnosis.matchScore,
+              matchLevel: existingDiagnosis.matchLevel,
+              strengths: existingDiagnosis.strengths || [],
+              weaknesses: existingDiagnosis.weaknesses || [],
+              suggestions: existingDiagnosis.suggestions || [],
+              questions: existingDiagnosis.questions || [],
+              summary: existingDiagnosis.summary || "",
+            } : undefined,
+          });
+          this.logger.log(`飞书消息通知发送成功：interviewId=${id}, interviewerId=${interviewer.id}`);
+        } else {
+          this.logger.warn(`面试官未绑定飞书账号，跳过消息通知：interviewerId=${interviewer?.id}`);
+        }
+      } catch (error) {
+        this.logger.error(`飞书消息通知发送失败：interviewId=${id}`, error as Error);
+      }
+    }
+
+    // 飞书日历同步 — 时间变更或首次创建日程
+    if (timeChanged) {
+      try {
+        const interviewerOuId = updatedInterview.interviewer?.feishuOuId;
+        const hrOuId = updatedInterview.process?.createdBy?.feishuOuId;
+
+        const attendeeOuIds: string[] = [];
+        if (interviewerOuId) attendeeOuIds.push(interviewerOuId);
+        if (hrOuId) attendeeOuIds.push(hrOuId);
+
+        if (attendeeOuIds.length > 0) {
+          const roundTypeLabel =
+            updatedInterview.type === "INTERVIEW_3"
+              ? "终试"
+              : updatedInterview.type === "INTERVIEW_1"
+              ? "初试"
+              : "复试";
+          const title = `[${roundTypeLabel}] 面试 - ${updatedInterview.candidate.name} - ${updatedInterview.position.title}`;
+
+          const formatLabel = updatedInterview.format === "ONLINE" ? "线上（腾讯会议）" : "线下";
+          const locationLines: string[] = [];
+          if (updatedInterview.format === "ONLINE") {
+            if (updatedInterview.meetingUrl) locationLines.push(`会议链接：${updatedInterview.meetingUrl}`);
+            if (updatedInterview.meetingNumber) locationLines.push(`会议号：${updatedInterview.meetingNumber}`);
+          } else {
+            if (updatedInterview.location) locationLines.push(`地点：${updatedInterview.location}`);
+          }
+
+          const description = [
+            `候选人：${updatedInterview.candidate.name}`,
+            updatedInterview.candidate.phone ? `电话：${updatedInterview.candidate.phone}` : null,
+            updatedInterview.candidate.email ? `邮箱：${updatedInterview.candidate.email}` : null,
+            `面试官：${updatedInterview.interviewer?.name || "未指定"}`,
+            `面试方式：${formatLabel}`,
+            ...locationLines,
+            updatedInterview.roundNumber ? `轮次：第${updatedInterview.roundNumber}轮（${roundTypeLabel}）` : null,
+          ].filter(Boolean).join("\n");
+
+          // 先删除旧日程（如果存在）
+          if (updatedInterview.feishuEventId) {
+          await this.feishuCalendarService.deleteEvent(updatedInterview.feishuEventId);
+          }
+          this.logger.log(`飞书日历旧日程已删除：eventId=${updatedInterview.feishuEventId}`);
+
+          // 创建新日程
+          const newEventId = await this.feishuCalendarService.createEvent(
+            title,
+            description,
+            updatedInterview.startTime,
+            updatedInterview.endTime,
+            attendeeOuIds,
+          );
+          if (newEventId) {
+            await this.prisma.interview.update({
+              where: { id },
+              data: { feishuEventId: newEventId },
+            });
+          }
+          this.logger.log(`飞书日历重建成功：newEventId=${newEventId}, interviewId=${id}`);
+        }
+      } catch (error) {
+        this.logger.warn(`飞书日历同步更新失败：interviewId=${id}, reason=${(error as Error).message}`);
+      }
+    }
+
     return this.mapToResponseDto(updatedInterview);
   }
 
   async remove(id: string): Promise<InterviewResponseDto> {
     const interview = await this.prisma.interview.findUnique({
       where: { id },
-      include: {
-        process: true,
-      },
     });
 
     if (!interview) {
       throw new Error("面试安排不存在");
     }
-
-    // Save process info before delete for status cleanup
-    const processId = interview.processId;
-    const candidateId = interview.candidateId;
 
     const deletedInterview = await this.prisma.interview.delete({
       where: { id },
@@ -337,37 +491,28 @@ export class InterviewService {
       },
     });
 
-    // After delete: if no interviews remain in this process, reset candidate status to PENDING
-    if (processId) {
-      const remainingInterviews = await this.prisma.interview.count({
-        where: { processId },
-      });
+    return this.mapToResponseDto(deletedInterview);
+  }
 
-      if (remainingInterviews === 0) {
-        this.logger.log(`Process ${processId} has no interviews left, resetting candidate status`);
-
-        // Reset candidate status to PENDING (bypass transition check)
-        await this.prisma.candidate.update({
-          where: { id: candidateId },
-          data: { status: "PENDING" },
-        });
-
-        // Record status change history
-        await this.prisma.candidateStatusHistory.create({
-          data: {
-            candidateId,
-            oldStatus: deletedInterview.candidate.status as any,
-            newStatus: "PENDING",
-            changedBy: "system",
-            reason: "All interviews deleted, reset to pending",
-          },
-        });
-
-        this.logger.log(`Candidate ${candidateId} status reset to PENDING`);
-      }
+  /**
+   * 处理面试取消 — 同步删除飞书日历日程
+   * @param interviewId 面试ID
+   * @param feishuEventId 飞书日程ID
+   */
+  async handleInterviewCancel(interviewId: string, feishuEventId: string): Promise<void> {
+    if (!feishuEventId) {
+      this.logger.warn(`飞书日历取消跳过：无日程ID，interviewId=${interviewId}`);
+      return;
     }
 
-    return this.mapToResponseDto(deletedInterview);
+    try {
+      await this.feishuCalendarService.deleteEvent(feishuEventId);
+      this.logger.log(`飞书日历同步删除成功：eventId=${feishuEventId}, interviewId=${interviewId}`);
+    } catch (error) {
+      this.logger.warn(
+        `飞书日历同步删除失败：interviewId=${interviewId}, eventId=${feishuEventId}, reason=${(error as Error).message}`,
+      );
+    }
   }
 
   /**

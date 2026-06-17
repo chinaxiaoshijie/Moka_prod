@@ -28,8 +28,8 @@ export class EmailLimitService {
   /**
    * 检查是否允许发送邮件
    * 限制规则：
-   * 1. 同一面试 1 小时内不能重复发送
-   * 2. 同一候选人 24 小时内最多发送 5 封邮件
+   * 1. 同一候选人 24 小时内最多发送 5 封邮件
+   *    （已移除 1 小时限制，允许面试时间变更后立即重发邮件）
    */
   async checkEmailLimit(
     interviewId: string,
@@ -37,25 +37,6 @@ export class EmailLimitService {
   ): Promise<EmailLimitCheck> {
     const now = new Date();
     
-    // 检查 1 小时内是否已发送
-    const oneHourAgo = new Date(now.getTime() - 60 * 60 * 1000);
-    const recentEmail = await this.prisma.interviewEmailLog.findFirst({
-      where: {
-        interviewId,
-        sentAt: { gte: oneHourAgo },
-        status: 'sent',
-      },
-      orderBy: { sentAt: 'desc' },
-    });
-
-    if (recentEmail) {
-      return {
-        allowed: false,
-        reason: '同一面试 1 小时内不能重复发送',
-        lastSentAt: recentEmail.sentAt,
-      };
-    }
-
     // 检查 24 小时内发送次数
     const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
     const sentCount24h = await this.prisma.interviewEmailLog.count({

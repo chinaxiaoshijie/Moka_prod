@@ -12,6 +12,7 @@ import {
   HttpException,
   HttpStatus,
   UseGuards,
+  Req,
 } from "@nestjs/common";
 import {
   ApiTags,
@@ -40,16 +41,20 @@ export class InterviewController {
   async findAll(
     @Query("page", new DefaultValuePipe(1), ParseIntPipe) page?: number,
     @Query("pageSize", new DefaultValuePipe(10), ParseIntPipe) pageSize?: number,
+    @Req() req?: any,
   ): Promise<InterviewListResponseDto> {
-    return this.interviewService.findAll(page, pageSize);
+    return this.interviewService.findAll(page, pageSize, req?.user?.sub, req?.user?.role);
   }
 
   @Get(":id")
   @ApiOperation({ summary: "获取单个面试" })
-  async findOne(@Param("id") id: string): Promise<InterviewResponseDto> {
+  async findOne(@Param("id") id: string, @Req() req?: any): Promise<InterviewResponseDto> {
     try {
-      return await this.interviewService.findOne(id);
+      return await this.interviewService.findOne(id, req?.user?.sub, req?.user?.role);
     } catch (error: any) {
+      if (error.message === "无权查看该面试安排") {
+        throw new HttpException(error.message, HttpStatus.FORBIDDEN);
+      }
       throw new HttpException(error.message, HttpStatus.NOT_FOUND);
     }
   }
@@ -58,7 +63,9 @@ export class InterviewController {
   @ApiOperation({ summary: "创建面试" })
   async create(
     @Body() createDto: CreateInterviewDto,
+    @Req() req?: any,
   ): Promise<InterviewResponseDto> {
+    this.interviewService.checkHROnly(req?.user?.role);
     return await this.interviewService.create(createDto);
   }
 
@@ -67,8 +74,10 @@ export class InterviewController {
   async update(
     @Param("id") id: string,
     @Body() updateDto: UpdateInterviewDto,
+    @Req() req?: any,
   ): Promise<InterviewResponseDto> {
     try {
+      this.interviewService.checkHROnly(req?.user?.role);
       return await this.interviewService.update(id, updateDto);
     } catch (error: any) {
       throw new HttpException(error.message, HttpStatus.NOT_FOUND);
@@ -77,8 +86,9 @@ export class InterviewController {
 
   @Delete(":id")
   @ApiOperation({ summary: "删除面试" })
-  async remove(@Param("id") id: string): Promise<InterviewResponseDto> {
+  async remove(@Param("id") id: string, @Req() req?: any): Promise<InterviewResponseDto> {
     try {
+      this.interviewService.checkHROnly(req?.user?.role);
       return await this.interviewService.remove(id);
     } catch (error: any) {
       throw new HttpException(error.message, HttpStatus.NOT_FOUND);

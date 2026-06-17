@@ -29,5 +29,6 @@ export class AuthResponseDto {
     name: string;
     email: string | null;
     role: string;
+    feishuOuId: string | null;
   };
 }
