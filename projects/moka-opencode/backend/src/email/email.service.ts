@@ -100,15 +100,16 @@ export class EmailService {
   }
 
   /**
-   * 格式化会议链接：自动补全 https:// 前缀，确保 <a href> 可点击
+   * 格式化会议链接：自动补全 https:// 前缀 + encodeURI 编码，
+   * 确保邮件客户端能识别为可点击链接
    */
   private formatMeetingUrl(url: string | undefined | null): string {
     if (!url) return "";
-    // 已有协议头，直接返回
-    if (/^https?:\/\//i.test(url)) return url;
-    // 去掉开头的 # 号（防止被邮件客户端当作锚点），补全 https://
+    // 已有协议头，直接 encodeURI
+    if (/^https?:\/\//i.test(url)) return encodeURI(url);
+    // 去掉开头的 # 号，补全 https:// 并 encodeURI
     const cleaned = url.replace(/^#/, "");
-    return `https://${cleaned}`;
+    return encodeURI(`https://${cleaned}`);
   }
 
   private async sendEmail(
