@@ -99,6 +99,18 @@ export class EmailService {
     }
   }
 
+  /**
+   * 格式化会议链接：自动补全 https:// 前缀，确保 <a href> 可点击
+   */
+  private formatMeetingUrl(url: string | undefined | null): string {
+    if (!url) return "";
+    // 已有协议头，直接返回
+    if (/^https?:\/\//i.test(url)) return url;
+    // 去掉开头的 # 号（防止被邮件客户端当作锚点），补全 https://
+    const cleaned = url.replace(/^#/, "");
+    return `https://${cleaned}`;
+  }
+
   private async sendEmail(
     to: string,
     subject: string,
@@ -227,7 +239,7 @@ export class EmailService {
     <p><strong>职位：</strong>${data.positionTitle}</p>
     <p><strong>时间：</strong>${this.formatDateTime(data.startTime)} - ${this.formatTime(data.endTime)}</p>
     <p><strong>形式：</strong>${formatText}</p>
-    <p><strong>${data.format === "ONLINE" ? "会议链接" : "面试地点"}：</strong>${data.format === "ONLINE" ? data.meetingUrl : data.location}</p>
+    <p><strong>${data.format === "ONLINE" ? "会议链接" : "面试地点"}：</strong>${data.format === "ONLINE" ? `<a href="${this.formatMeetingUrl(data.meetingUrl)}">${data.meetingUrl}</a>` : data.location}</p>
     <p><strong>面试官：</strong>${data.interviewerName}</p>
   </div>
   
@@ -366,7 +378,7 @@ ${diagnosisText}
     <p><strong>轮次：</strong>${data.roundNumber ? `第${data.roundNumber}轮` : "待定"}</p>
     <p><strong>时间：</strong>${this.formatDateTime(data.startTime)} - ${this.formatTime(data.endTime)}</p>
     <p><strong>形式：</strong>${formatText}</p>
-    <p><strong>${data.format === "ONLINE" ? "会议链接" : "面试地点"}：</strong>${data.format === "ONLINE" ? `<a href="${data.meetingUrl}">${data.meetingUrl}</a>` : data.location}</p>
+    <p><strong>${data.format === "ONLINE" ? "会议链接" : "面试地点"}：</strong>${data.format === "ONLINE" ? `<a href="${this.formatMeetingUrl(data.meetingUrl)}">${data.meetingUrl}</a>` : data.location}</p>
   </div>
   
   <p>请在面试结束后及时填写面试反馈。</p>
