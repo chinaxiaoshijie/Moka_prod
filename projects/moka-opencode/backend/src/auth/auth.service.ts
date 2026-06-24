@@ -44,6 +44,23 @@ export class AuthService {
       throw new UnauthorizedException("用户名或密码错误");
     }
 
+    // 校验用户是否已停用
+    if (!user.isActive) {
+      this.prisma.loginLog.create({
+        data: {
+          userId: user.id,
+          username: user.username,
+          userName: user.name || "",
+          userRole: user.role,
+          ipAddress: ip,
+          userAgent: ua,
+          success: false,
+          failReason: "用户已停用",
+        },
+      }).catch(() => {});
+      throw new UnauthorizedException("账号已停用，请联系管理员");
+    }
+
     // Log successful login (fire-and-forget)
     this.prisma.loginLog.create({
       data: {
@@ -91,6 +108,7 @@ export class AuthService {
         role: true,
         avatarUrl: true,
         feishuOuId: true,
+        isActive: true,
       },
     });
 
@@ -98,7 +116,12 @@ export class AuthService {
       throw new UnauthorizedException("用户不存在");
     }
 
-    return user;
+    if (!user.isActive) {
+      throw new UnauthorizedException("账号已停用");
+    }
+
+    const { isActive, ...userInfo } = user;
+    return userInfo;
   }
 
   async findUsers(role?: string): Promise<any[]> {

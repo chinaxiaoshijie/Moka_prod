@@ -18,13 +18,18 @@ import { FeishuMessageService } from "../feishu/feishu-message.service";
     PassportModule.register({ defaultStrategy: "jwt" }),
     JwtModule.registerAsync({
       imports: [ConfigModule],
-      useFactory: async (configService: ConfigService) => ({
-        secret: configService.get<string>("JWT_SECRET") || "dev-secret",
-        signOptions: {
-          expiresIn:
-            configService.get<string>("JWT_EXPIRES_IN") || ("7d" as any),
-        },
-      }),
+      useFactory: async (configService: ConfigService) => {
+        const secret = configService.get<string>("JWT_SECRET");
+        if (!secret || secret.length < 16) {
+          throw new Error("JWT_SECRET must be set (min 16 characters). Use: openssl rand -hex 32");
+        }
+        return {
+          secret,
+          signOptions: {
+            expiresIn: (configService.get<string>("JWT_EXPIRES_IN") || "7d") as any,
+          },
+        };
+      },
       inject: [ConfigService],
     }),
   ],

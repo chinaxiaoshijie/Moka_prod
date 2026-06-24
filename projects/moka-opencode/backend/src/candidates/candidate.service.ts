@@ -292,6 +292,15 @@ export class CandidateService {
     return resumes;
   }
 
+  // ✅ 检查面试官是否有权访问某候选人的简历
+  async checkResumeAccess(candidateId: string, userId: string): Promise<boolean> {
+    const hasAccess = await this.prisma.interview.findFirst({
+      where: { candidateId, interviewerId: userId },
+      select: { id: true },
+    });
+    return !!hasAccess;
+  }
+
   async getResumeFile(resumeId: string) {
     // 验证 resumeId 格式，防止路径遍历攻击
     if (!/^[a-zA-Z0-9-]+$/.test(resumeId)) {

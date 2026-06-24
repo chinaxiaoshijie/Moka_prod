@@ -1,6 +1,4 @@
 import { Module } from "@nestjs/common";
-import { JwtModule } from "@nestjs/jwt";
-import { ConfigModule, ConfigService } from "@nestjs/config";
 import { InterviewProcessController } from "./interview-process.controller";
 import { InterviewProcessService } from "./interview-process.service";
 import { PrismaModule } from "../prisma/prisma.module";
@@ -20,13 +18,6 @@ import { AIDiagnosisModule } from "../ai-diagnosis/ai-diagnosis.module";
     NotificationModule,
     FeishuCalendarModule,
     AIDiagnosisModule,
-    JwtModule.registerAsync({
-      imports: [ConfigModule],
-      useFactory: async (configService: ConfigService) => ({
-        secret: configService.get<string>("JWT_SECRET") || "dev-secret",
-      }),
-      inject: [ConfigService],
-    }),
   ],
   controllers: [InterviewProcessController],
   providers: [InterviewProcessService],

@@ -217,34 +217,30 @@ export class CandidateController {
     }
   }
 
-  @Get("public/resumes/:resumeId")
-  @ApiOperation({ summary: "公开下载简历文件（无需认证）" })
-  @Public()  // 跳过认证
-  async downloadResumePublic(
-    @Param("resumeId") resumeId: string,
-    @Res() res: Response,
-  ) {
-    const resume = await this.candidateService.getResumeFile(resumeId);
-    
-    res.setHeader("Content-Type", resume.fileType);
-    res.setHeader(
-      "Content-Disposition",
-      `inline; filename="${encodeURIComponent(resume.fileName)}"`,
-    );
-    
-    const fs = await import("fs");
-    const fileStream = fs.createReadStream(resume.filePath);
-    fileStream.pipe(res);
-  }
-
   @Get(":id/resumes/:resumeId")
   @ApiOperation({ summary: "下载或预览简历文件" })
   async downloadResume(
     @Param("id") candidateId: string,
     @Param("resumeId") resumeId: string,
     @Res() res: Response,
+    @Req() req?: any,
   ) {
+    // HR 可下载所有简历，面试官只能下载自己有权限的候选人的简历
+    if (req?.user?.role === "INTERVIEWER") {
+      const hasAccess = await this.candidateService.checkResumeAccess(
+        candidateId,
+        req.user.sub,
+      );
+      if (!hasAccess) {
+        throw new HttpException("无权下载该候选人简历", HttpStatus.FORBIDDEN);
+      }
+    }
+
     const resume = await this.candidateService.getResumeFile(resumeId);
+    // 校验简历归属
+    if (resume.candidateId !== candidateId) {
+      throw new HttpException("简历不属于该候选人", HttpStatus.NOT_FOUND);
+    }
 
     res.setHeader("Content-Type", resume.fileType);
     res.setHeader(
