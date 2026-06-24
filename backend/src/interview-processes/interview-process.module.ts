@@ -18,6 +18,13 @@ import { AIDiagnosisModule } from "../ai-diagnosis/ai-diagnosis.module";
     NotificationModule,
     FeishuCalendarModule,
     AIDiagnosisModule,
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      useFactory: async (configService: ConfigService) => ({
+        secret: configService.get<string>("JWT_SECRET") || "dev-secret",
+      }),
+      inject: [ConfigService],
+    }),
   ],
   controllers: [InterviewProcessController],
   providers: [InterviewProcessService],

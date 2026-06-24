@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Moka - 智能招聘管理平台",
+  title: "码隆智能 - 智能招聘管理平台",
   description: "高效管理职位发布、候选人筛选、面试流程与反馈评估",
 };
 

@@ -107,6 +107,11 @@ export class InterviewProcessService {
       .then(() => this.logger.log(`初面 AI 诊断自动生成完成 - processId=${process.id}`))
       .catch((err) => this.logger.warn(`初面 AI 诊断自动生成失败: ${err?.message || err}`));
 
+    // 自动触发初面 AI 诊断（fire-and-forget，不阻塞返回）
+    this.aiDiagnosisService.generateForRound(process.id, 1)
+      .then(() => this.logger.log(`初面 AI 诊断自动生成完成 - processId=${process.id}`))
+      .catch((err) => this.logger.warn(`初面 AI 诊断自动生成失败: ${err?.message || err}`));
+
     return this.findOne(process.id);
   }
 

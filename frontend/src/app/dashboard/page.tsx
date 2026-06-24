@@ -3,7 +3,10 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import MainLayout from "@/components/MainLayout";
+import FeishuBindModal from "@/components/FeishuBindModal";
 import { apiFetch } from "@/lib/api";
+
+const FEISHU_BIND_DISMISSED_KEY = "moka_feishu_bind_dismissed";
 
 interface User {
   id: string;
@@ -11,6 +14,7 @@ interface User {
   name: string;
   email: string | null;
   role: "HR" | "INTERVIEWER";
+  feishuOuId?: string | null;
 }
 
 interface CandidateItem {
@@ -24,11 +28,14 @@ interface CandidateItem {
 }
 
 const statusMap: Record<string, { label: string; color: string; bg: string }> = {
-  PENDING: { label: "待筛选", color: "text-[#d48806]", bg: "bg-[#fffbe6]" },
+  PENDING: { label: "待处理", color: "text-[#d48806]", bg: "bg-[#fffbe6]" },
   SCREENING: { label: "筛选中", color: "text-[#1890ff]", bg: "bg-[#e6f7ff]" },
+  INTERVIEW_1: { label: "初试", color: "text-[#722ed1]", bg: "bg-[#f9f0ff]" },
+  INTERVIEW_2: { label: "复试", color: "text-[#722ed1]", bg: "bg-[#f9f0ff]" },
+  INTERVIEW_3: { label: "终试", color: "text-[#722ed1]", bg: "bg-[#f9f0ff]" },
   INTERVIEW: { label: "面试中", color: "text-[#722ed1]", bg: "bg-[#f9f0ff]" },
   OFFER: { label: "已发Offer", color: "text-[#52c41a]", bg: "bg-[#f6ffed]" },
-  HIRED: { label: "已入职", color: "text-[#389e0d]", bg: "bg-[#f6ffed]" },
+  HIRED: { label: "已录用", color: "text-[#389e0d]", bg: "bg-[#f6ffed]" },
   REJECTED: { label: "已淘汰", color: "text-[#ff4d4f]", bg: "bg-[#fff2f0]" },
 };
 
@@ -44,6 +51,9 @@ export default function DashboardPage() {
   });
   const [candidates, setCandidates] = useState<CandidateItem[]>([]);
 
+  // 飞书绑定引导
+  const [showFeishuBind, setShowFeishuBind] = useState(false);
+
   useEffect(() => {
     const init = async () => {
       const userData = localStorage.getItem("user");
@@ -55,7 +65,15 @@ export default function DashboardPage() {
       }
 
       try {
-        setUser(JSON.parse(userData));
+        const parsedUser = JSON.parse(userData);
+        setUser(parsedUser);
+
+        // 检查是否需要弹出飞书绑定引导
+        const hasFeishuOuId = parsedUser?.feishuOuId;
+        const dismissed = localStorage.getItem(FEISHU_BIND_DISMISSED_KEY);
+        if (!hasFeishuOuId && !dismissed) {
+          setShowFeishuBind(true);
+        }
       } catch {
         window.location.href = "/login";
         return;
@@ -331,7 +349,7 @@ export default function DashboardPage() {
                     return (
                       <tr
                         key={c.id}
-                        onClick={() => router.push(`/candidates`)}
+                        onClick={() => router.push("/candidates")}
                         className={`border-b border-[#f0f0f0] last:border-b-0 cursor-pointer hover:bg-[#e6f7ff] transition-colors ${
                           idx % 2 === 1 ? "bg-[#fafafa]" : "bg-white"
                         }`}
@@ -364,6 +382,24 @@ export default function DashboardPage() {
           </div>
         )}
       </div>
+
+      {/* 飞书绑定引导弹窗 */}
+      <FeishuBindModal
+        isOpen={showFeishuBind}
+        onClose={() => setShowFeishuBind(false)}
+        onBound={() => {
+          setShowFeishuBind(false);
+          // 刷新用户信息
+          const userData = localStorage.getItem("user");
+          if (userData) {
+            setUser(JSON.parse(userData));
+          }
+        }}
+        onSkip={() => {
+          localStorage.setItem("moka_feishu_bind_dismissed", Date.now().toString());
+          setShowFeishuBind(false);
+        }}
+      />
     </MainLayout>
   );
 }

@@ -78,7 +78,7 @@ const interviewerNavItems = [
   { path: "/my-interviews", label: "我的面试", iconKey: "myInterviews" },
 ];
 
-/* Moka mountain logo — white on dark bg */
+/* 码隆智能 Logo — white on dark bg */
 const MokaLogo = () => (
   <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
     <rect width="32" height="32" rx="8" fill="#1890ff" />
@@ -128,7 +128,7 @@ export default function Sidebar() {
         <div className="flex items-center gap-2.5">
           <MokaLogo />
           <div>
-            <p className="text-[14px] font-bold text-white leading-tight">Moka招聘</p>
+            <p className="text-[14px] font-bold text-white leading-tight">码隆智能面试</p>
             <p className="text-[11px] text-[#ffffff66] leading-tight mt-0.5">用人经理端</p>
           </div>
         </div>
