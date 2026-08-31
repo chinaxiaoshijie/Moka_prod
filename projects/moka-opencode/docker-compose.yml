@@ -43,7 +43,7 @@ services:
       - "${BACKEND_PORT}:3001"
     environment:
       - NODE_ENV=production
-      - DATABASE_URL=postgresql://moka:ac709f2731f2c284e83cd7721ffc400ef8048f176a65097485864b53e48266ad@172.17.0.1:5433/moka_db
+      - DATABASE_URL=postgresql://moka:ac709f2731f2c284e83cd7721ffc400ef8048f176a65097485864b53e48266ad@moka-postgres:5432/moka_db
       - JWT_SECRET=moka-secret-2026-production-key
       - JWT_EXPIRES_IN=${JWT_EXPIRES_IN}
       - PORT=3001

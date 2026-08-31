@@ -207,7 +207,7 @@ export class InterviewService {
         where,
         skip,
         take: pageSize,
-        orderBy: { startTime: "asc" },
+        orderBy: { createdAt: "desc" },
         include: {
           candidate: true,
           position: true,

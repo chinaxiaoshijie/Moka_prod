@@ -1,0 +1,18 @@
+# Backup files (binary)
+backups/*.sql.gz
+backups/backup.log
+
+# Backup scripts (keep moka-backup.sh, ignore others)
+*.backup
+*.backup2
+*.bak
+
+# Environment backups
+.env.backup*
+
+# Docker data
+docker/postgres/data/
+
+# OS files
+.DS_Store
+Thumbs.db
